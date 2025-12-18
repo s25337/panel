@@ -1,0 +1,19 @@
+{
+  "expo": {
+    "name": "leafcore-panel",
+    "slug": "leafcore-panel",
+    "version": "1.0.0",
+    "orientation": "landscape",
+    "userInterfaceStyle": "dark",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTabletMode": true,
+      "requireFullScreen": true
+    },
+    "android": {
+      "screenOrientation": "landscape"
+    }
+  }
+}
