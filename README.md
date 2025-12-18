@@ -168,12 +168,3 @@ npm run build
 ```bash
 npm run lint
 ```
-
-## License
-
-MIT
-
-## Author
-
-Created with ❤️ for plant lovers
-
