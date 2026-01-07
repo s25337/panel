@@ -1,0 +1,6 @@
+# config.py
+
+TEMP_HUMIDITY_SENSOR_PIN = 4
+FAN_PIN = 17
+LIGHT_PIN = 27
+PUMP_PIN = 22

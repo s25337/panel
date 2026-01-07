@@ -1,0 +1,7 @@
+{
+  "light_hours": 12.0,
+  "target_temp": 50.0,
+  "target_hum": 60.0,
+  "water_times": 3,
+  "water_seconds": 1
+}
