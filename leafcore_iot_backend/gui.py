@@ -1,6 +1,7 @@
 # gui_tk.py
 import json
 from pathlib import Path
+from typing import Optional
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime, date
@@ -206,7 +207,7 @@ class GreenhouseApp:
         except Exception as e:
             self.log(f"Błąd zapisu {SETTINGS_PATH.name}: {e}")
 
-    def _collect_settings_from_fields(self) -> dict | None:
+    def _collect_settings_from_fields(self) -> Optional[dict]:
         # walidacja
         light_hours = _parse_float(self.var_light_hours.get(), None)
         target_temp = _parse_float(self.var_target_temp.get(), None)

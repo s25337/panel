@@ -69,6 +69,79 @@ const apiService = {
       return { status: 'error' };
     }
   },
+
+  /**
+   * Pobiera aktualne ustawienia docelowe
+   */
+  async getSettings() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/settings`);
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      return { target_temp: 25, target_hum: 60 };
+    }
+  },
+
+  /**
+   * Aktualizuje ustawienia docelowe
+   * @param {object} settings - { target_temp?: number, target_hum?: number }
+   */
+  async updateSettings(settings) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(settings),
+      });
+      if (!response.ok) throw new Error('Failed to update settings');
+      return await response.json();
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      return { status: 'error' };
+    }
+  },
+
+  /**
+   * Pobiera czas do następnego podlewania
+   */
+  async getWateringTimer() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/watering-timer`);
+      if (!response.ok) throw new Error('Failed to fetch watering timer');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching watering timer:', error);
+      return { 
+        days: 2, 
+        hours: 10, 
+        minutes: 0, 
+        seconds: 0,
+        interval_seconds: 0
+      };
+    }
+  },
+
+  /**
+   * Pobiera harmonogram światła
+   */
+  async getLightSchedule() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/light-schedule`);
+      if (!response.ok) throw new Error('Failed to fetch light schedule');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching light schedule:', error);
+      return { 
+        light_hours: 12,
+        start_hour: 6,
+        start_minute: 0,
+        end_hour: 18,
+        end_minute: 0
+      };
+    }
+  },
 };
 
 export default apiService;

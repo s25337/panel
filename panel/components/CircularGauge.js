@@ -151,7 +151,6 @@ const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#252525',
     borderRadius: 16,
     overflow: 'hidden',
     position: 'relative',
@@ -170,13 +169,13 @@ const styles = StyleSheet.create({
     pointerEvents: 'none',
   },
   value: {
-    fontSize: 42,
+    fontSize: 52,
     fontWeight: '300',
     color: '#ffffff',
     letterSpacing: 1,
   },
   unit: {
-    fontSize: 12,
+    fontSize: 16,
     color: '#999999',
     marginTop: 2,
   },
