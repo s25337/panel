@@ -277,6 +277,14 @@ def get_pump_state() -> bool:
     return _backend._pump_state
 
 
+def get_heater_state() -> bool:
+    return _backend._heater_state
+
+
+def get_sprinkler_state() -> bool:
+    return _backend._sprinkler_state
+
+
 def cleanup() -> None:
     _backend.cleanup()
 
