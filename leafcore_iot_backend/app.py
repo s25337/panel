@@ -5,7 +5,7 @@ from flask_cors import CORS
 import devices
 import threading
 import time
-from config import load_settings, save_settings, calculate_watering_interval, format_time_remaining, should_light_be_on, get_light_schedule
+from config import load_settings, save_settings, load_manual_settings, save_manual_settings, calculate_watering_interval, format_time_remaining, should_light_be_on, get_light_schedule
 
 app = Flask(__name__)
 
@@ -41,10 +41,23 @@ def get_sensors():
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Zwraca status wszystkich urządzeń"""
-    # Pobierz ustawienia i dane czujników
     settings = load_settings()
+    manual_settings = load_manual_settings()
     temp, hum = devices.read_sensor()
+    is_manual = manual_settings.get("is_manual", False)
     
+    # Jeśli manual mode jest ON, zwróć rzeczywiste stany urządzeń
+    if is_manual:
+        return jsonify({
+            "fan": manual_settings.get("fan", False),
+            "light": manual_settings.get("light", False),
+            "pump": manual_settings.get("pump", False),
+            "heater": manual_settings.get("heater", False),
+            "sprinkler": manual_settings.get("sprinkler", False),
+            "manual_mode": True
+        })
+    
+    # W trybie automatycznym - zastosuj logikę automatyczną
     # Sprawdź czy światło powinno być włączone
     light_hours = settings.get("light_hours", 12)
     light_should_be_on = should_light_be_on(light_hours)
@@ -67,7 +80,10 @@ def get_status():
     return jsonify({
         "fan": devices.get_fan_state(),
         "light": devices.get_light_state(),
-        "pump": devices.get_pump_state()
+        "pump": devices.get_pump_state(),
+        "heater": devices.get_heater_state(),
+        "sprinkler": devices.get_sprinkler_state(),
+        "manual_mode": False
     })
 
 @app.route("/api/control", methods=["POST"])
@@ -88,15 +104,30 @@ def control():
 def control_device(device, state):
     """Steruj konkretnym urządzeniem: /api/control/light/on"""
     state_bool = state.lower() in ["on", "true", "1"]
+    manual_settings = load_manual_settings()
     
     if device == "fan":
         devices.set_fan(state_bool)
+        manual_settings["fan"] = state_bool
     elif device == "light":
         devices.set_light(state_bool)
+        manual_settings["light"] = state_bool
     elif device == "pump":
         devices.set_pump(state_bool)
+        manual_settings["pump"] = state_bool
+    elif device == "heater":
+        devices.set_heater(state_bool)
+        manual_settings["heater"] = state_bool
+    elif device == "sprinkler":
+        devices.set_sprinkler(state_bool)
+        manual_settings["sprinkler"] = state_bool
+    elif device == "manual_mode":
+        manual_settings["is_manual"] = state_bool
     else:
         return jsonify({"error": "Unknown device"}), 400
+    
+    # Zapisz do manual_settings JSON
+    save_manual_settings(manual_settings)
     
     return jsonify({"status": "OK", "device": device, "state": state_bool})
 
@@ -167,6 +198,35 @@ def get_light_schedule_info():
         "end_hour": schedule["end_hour"],
         "end_minute": schedule["end_minute"]
     })
+
+@app.route("/api/manual-settings", methods=["GET"])
+def get_manual_settings():
+    """Zwraca manualne ustawienia urządzeń"""
+    manual_settings = load_manual_settings()
+    return jsonify(manual_settings)
+
+@app.route("/api/manual-settings", methods=["POST"])
+def update_manual_settings():
+    """Aktualizuje manualne ustawienia"""
+    data = request.json
+    manual_settings = load_manual_settings()
+    
+    # Aktualizuj wszystkie pola które są w JSON
+    if "is_manual" in data:
+        manual_settings["is_manual"] = bool(data["is_manual"])
+    if "light" in data:
+        manual_settings["light"] = bool(data["light"])
+    if "heater" in data:
+        manual_settings["heater"] = bool(data["heater"])
+    if "fan" in data:
+        manual_settings["fan"] = bool(data["fan"])
+    if "pump" in data:
+        manual_settings["pump"] = bool(data["pump"])
+    if "sprinkler" in data:
+        manual_settings["sprinkler"] = bool(data["sprinkler"])
+    
+    save_manual_settings(manual_settings)
+    return jsonify({"status": "OK", "settings": manual_settings})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
