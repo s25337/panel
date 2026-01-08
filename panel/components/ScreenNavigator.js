@@ -3,18 +3,26 @@ import { View, Animated, PanResponder, Dimensions } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 
-const ScreenNavigator = ({ screens = [] }) => {
+const ScreenNavigator = ({ screens = [], onScreenChange = () => {} }) => {
   const [currentScreen, setCurrentScreen] = useState(0);
   const xOffset = useRef(new Animated.Value(0)).current;
+  
+  // Powiadom parent o zmianie ekranu
+  React.useEffect(() => {
+    onScreenChange(currentScreen);
+  }, [currentScreen]);
   const panResponder = useRef(
     PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (evt, gestureState) => {
+        // Tylko pan-y w kierunku horyzontalnym (swipe), ignoruj pionowe
+        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
+      },
       onPanResponderMove: (evt, gestureState) => {
         xOffset.setValue(gestureState.dx);
       },
       onPanResponderRelease: (evt, gestureState) => {
-        const swipeThreshold = screenWidth * 0.25;
+        const swipeThreshold = screenWidth * 0.5;
 
         let newScreen = currentScreen;
 

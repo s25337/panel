@@ -23,6 +23,8 @@ class BaseBackend:
         self._fan_state = False
         self._light_state = False
         self._pump_state = False
+        self._heater_state = False
+        self._sprinkler_state = False
 
     # OUTPUTS
     def set_fan(self, state: bool) -> None:
@@ -33,6 +35,12 @@ class BaseBackend:
 
     def set_pump(self, state: bool) -> None:
         self._pump_state = bool(state)
+
+    def set_heater(self, state: bool) -> None:
+        self._heater_state = bool(state)
+
+    def set_sprinkler(self, state: bool) -> None:
+        self._sprinkler_state = bool(state)
 
     # INPUTS
     def read_sensor(self) -> Tuple[Optional[float], Optional[float]]:
@@ -71,6 +79,10 @@ class MockBackend(BaseBackend):
             # pompka ON -> chwilowo podnosi wilgotność
             if self._pump_state:
                 self._hum += random.uniform(0.3, 0.8)
+
+            # mata grzewcza ON -> podnosi temperaturę
+            if self._heater_state:
+                self._temp += random.uniform(0.1, 0.3)
 
             # ograniczenia
             self._temp = max(10.0, min(35.0, self._temp))
@@ -122,6 +134,8 @@ class GPIOdBackend(BaseBackend):
         self._fan_line = self._setup_output(config.FAN_PIN, "FAN")
         self._light_line = self._setup_output(config.LIGHT_PIN, "LIGHT")
         self._pump_line = self._setup_output(config.PUMP_PIN, "PUMP")
+        self._heater_line = self._setup_output(config.HEATER_PIN, "HEATER")
+        self._sprinkler_line = self._setup_output(config.SPRINKLER_PIN, "SPRINKLER")
 
         # SENSORY (DHT)
         self._dht_pin = getattr(config, "TEMP_HUMIDITY_SENSOR_PIN", None)
@@ -181,6 +195,14 @@ class GPIOdBackend(BaseBackend):
     def set_pump(self, state: bool) -> None:
         super().set_pump(state)
         self._write_line(self._pump_line, state)
+
+    def set_heater(self, state: bool) -> None:
+        super().set_heater(state)
+        self._write_line(self._heater_line, state)
+
+    def set_sprinkler(self, state: bool) -> None:
+        super().set_sprinkler(state)
+        self._write_line(self._sprinkler_line, state)
 
     # INPUTS
     def read_sensor(self) -> Tuple[Optional[float], Optional[float]]:
@@ -265,6 +287,14 @@ def set_pump(state: bool) -> None:
     _backend.set_pump(state)
 
 
+def set_heater(state: bool) -> None:
+    _backend.set_heater(state)
+
+
+def set_sprinkler(state: bool) -> None:
+    _backend.set_sprinkler(state)
+
+
 def get_fan_state() -> bool:
     return _backend._fan_state
 
@@ -275,6 +305,14 @@ def get_light_state() -> bool:
 
 def get_pump_state() -> bool:
     return _backend._pump_state
+
+
+def get_heater_state() -> bool:
+    return _backend._heater_state
+
+
+def get_sprinkler_state() -> bool:
+    return _backend._sprinkler_state
 
 
 def cleanup() -> None:

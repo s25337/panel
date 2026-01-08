@@ -5,7 +5,7 @@ from flask_cors import CORS
 import devices
 import threading
 import time
-from config import load_settings, save_settings, calculate_watering_interval, format_time_remaining, should_light_be_on, get_light_schedule
+from config import load_settings, save_settings, load_manual_settings, save_manual_settings, calculate_watering_interval, format_time_remaining, should_light_be_on, get_light_schedule
 
 app = Flask(__name__)
 
@@ -22,6 +22,19 @@ CORS(app, resources={
 fan_hysteresis_state = {
     'is_on': False  # True = wentylator włączony, False = wentylator wyłączony
 }
+
+# Załaduj ustawienia z JSON i zastosuj je do urządzeń
+def initialize_devices():
+    """Załaduj stany urządzeń z manual_settings JSON przy starcie"""
+    manual_settings = load_manual_settings()
+    devices.set_fan(manual_settings.get("fan", False))
+    devices.set_light(manual_settings.get("light", False))
+    devices.set_pump(manual_settings.get("pump", False))
+    devices.set_heater(manual_settings.get("heater", False))
+    devices.set_sprinkler(manual_settings.get("sprinkler", False))
+
+# Inicjalizuj urządzenia
+initialize_devices()
 
 @app.route("/")
 def index():
@@ -67,7 +80,10 @@ def get_status():
     return jsonify({
         "fan": devices.get_fan_state(),
         "light": devices.get_light_state(),
-        "pump": devices.get_pump_state()
+        "pump": devices.get_pump_state(),
+        "heater": devices.get_heater_state(),
+        "sprinkler": devices.get_sprinkler_state(),
+        "manual_mode": settings.get("manual_mode", False)
     })
 
 @app.route("/api/control", methods=["POST"])
@@ -88,15 +104,30 @@ def control():
 def control_device(device, state):
     """Steruj konkretnym urządzeniem: /api/control/light/on"""
     state_bool = state.lower() in ["on", "true", "1"]
+    manual_settings = load_manual_settings()
     
     if device == "fan":
         devices.set_fan(state_bool)
+        manual_settings["fan"] = state_bool
     elif device == "light":
         devices.set_light(state_bool)
+        manual_settings["light"] = state_bool
     elif device == "pump":
         devices.set_pump(state_bool)
+        manual_settings["pump"] = state_bool
+    elif device == "heater":
+        devices.set_heater(state_bool)
+        manual_settings["heater"] = state_bool
+    elif device == "sprinkler":
+        devices.set_sprinkler(state_bool)
+        manual_settings["sprinkler"] = state_bool
+    elif device == "manual_mode":
+        manual_settings["is_manual"] = state_bool
     else:
         return jsonify({"error": "Unknown device"}), 400
+    
+    # Zapisz do manual_settings JSON
+    save_manual_settings(manual_settings)
     
     return jsonify({"status": "OK", "device": device, "state": state_bool})
 
@@ -111,6 +142,35 @@ def get_settings():
         "water_times": settings.get("water_times", 3),
         "water_seconds": settings.get("water_seconds", 1)
     })
+
+@app.route("/api/manual-settings", methods=["GET"])
+def get_manual_settings():
+    """Zwraca manualne ustawienia urządzeń"""
+    manual_settings = load_manual_settings()
+    return jsonify(manual_settings)
+
+@app.route("/api/manual-settings", methods=["POST"])
+def update_manual_settings():
+    """Aktualizuje manualne ustawienia"""
+    data = request.json
+    manual_settings = load_manual_settings()
+    
+    # Aktualizuj wszystkie pola które są w JSON
+    if "is_manual" in data:
+        manual_settings["is_manual"] = bool(data["is_manual"])
+    if "light" in data:
+        manual_settings["light"] = bool(data["light"])
+    if "heater" in data:
+        manual_settings["heater"] = bool(data["heater"])
+    if "fan" in data:
+        manual_settings["fan"] = bool(data["fan"])
+    if "pump" in data:
+        manual_settings["pump"] = bool(data["pump"])
+    if "sprinkler" in data:
+        manual_settings["sprinkler"] = bool(data["sprinkler"])
+    
+    save_manual_settings(manual_settings)
+    return jsonify({"status": "OK", "settings": manual_settings})
 
 @app.route("/api/settings", methods=["POST"])
 def update_settings():

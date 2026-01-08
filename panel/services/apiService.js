@@ -28,7 +28,14 @@ const apiService = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching status:', error);
-      return { fan: false, light: false, pump: false };
+      return { 
+        fan: false, 
+        light: false, 
+        pump: false, 
+        heater: false,
+        sprinkler: false,
+        manual_mode: false
+      };
     }
   },
 
@@ -53,7 +60,7 @@ const apiService = {
 
   /**
    * Steruje konkretnym urządzeniem
-   * @param {string} device - 'fan', 'light' lub 'pump'
+   * @param {string} device - 'fan', 'light', 'pump', 'sprinkler', 'heater', 'manual_mode'
    * @param {string} state - 'on' lub 'off'
    */
   async toggleDevice(device, state) {
@@ -139,6 +146,27 @@ const apiService = {
         start_minute: 0,
         end_hour: 18,
         end_minute: 0
+      };
+    }
+  },
+
+  /**
+   * Pobiera manualne ustawienia urządzeń
+   */
+  async getManualSettings() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/manual-settings`);
+      if (!response.ok) throw new Error('Failed to fetch manual settings');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching manual settings:', error);
+      return {
+        is_manual: false,
+        light: false,
+        heater: false,
+        fan: false,
+        pump: false,
+        sprinkler: false
       };
     }
   },

@@ -23,6 +23,7 @@ export default function App() {
   const [pumpStatus, setPumpStatus] = useState(false);
   const [fanStatus, setFanStatus] = useState(false);
   const [wateringInterval, setWateringInterval] = useState(null);
+  const [currentScreen, setCurrentScreen] = useState(0);
   const screenTimeoutRef = useRef(null);
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
@@ -73,6 +74,13 @@ export default function App() {
       }
     };
   }, []);
+
+  // Refetchuj settings gdy wrócisz na main screen (screen 0)
+  useEffect(() => {
+    if (currentScreen === 0) {
+      fetchSettings();
+    }
+  }, [currentScreen]);
 
   useEffect(() => {
     const timer = setInterval(() => setTime(new Date()), 1000);
@@ -142,35 +150,47 @@ export default function App() {
         <View style={styles.contentWrapper}>
         {/* Screensaver - Only show current temperature and humidity */}
         {!isScreenOn ? (
-          <View 
-            style={styles.screensaverContainer}
-            onMouseMove={handleInteraction}
-            onTouchMove={handleInteraction}
-            onClick={handleInteraction}
+          <ImageBackground
+            source={require('./assets/wallpaper.jpg')}
+            style={styles.fullBackground}
+            resizeMode="cover"
           >
-            <View style={styles.screensaverContent}>
-              <Text style={styles.screensaverLabel}>Temperature</Text>
-              <View style={styles.screensaverSlider}>
-                <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
-              </View>
-              
-              <Text style={[styles.screensaverLabel, {marginTop: 40}]}>Humidity</Text>
-              <View style={styles.screensaverSlider}>
-                <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+            <View 
+              style={styles.screensaverContainer}
+              onMouseMove={handleInteraction}
+              onTouchMove={handleInteraction}
+              onClick={handleInteraction}
+            >
+              <View style={styles.screensaverContent}>
+                <Text style={styles.screensaverLabel}>Temperature</Text>
+                <View style={styles.screensaverSlider}>
+                  <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
+                </View>
+                
+                <Text style={[styles.screensaverLabel, {marginTop: 40}]}>Humidity</Text>
+                <View style={styles.screensaverSlider}>
+                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+                </View>
               </View>
             </View>
-          </View>
+          </ImageBackground>
         ) : (
-          <ScreenNavigator
-            screens={[
-              // Screen 0: Main Panel - 3x2 Grid
-              <View 
-                key="main"
-                style={styles.mainGrid}
-                onMouseMove={handleInteraction}
-                onTouchMove={handleInteraction}
-                onClick={handleInteraction}
-              >
+          <ImageBackground
+            source={require('./assets/wallpaper.jpg')}
+            style={styles.fullBackground}
+            resizeMode="cover"
+          >
+            <ScreenNavigator
+              onScreenChange={setCurrentScreen}
+              screens={[
+                // Screen 0: Main Panel - 3x2 Grid
+                <View
+                  key="main"
+                  style={styles.screenContainer}
+                >
+                  <View 
+                    style={styles.mainGrid}
+                  >
                 {/* ROW 1 - TALL */}
                 <View style={styles.rowWrapperTall}>
                   {/* Col 1: Humidity Slider */}
@@ -182,7 +202,7 @@ export default function App() {
                       unit="%"
                       label=""
                       color="#4ECDC4"
-                      size={220}
+                      size={190}
                       onValueChange={(newHum) => {
                         setTargetHumidity(newHum);
                         apiService.updateSettings({ target_hum: newHum });
@@ -205,7 +225,7 @@ export default function App() {
                       unit="°C"
                       label=""
                       color="#FF6B6B"
-                      size={220}
+                      size={190}
                       onValueChange={(newTemp) => {
                         setTargetTemp(newTemp);
                         apiService.updateSettings({ target_temp: newTemp });
@@ -251,18 +271,22 @@ export default function App() {
                     <FanPanel status={fanStatus} />
                   </View>
                 </View>
-              </View>,
+              </View>
+                </View>,
               // Screen 1: Control Panel
               <View
                 key="control"
-                onMouseMove={handleInteraction}
-                onTouchMove={handleInteraction}
-                onClick={handleInteraction}
+                style={styles.screenContainer}
               >
-                <ControlPanel />
+                <View
+                  style={styles.container}
+                >
+                  <ControlPanel />
+                </View>
               </View>,
             ]}
-          />
+            />
+          </ImageBackground>
         )}
         </View>
       </SafeAreaView>
@@ -275,6 +299,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
+  },
+  screenContainer: {
+    flex: 1,
+    backgroundColor: 'transparent',
   },
   container: {
     flex: 1,
@@ -290,26 +318,26 @@ const styles = StyleSheet.create({
   mainGrid: {
     flex: 1,
     flexDirection: 'column',
-    paddingHorizontal: 60,
-    paddingVertical: 65,
-    gap: 45,
+    paddingHorizontal: 40,
+    paddingVertical: 40,
+    gap: 25,
     justifyContent: 'space-between',
   },
   rowWrapperTall: {
     flex: 1.2,
     flexDirection: 'row',
-    gap: 45,
+    gap: 25,
   },
   rowWrapperShort: {
     flex: 0.7,
     flexDirection: 'row',
-    gap: 45,
+    gap: 25,
   },
   gridItemTall: {
     flex: 1,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 32,
-    padding: 12,
+    borderRadius: 24,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.7,
@@ -317,33 +345,33 @@ const styles = StyleSheet.create({
   gridItemShort: {
     flex: 1,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 32,
-    padding: 12,
+    borderRadius: 24,
+    padding: 8,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.7,
   },
   gridLabel: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: '#aaaaaa',
-    marginBottom: 12,
+    marginBottom: 8,
     letterSpacing: 0.5,
   },
   currentValue: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '600',
     letterSpacing: 0.5,
   },
   currentLabel: {
-    fontSize: 14,
+    fontSize: 12,
     color: '#888888',
     letterSpacing: 0.3,
   },
   currentValueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 12,
+    marginTop: 6,
     justifyContent: 'center',
   },
   headerBox: {
