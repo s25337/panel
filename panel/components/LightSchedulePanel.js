@@ -71,9 +71,11 @@ const LightSchedulePanel = ({ status = false }) => {
           <Text style={styles.timeRange}>
             {isLoading ? '--:-- to --:--' : `${formatTime(startHour, startMinute)} to ${formatTime(endHour, endMinute)}`}
           </Text>
-          <Text style={styles.statusLabel}>
-            {isLoading ? 'Loading...' : (status ? 'ON' : 'OFF')}
-          </Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>
+              {isLoading ? 'Loading...' : (status ? 'ON' : 'OFF')}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -107,6 +109,11 @@ const styles = StyleSheet.create({
   },
   info: {
     alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   hoursLabel: {
     fontSize: 14,

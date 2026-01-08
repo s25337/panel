@@ -3,7 +3,7 @@ import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import Svg, { Circle, Path } from 'react-native-svg';
 import apiService from '../services/apiService';
 
-const WateringPanel = ({ status = false, onToggle = () => {} }) => {
+const WateringPanel = () => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [intervalSeconds, setIntervalSeconds] = useState(0);
   const [waterTimesPerWeek, setWaterTimesPerWeek] = useState(0);
@@ -121,9 +121,11 @@ const WateringPanel = ({ status = false, onToggle = () => {} }) => {
           <Text style={styles.timer}>
             {isLoading || !timeLeft ? '--:--:--:--' : `${formatTime(timeLeft.days)}:${formatTime(timeLeft.hours)}:${formatTime(timeLeft.minutes)}:${formatTime(timeLeft.seconds)}`}
           </Text>
-          <Text style={styles.scheduleInfo}>
-            {isLoading || !waterTimesPerWeek ? 'Loading...' : `${waterTimesPerWeek}x/week`}
-          </Text>
+          <View style={styles.scheduleRow}>
+            <Text style={styles.scheduleInfo}>
+              {isLoading || !waterTimesPerWeek ? 'Loading...' : `${waterTimesPerWeek}x/week`}
+            </Text>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -160,6 +162,11 @@ const styles = StyleSheet.create({
   },
   info: {
     alignItems: 'center',
+  },
+  scheduleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   timeLabel: {
     fontSize: 12,

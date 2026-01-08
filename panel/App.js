@@ -20,13 +20,14 @@ export default function App() {
   const [targetHumidity, setTargetHumidity] = useState(60);
   const [isScreenOn, setIsScreenOn] = useState(true);
   const [lightStatus, setLightStatus] = useState(false);
-  const [pumpStatus, setPumpStatus] = useState(false);
   const [fanStatus, setFanStatus] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
   const [wateringInterval, setWateringInterval] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
   const screenTimeoutRef = useRef(null);
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
+  const wateringPollInterval = useRef(null);
 
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
@@ -37,8 +38,9 @@ export default function App() {
   const fetchStatus = async () => {
     const data = await apiService.getStatus();
     setLightStatus(data.light || false);
-    setPumpStatus(data.pump || false);
+    // Nie pobieramy pump/sprinkler - są obsługiwane w ControlPanel
     setFanStatus(data.fan || false);
+    setManualMode(data.manual_mode || false);
   };
 
   const fetchSettings = async () => {
@@ -68,9 +70,17 @@ export default function App() {
       fetchStatus();
     }, 2000);
 
+    // Polling dla watering timera co 5 sekund (rzadsze)
+    wateringPollInterval.current = setInterval(() => {
+      fetchWateringTimer();
+    }, 5000);
+
     return () => {
       if (sensorPollInterval.current) {
         clearInterval(sensorPollInterval.current);
+      }
+      if (wateringPollInterval.current) {
+        clearInterval(wateringPollInterval.current);
       }
     };
   }, []);
@@ -244,6 +254,12 @@ export default function App() {
                     <View style={styles.headerBox}>
                       <Text style={styles.time}>{formatTime()}</Text>
                       <Text style={styles.date}>{formatDate()}</Text>
+                      <Text style={[
+                        styles.manualModeIndicator,
+                        { color: manualMode ? '#FF9800' : '#666666' }
+                      ]}>
+                        MANUAL IS {manualMode ? 'ON' : 'OFF'}
+                      </Text>
                     </View>
                   </View>
                 </View>
@@ -257,13 +273,7 @@ export default function App() {
 
                   {/* Col 2: Watering Info */}
                   <View style={styles.gridItemShort}>
-                    <WateringPanel 
-                      status={pumpStatus}
-                      onToggle={() => {
-                        // Refresh data after watering
-                        fetchStatus();
-                      }}
-                    />
+                    <WateringPanel />
                   </View>
 
                   {/* Col 3: Fan Status */}
@@ -455,6 +465,13 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#888888',
     marginTop: 10,
+    letterSpacing: 0.5,
+  },
+  manualModeIndicator: {
+    fontSize: 14,
+    color: '#FF9800',
+    marginTop: 8,
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
   sensorValues: {

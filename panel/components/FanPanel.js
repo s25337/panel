@@ -96,9 +96,11 @@ const FanPanel = ({ status = false }) => {
         </Svg>
 
         <View style={styles.info}>
-          <Text style={styles.statusLabel}>
-            {formatStatus(status)}
-          </Text>
+          <View style={styles.statusRow}>
+            <Text style={styles.statusLabel}>
+              {formatStatus(status)}
+            </Text>
+          </View>
           <Text style={[styles.humidityStatusLabel, { color: getStatusColor() }]}>
             {getStatusText()}
           </Text>
@@ -135,6 +137,11 @@ const styles = StyleSheet.create({
   },
   info: {
     alignItems: 'center',
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   statusLabel: {
     fontSize: 14,

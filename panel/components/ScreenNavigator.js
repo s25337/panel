@@ -16,7 +16,10 @@ const ScreenNavigator = ({ screens = [], onScreenChange = () => {} }) => {
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (evt, gestureState) => {
         // Tylko pan-y w kierunku horyzontalnym (swipe), ignoruj pionowe
-        return Math.abs(gestureState.dx) > Math.abs(gestureState.dy) && Math.abs(gestureState.dx) > 10;
+        // Ale pozwól na tapsy bez dużego ruchu
+        const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy);
+        const isLargeMovement = Math.abs(gestureState.dx) > 20; // Zwiększony threshold
+        return isHorizontalSwipe && isLargeMovement;
       },
       onPanResponderMove: (evt, gestureState) => {
         xOffset.setValue(gestureState.dx);

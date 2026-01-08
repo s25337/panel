@@ -17,11 +17,8 @@ LIGHT_START_TIME = 8  # Godzina 6 rano - start światła
 
 def load_settings():
     """Wczytaj ustawienia z JSON"""
-    try:
-        with open(SETTINGS_FILE, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return get_default_settings()
+    with open(SETTINGS_FILE, 'r') as f:
+        return json.load(f)
 
 def save_settings(settings):
     """Zapisz ustawienia do JSON"""
@@ -32,41 +29,19 @@ def load_manual_settings():
     """Wczytaj ustawienia manualne z JSON"""
     try:
         with open(MANUAL_SETTINGS_FILE, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return get_default_manual_settings()
+            content = f.read()
+            # Usuń duplikaty zamykających nawiasów jeśli istnieją
+            while '}}\n' in content or '}}' in content:
+                content = content.replace('}}', '}')
+            return json.loads(content)
+    except (json.JSONDecodeError, FileNotFoundError) as e:
+        print(f"Error loading manual settings: {e}")
+        return {"is_manual": False, "light": False, "heater": False, "fan": False, "pump": False, "sprinkler": False}
 
 def save_manual_settings(settings):
     """Zapisz ustawienia manualne do JSON"""
     with open(MANUAL_SETTINGS_FILE, 'w') as f:
         json.dump(settings, f, indent=2)
-
-def get_default_settings():
-    """Zwróć domyślne ustawienia"""
-    return {
-        "light_hours": 12.0,
-        "target_temp": 25.0,
-        "target_hum": 60.0,
-        "water_times": 3,
-        "water_seconds": 1,
-        "manual_mode": False,
-        "light": False,
-        "heater": False,
-        "fan": False,
-        "pump": False,
-        "sprinkler": False
-    }
-
-def get_default_manual_settings():
-    """Zwróć domyślne ustawienia manualne"""
-    return {
-        "is_manual": False,
-        "light": False,
-        "heater": False,
-        "fan": False,
-        "pump": False,
-        "sprinkler": False
-    }
 
 def calculate_watering_interval(water_times):
     """

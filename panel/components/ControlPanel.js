@@ -7,8 +7,6 @@ const ControlPanel = () => {
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
-  const [pumpOn, setPumpOn] = useState(false);
-  const [sprinklerOn, setSprinklerOn] = useState(false);
   const [loading, setLoading] = useState({});
   const [isWateringPressed, setIsWateringPressed] = useState(false);
   const [isSprinklerPressed, setIsSprinklerPressed] = useState(false);
@@ -25,8 +23,7 @@ const ControlPanel = () => {
       setLightOn(manualSettings.light === true);
       setHeaterOn(manualSettings.heater === true);
       setFanOn(manualSettings.fan === true);
-      setPumpOn(manualSettings.pump === true);
-      setSprinklerOn(manualSettings.sprinkler === true);
+      // Nie pobieramy pump/sprinkler - są obsługiwane przez press/hold UI
     } catch (error) {
       console.error('Error fetching status:', error);
     }
@@ -38,13 +35,8 @@ const ControlPanel = () => {
 
     try {
       await apiService.toggleDevice(device, newState);
-      
-      if (device === 'manual_mode') setManualMode(!manualMode);
-      if (device === 'light') setLightOn(!lightOn);
-      if (device === 'heater') setHeaterOn(!heaterOn);
-      if (device === 'fan') setFanOn(!fanOn);
-      if (device === 'pump') setPumpOn(!pumpOn);
-      if (device === 'sprinkler') setSprinklerOn(!sprinklerOn);
+      // Refetch status po zmianie aby być pewnym stanu
+      await fetchStatus();
     } catch (error) {
       Alert.alert('Błąd', `Nie udało się zmienić stanu ${device}`);
       console.error(`Error toggling ${device}:`, error);
@@ -53,65 +45,41 @@ const ControlPanel = () => {
     }
   };
 
-  // Watering - press and hold
-  const handleWateringStart = async () => {
+  // Watering - click dla 2 sekundy
+  const handleWateringClick = async () => {
     setIsWateringPressed(true);
-    setLoading(prev => ({ ...prev, pump: true }));
     try {
       await apiService.toggleDevice('pump', 'on');
-      setPumpOn(true);
+      // Wyłącz po 2 sekundach
+      setTimeout(() => {
+        apiService.toggleDevice('pump', 'off');
+        setIsWateringPressed(false);
+      }, 2000);
     } catch (error) {
       Alert.alert('Błąd', 'Nie udało się włączyć nawadniania');
-      console.error('Error starting watering:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, pump: false }));
+      setIsWateringPressed(false);
+      console.error('Error toggling watering:', error);
     }
   };
 
-  const handleWateringEnd = async () => {
-    setIsWateringPressed(false);
-    setLoading(prev => ({ ...prev, pump: true }));
-    try {
-      await apiService.toggleDevice('pump', 'off');
-      setPumpOn(false);
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się wyłączyć nawadniania');
-      console.error('Error stopping watering:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, pump: false }));
-    }
-  };
-
-  // Sprinkler - press and hold
-  const handleSprinklerStart = async () => {
+  // Sprinkler - click dla 2 sekundy
+  const handleSprinklerClick = async () => {
     setIsSprinklerPressed(true);
-    setLoading(prev => ({ ...prev, sprinkler: true }));
     try {
       await apiService.toggleDevice('sprinkler', 'on');
-      setSprinklerOn(true);
+      // Wyłącz po 2 sekundach
+      setTimeout(() => {
+        apiService.toggleDevice('sprinkler', 'off');
+        setIsSprinklerPressed(false);
+      }, 2000);
     } catch (error) {
       Alert.alert('Błąd', 'Nie udało się włączyć zraszania');
-      console.error('Error starting sprinkler:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, sprinkler: false }));
+      setIsSprinklerPressed(false);
+      console.error('Error toggling sprinkler:', error);
     }
   };
 
-  const handleSprinklerEnd = async () => {
-    setIsSprinklerPressed(false);
-    setLoading(prev => ({ ...prev, sprinkler: true }));
-    try {
-      await apiService.toggleDevice('sprinkler', 'off');
-      setSprinklerOn(false);
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się wyłączyć zraszania');
-      console.error('Error stopping sprinkler:', error);
-    } finally {
-      setLoading(prev => ({ ...prev, sprinkler: false }));
-    }
-  };
-
-  const ControlTile = ({ device, label, isOn, isPressable, onPressIn, onPressOut }) => (
+  const ControlTile = ({ device, label, isOn, isPressable, onClick }) => (
     <TouchableOpacity
       style={[
         styles.tile,
@@ -120,9 +88,7 @@ const ControlPanel = () => {
         isPressable && !isOn && styles.tilePressable,
         !manualMode && device !== 'manual_mode' && styles.tileDisabled
       ]}
-      onPress={!isPressable ? () => handleDeviceToggle(device, isOn) : undefined}
-      onPressIn={isPressable ? onPressIn : undefined}
-      onPressOut={isPressable ? onPressOut : undefined}
+      onPress={isPressable ? onClick : () => handleDeviceToggle(device, isOn)}
       disabled={loading[device] || (!manualMode && device !== 'manual_mode')}
       activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
@@ -132,7 +98,7 @@ const ControlPanel = () => {
       </Text>
       <Text style={[styles.tileStatus, isOn && styles.tileStatusActive]}>
         {isPressable 
-          ? (isOn ? '🟢 ACTIVE' : 'PRESS & HOLD')
+          ? (isOn ? '🟢 ACTIVE' : 'CLICK TO RUN 2s')
           : (isOn ? '✓ ON' : '○ OFF')
         }
       </Text>
@@ -170,18 +136,16 @@ const ControlPanel = () => {
         <ControlTile 
           device="pump" 
           label="Watering" 
-          isOn={pumpOn}
+          isOn={isWateringPressed}
           isPressable={true}
-          onPressIn={handleWateringStart}
-          onPressOut={handleWateringEnd}
+          onClick={handleWateringClick}
         />
         <ControlTile 
           device="sprinkler" 
           label="Sprinkler" 
-          isOn={sprinklerOn}
+          isOn={isSprinklerPressed}
           isPressable={true}
-          onPressIn={handleSprinklerStart}
-          onPressOut={handleSprinklerEnd}
+          onClick={handleSprinklerClick}
         />
       </View>
     </View>

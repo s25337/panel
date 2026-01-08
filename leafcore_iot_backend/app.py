@@ -56,8 +56,22 @@ def get_status():
     """Zwraca status wszystkich urządzeń"""
     # Pobierz ustawienia i dane czujników
     settings = load_settings()
+    manual_settings = load_manual_settings()
     temp, hum = devices.read_sensor()
+    is_manual = manual_settings.get("is_manual", False)
     
+    # Jeśli manual mode jest ON, zwróć rzeczywiste stany urządzeń
+    if is_manual:
+        return jsonify({
+            "fan": manual_settings.get("fan", False),
+            "light": manual_settings.get("light", False),
+            "pump": manual_settings.get("pump", False),
+            "heater": manual_settings.get("heater", False),
+            "sprinkler": manual_settings.get("sprinkler", False),
+            "manual_mode": True
+        })
+    
+    # W trybie automatycznym - zastosuj logikę automatyczną
     # Sprawdź czy światło powinno być włączone
     light_hours = settings.get("light_hours", 12)
     light_should_be_on = should_light_be_on(light_hours)
@@ -83,7 +97,7 @@ def get_status():
         "pump": devices.get_pump_state(),
         "heater": devices.get_heater_state(),
         "sprinkler": devices.get_sprinkler_state(),
-        "manual_mode": settings.get("manual_mode", False)
+        "manual_mode": False
     })
 
 @app.route("/api/control", methods=["POST"])
