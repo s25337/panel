@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground } from 'react-native';
+import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
+import { FontFamily, Color } from './GlobalStyles';
 import CircularGauge from './components/CircularGauge';
 import LightPanel from './components/LightPanel';
 import LightSchedulePanel from './components/LightSchedulePanel';
@@ -13,6 +15,7 @@ import apiService from './services/apiService';
 const { width, height } = Dimensions.get('window');
 
 export default function App() {
+  const [fontsLoaded, setFontsLoaded] = useState(false);
   const [time, setTime] = useState(new Date());
   const [temperature, setTemperature] = useState(28);
   const [humidity, setHumidity] = useState(30);
@@ -28,6 +31,25 @@ export default function App() {
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
   const wateringPollInterval = useRef(null);
+
+  // Load custom fonts
+  useEffect(() => {
+    const loadFonts = async () => {
+      try {
+        await Font.loadAsync({
+          'WorkSans-ExtraLight': require('./assets/fonts/WorkSans-ExtraLight.ttf'),
+          'WorkSans-Light': require('./assets/fonts/WorkSans-Light.ttf'),
+          'WorkSans-Regular': require('./assets/fonts/WorkSans-Regular.ttf'),
+          'WorkSans-Medium': require('./assets/fonts/WorkSans-Medium.ttf'),
+        });
+        setFontsLoaded(true);
+      } catch (e) {
+        console.error('Error loading fonts:', e);
+      }
+    };
+
+    loadFonts();
+  }, []);
 
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
@@ -148,6 +170,15 @@ export default function App() {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  // Wait for fonts to load before rendering
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
+        <Text style={{ color: '#fff', fontSize: 16 }}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <ImageBackground
       source={require('./assets/wallpaper.jpg')}
@@ -172,12 +203,10 @@ export default function App() {
               onClick={handleInteraction}
             >
               <View style={styles.screensaverContent}>
-                <Text style={styles.screensaverLabel}>Temperature</Text>
                 <View style={styles.screensaverSlider}>
                   <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
                 </View>
                 
-                <Text style={[styles.screensaverLabel, {marginTop: 40}]}>Humidity</Text>
                 <View style={styles.screensaverSlider}>
                   <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
                 </View>
@@ -198,6 +227,12 @@ export default function App() {
                   key="main"
                   style={styles.screenContainer}
                 >
+                  {/* Top Left Time and Date */}
+                  <View style={styles.topLeftTimeContainer}>
+                    <Text style={styles.topLeftTime}>{formatTime()}</Text>
+                    <Text style={styles.topLeftDate}>{formatDate()}</Text>
+                  </View>
+
                   <View 
                     style={styles.mainGrid}
                   >
@@ -205,18 +240,14 @@ export default function App() {
                 <View style={styles.rowWrapperTall}>
                   {/* Col 1: Humidity Slider */}
                   <View style={styles.gridItemTall}>
-                    <Text style={styles.gridLabel}>Humidity</Text>
                     <CircularGauge
+                      mode="humidity"
                       value={targetHumidity}
-                      maxValue={100}
-                      unit="%"
-                      label=""
-                      color="#4ECDC4"
-                      size={190}
-                      onValueChange={(newHum) => {
+                      onChange={(newHum) => {
                         setTargetHumidity(newHum);
                         apiService.updateSettings({ target_hum: newHum });
                       }}
+                      size={230}
                     />
                     <View style={styles.currentValueContainer}>
                       <Text style={styles.currentLabel}>Current: </Text>
@@ -228,18 +259,14 @@ export default function App() {
 
                   {/* Col 2: Temperature Slider */}
                   <View style={styles.gridItemTall}>
-                    <Text style={styles.gridLabel}>Temperature</Text>
                     <CircularGauge
+                      mode="temperature"
                       value={targetTemp}
-                      maxValue={50}
-                      unit="°C"
-                      label=""
-                      color="#FF6B6B"
-                      size={190}
-                      onValueChange={(newTemp) => {
+                      onChange={(newTemp) => {
                         setTargetTemp(newTemp);
                         apiService.updateSettings({ target_temp: newTemp });
                       }}
+                      size={230}
                     />
                     <View style={styles.currentValueContainer}>
                       <Text style={styles.currentLabel}>Current: </Text>
@@ -249,11 +276,9 @@ export default function App() {
                     </View>
                   </View>
 
-                  {/* Col 3: Date and Time */}
+                  {/* Col 3: Manual Mode Indicator */}
                   <View style={styles.gridItemTall}>
                     <View style={styles.headerBox}>
-                      <Text style={styles.time}>{formatTime()}</Text>
-                      <Text style={styles.date}>{formatDate()}</Text>
                       <Text style={[
                         styles.manualModeIndicator,
                         { color: manualMode ? '#FF9800' : '#666666' }
@@ -317,6 +342,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
+    fontFamily: FontFamily.workSansRegular,
   },
   contentWrapper: {
     flex: 1,
@@ -328,10 +354,11 @@ const styles = StyleSheet.create({
   mainGrid: {
     flex: 1,
     flexDirection: 'column',
-    paddingHorizontal: 40,
-    paddingVertical: 40,
+    paddingHorizontal: 35,
+    paddingVertical: 35,
     gap: 25,
     justifyContent: 'space-between',
+    marginTop: 45,
   },
   rowWrapperTall: {
     flex: 1.2,
@@ -381,7 +408,7 @@ const styles = StyleSheet.create({
   currentValueContainer: {
     flexDirection: 'row',
     alignItems: 'baseline',
-    marginTop: 6,
+    marginTop: -20,
     justifyContent: 'center',
   },
   headerBox: {
@@ -457,7 +484,7 @@ const styles = StyleSheet.create({
   },
   time: {
     fontSize: 72,
-    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 2,
   },
@@ -495,7 +522,7 @@ const styles = StyleSheet.create({
   },
   screensaverLabel: {
     fontSize: 24,
-    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 1,
   },
@@ -511,8 +538,29 @@ const styles = StyleSheet.create({
   },
   screensaverValue: {
     fontSize: 48,
-    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
     color: '#4ECDC4',
     letterSpacing: 2,
+  },
+  topLeftTimeContainer: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    zIndex: 100,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  topLeftTime: {
+    fontSize: 20,
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    letterSpacing: 1,
+  },
+  topLeftDate: {
+    fontSize: 20,
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    letterSpacing: 0.5,
   },
 });

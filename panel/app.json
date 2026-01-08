@@ -8,6 +8,19 @@
     "assetBundlePatterns": [
       "**/*"
     ],
+    "plugins": [
+      [
+        "expo-font",
+        {
+          "fonts": [
+            "./assets/fonts/WorkSans-Light.ttf",
+            "./assets/fonts/WorkSans-Regular.ttf",
+            "./assets/fonts/WorkSans-Medium.ttf",
+            "./assets/fonts/WorkSans-ExtraLight.ttf"
+          ]
+        }
+      ]
+    ],
     "ios": {
       "supportsTabletMode": true,
       "requireFullScreen": true

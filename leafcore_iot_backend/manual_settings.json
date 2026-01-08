@@ -1,5 +1,5 @@
 {
-  "is_manual": true,
+  "is_manual": false,
   "light": true,
   "heater": true,
   "fan": true,

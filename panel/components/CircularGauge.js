@@ -1,184 +1,267 @@
-import React, { useRef, useState } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import React, { useRef } from "react";
+import { PanResponder, StyleSheet, Text, View } from "react-native";
+import Svg, { Circle, G } from "react-native-svg";
+import { Color, FontFamily, FontSize, Gap } from "../GlobalStyles";
 
-const CircularGauge = ({ value, maxValue, unit, label, color, size = 200, onValueChange }) => {
-  const [isInteracting, setIsInteracting] = useState(false);
-  const containerRef = useRef(null);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const normalizeDeg = (deg) => ((deg % 360) + 360) % 360;
 
-  const radius = (size - 30) / 2;
-  const progress = (value / maxValue);
+// Your current tuning
+const SWEEP_ANGLE = 265;
+const START_ANGLE = 270 - SWEEP_ANGLE / 2;
+
+function defaultsForMode(mode) {
+  if (mode === "humidity") {
+    return {
+      label: "Humidity",
+      unit: "%",
+      min: 0,
+      max: 100,
+      step: 1,
+      gradient: ["#5556A7", "#5556A7", "#44B89D"],
+    };
+  }
+  return {
+    label: "Temperature",
+    unit: "°C",
+    min: 0,
+    max: 50,
+    step: 1,
+    gradient: ["#4A86E8", "#8A78C8", "#D06A6A"],
+  };
+}
+
+/**
+ * CircularGauge - Interactive circular slider component
+ */
+export default function CircularGauge({
+  mode = "temperature",
+  value,
+  onValueChange,
+  onChange,
+  min,
+  max,
+  step,
+  size = 120,
+  strokeWidth = 6,
+  label,
+  unit,
+  gradientColors,
+  containerStyle,
+  valueTextStyle,
+  unitTextStyle,
+  labelTextStyle,
+  // Legacy props support
+  maxValue,
+  color,
+  ...rest
+}) {
+  // Handle legacy props - priority: onChange > onValueChange > rest
+  const onValueChangeFn = onChange || onValueChange || rest.onChange || rest.onValueChange;
   
-  // Create arc path
-  const startAngle = -90;
-  const endAngle = startAngle + (progress * 360);
-  
-  const startRad = (startAngle * Math.PI) / 180;
-  const endRad = (endAngle * Math.PI) / 180;
-  
-  const x1 = size / 2 + radius * Math.cos(startRad);
-  const y1 = size / 2 + radius * Math.sin(startRad);
-  const x2 = size / 2 + radius * Math.cos(endRad);
-  const y2 = size / 2 + radius * Math.sin(endRad);
-  
-  const largeArc = progress * 360 > 180 ? 1 : 0;
-  const arcPath = `M ${x1} ${y1} A ${radius} ${radius} 0 ${largeArc} 1 ${x2} ${y2}`;
+  // If maxValue is provided, infer mode from it for backward compat
+  if (maxValue !== undefined && !max) {
+    max = maxValue;
+  }
 
-  const handleInteraction = (e) => {
-    if (!containerRef.current) return;
+  const d = defaultsForMode(mode);
+  const MIN = min ?? d.min;
+  const MAX = max ?? d.max;
+  const STEP = step ?? d.step;
+  const LABEL = label ?? d.label;
+  const UNIT = unit ?? d.unit;
 
-    const rect = containerRef.current.getBoundingClientRect?.();
-    if (!rect) return;
+  const [c0, c1, c2] = gradientColors ?? d.gradient;
 
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    
-    const clientX = e.clientX !== undefined ? e.clientX : e.touches?.[0]?.clientX;
-    const clientY = e.clientY !== undefined ? e.clientY : e.touches?.[0]?.clientY;
+  const cx = size / 2;
+  const cy = size / 2;
 
-    if (clientX === undefined || clientY === undefined) return;
+  // space between arc and center circle
+  const ringGap = 14;
+  const innerSize = 150;
+  const innerRadius = innerSize / 2;
+  const r = innerRadius + ringGap + strokeWidth / 2;
 
-    const x = clientX - centerX;
-    const y = clientY - centerY;
+  const circumference = 2 * Math.PI * r;
+  const arcLen = (circumference * SWEEP_ANGLE) / 360;
 
-    // Oblicz kąt od środka
-    let angle = Math.atan2(y, x) * (180 / Math.PI);
-    
-    // Konwertuj do zakresu 0-360
-    angle = (angle + 90 + 360) % 360;
+  const clampedValue = clamp(value, MIN, MAX);
+  const t = (clampedValue - MIN) / (MAX - MIN || 1);
 
-    // Clamp między 0 i 360
-    angle = Math.max(0, Math.min(360, angle));
+  // touch only near the arc
+  const ringHitSlop = Math.max(16, strokeWidth * 3.2);
+  const isNearRing = (x, y) => {
+    const dx = x - cx;
+    const dy = y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    return Math.abs(dist - r) <= ringHitSlop;
+  };
 
-    const newProgress = angle / 360;
-    const newValue = Math.round(newProgress * maxValue);
+  const updateFromTouch = (x, y) => {
+    if (!isNearRing(x, y)) return;
 
-    if (onValueChange) {
-      onValueChange(Math.max(0, Math.min(maxValue, newValue)));
+    const dx = x - cx;
+    const dy = y - cy;
+
+    let ang = (Math.atan2(dy, dx) * 180) / Math.PI;
+    if (ang < 0) ang += 360;
+
+    const rel = normalizeDeg(ang - START_ANGLE);
+    const relClamped = Math.min(SWEEP_ANGLE, Math.max(0, rel));
+
+    const next = MIN + (relClamped / SWEEP_ANGLE) * (MAX - MIN);
+    const snapped = Math.round(next / STEP) * STEP;
+
+    if (onValueChangeFn) {
+      onValueChangeFn(clamp(snapped, MIN, MAX));
     }
   };
 
-  const handleMouseDown = (e) => {
-    setIsInteracting(true);
-    handleInteraction(e);
-  };
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (e) =>
+        updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
+      onPanResponderMove: (e) =>
+        updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
+      onPanResponderTerminationRequest: () => false,
+      onShouldBlockNativeResponder: () => true,
+    })
+  ).current;
 
-  const handleTouchStart = (e) => {
-    setIsInteracting(true);
-    handleInteraction(e);
-  };
-
-  const handleMouseMove = (e) => {
-    if (isInteracting) {
-      handleInteraction(e);
-    }
-  };
-
-  const handleTouchMove = (e) => {
-    if (isInteracting) {
-      handleInteraction(e);
-    }
-  };
-
-  const handleMouseUp = () => {
-    setIsInteracting(false);
-  };
-
-  const handleTouchEnd = () => {
-    setIsInteracting(false);
-  };
-
-  React.useEffect(() => {
-    if (isInteracting) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      document.addEventListener('touchmove', handleTouchMove);
-      document.addEventListener('touchend', handleTouchEnd);
-
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-        document.removeEventListener('touchmove', handleTouchMove);
-        document.removeEventListener('touchend', handleTouchEnd);
-      };
-    }
-  }, [isInteracting]);
+  // segmented sweep gradient
+  const SEGMENTS = 90;
+  const segLen = arcLen / SEGMENTS;
+  const trackDashArray = `${arcLen} ${circumference}`;
 
   return (
     <View
-      ref={containerRef}
-      style={[styles.container, { width: size, height: size }]}
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
+      style={[styles.container, { width: size, height: size }, containerStyle]}
+      {...panResponder.panHandlers}
     >
-      <Svg 
-        width={size} 
-        height={size} 
-        viewBox={`0 0 ${size} ${size}`}
-        style={styles.svg}
-        pointerEvents="none"
-      >
-        {/* Background circle */}
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="#333333"
-          strokeWidth="6"
-          fill="none"
-        />
-        
-        {/* Progress arc */}
-        <Path
-          d={arcPath}
-          stroke={color}
-          strokeWidth="6"
-          fill="none"
-          strokeLinecap="round"
-        />
+      <Svg width={size} height={size}>
+        <G rotation={START_ANGLE} origin={`${cx}, ${cy}`}>
+          {/* Track */}
+          <Circle
+            cx={cx}
+            cy={cy}
+            r={r}
+            fill="none"
+            stroke={Color.colorGainsboro}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={trackDashArray}
+          />
+
+          {/* Gradient progress (only up to current value) */}
+          {(() => {
+            const filled = Math.max(0, Math.min(SEGMENTS, Math.round(t * SEGMENTS)));
+            return Array.from({ length: filled }).map((_, i) => {
+              const p = i / Math.max(1, SEGMENTS - 1);
+              const stroke = colorAt3Stops(p, c0, c1, c2);
+              const dashOffset = -i * segLen;
+
+              const isFirst = i === 0;
+              const isLast = i === filled - 1;
+
+              return (
+                <Circle
+                  key={i}
+                  cx={cx}
+                  cy={cy}
+                  r={r}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={strokeWidth}
+                  strokeLinecap={isFirst || isLast ? "round" : "butt"}
+                  strokeDasharray={`${segLen} ${circumference}`}
+                  strokeDashoffset={dashOffset}
+                />
+              );
+            });
+          })()}
+        </G>
       </Svg>
-      
-      {/* Value text - centered absolutely */}
-      <View style={styles.textContainer}>
-        <Text style={styles.value}>{value}</Text>
-        <Text style={styles.unit}>{unit}</Text>
+
+      <View style={styles.textWrap} pointerEvents="none">
+        <Text style={[styles.value, valueTextStyle]}>{Math.round(clampedValue)}</Text>
+        <Text style={[styles.unit, unitTextStyle]}>{UNIT}</Text>
+        <Text style={[styles.label, labelTextStyle]}>{LABEL}</Text>
       </View>
     </View>
   );
-};
+}
+
+/** p in [0,1] mapped across 3 hex colors */
+function colorAt3Stops(p, a, b, c) {
+  const t = Math.max(0, Math.min(1, p));
+  if (t <= 0.55) return lerpHex(a, b, t / 0.55);
+  return lerpHex(b, c, (t - 0.55) / (1 - 0.55));
+}
+
+function lerpHex(h1, h2, t) {
+  const c1 = hexToRgb(h1);
+  const c2 = hexToRgb(h2);
+  const r = Math.round(c1.r + (c2.r - c1.r) * t);
+  const g = Math.round(c1.g + (c2.g - c1.g) * t);
+  const b = Math.round(c1.b + (c2.b - c1.b) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
+function hexToRgb(hex) {
+  const h = hex.replace("#", "").trim();
+  const full = h.length === 3 ? h.split("").map((x) => x + x).join("") : h;
+  const n = parseInt(full, 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
 
 const styles = StyleSheet.create({
   container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    cursor: 'pointer',
+    alignItems: "center",
+    justifyContent: "center",
   },
-  svg: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    pointerEvents: 'none',
+
+  centerCard: {
+    position: "absolute",
+    backgroundColor: Color.neutralLightLightest,
+    shadowColor: Color.textBlack,
+    shadowOpacity: 0.12,
+    shadowRadius: 13,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 6,
   },
-  textContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-    pointerEvents: 'none',
+
+  textWrap: {
+    position: "absolute",
+    alignItems: "center",
+    justifyContent: "center",
   },
+
   value: {
-    fontSize: 52,
-    fontWeight: '300',
-    color: '#ffffff',
-    letterSpacing: 1,
+    fontSize: 70,
+    fontFamily: FontFamily.workSansExtraLight,
+    color: "#FFFFFF",
+    lineHeight: 70,
+    includeFontPadding: false,
+    marginTop: 20,
   },
   unit: {
-    fontSize: 16,
-    color: '#999999',
-    marginTop: 2,
+    fontSize: 15,
+    fontFamily: FontFamily.workSansLight,
+    color: "#FFFFFF",
+    lineHeight: 15,
+    includeFontPadding: false,
+    opacity: 0.5,
+    marginTop: 8,
+  },
+  label: {
+    fontSize: 14,
+    fontFamily: FontFamily.workSansRegular,
+    color: "#FFFFFF",
+    lineHeight: 14,
+    includeFontPadding: false,
+    opacity: 0.5,
+    marginTop: 15,
   },
 });
-
-export default CircularGauge;
