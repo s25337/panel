@@ -170,7 +170,13 @@ export default function App() {
 
   const wakeScreen = () => {
     setIsScreenOn(true);
-    resetScreenTimeout();
+    // Nie wołaj resetScreenTimeout - to może spowodować pętlę
+    if (screenTimeoutRef.current) {
+      clearTimeout(screenTimeoutRef.current);
+    }
+    screenTimeoutRef.current = setTimeout(() => {
+      sleepScreen();
+    }, SCREEN_TIMEOUT);
   };
 
   const handleInteraction = () => {
@@ -257,6 +263,7 @@ export default function App() {
             resizeMode="cover"
           >
             <ScreenNavigator
+              currentScreen={currentScreen}
               onScreenChange={setCurrentScreen}
               isSliderActive={isSliderActive}
               screens={[
@@ -381,11 +388,31 @@ export default function App() {
               <View
                 key="control"
                 style={styles.screenContainer}
+                pointerEvents="box-none"
               >
                 <View
                   style={styles.container}
+                  pointerEvents="auto"
                 >
                   <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
+                </View>
+              </View>,
+              // Screen 2: History
+              <View
+                key="history"
+                style={styles.screenContainer}
+                pointerEvents="box-none"
+              >
+                <View
+                  style={styles.container}
+                  pointerEvents="auto"
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 24, textAlign: 'center', marginTop: 30 }}>
+                    History
+                  </Text>
+                  <Text style={{ color: '#888888', fontSize: 14, textAlign: 'center', marginTop: 20 }}>
+                    Coming soon...
+                  </Text>
                 </View>
               </View>,
             ]}

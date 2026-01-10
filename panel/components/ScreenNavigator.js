@@ -1,31 +1,37 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { View, Animated, PanResponder, Dimensions } from 'react-native';
 
 const screenWidth = Dimensions.get('window').width;
 
-const ScreenNavigator = ({ screens = [], onScreenChange = () => {}, isSliderActive = false }) => {
-  const [currentScreen, setCurrentScreen] = useState(0);
+const ScreenNavigator = ({ screens = [], currentScreen = 0, onScreenChange = () => {}, isSliderActive = false }) => {
   const xOffset = useRef(new Animated.Value(0)).current;
   const isSliderActiveRef = useRef(isSliderActive);
+  const currentScreenRef = useRef(currentScreen);
+  
+  console.log('ScreenNavigator - screens.length:', screens.length, 'currentScreen:', currentScreen);
   
   // Zsynchronizuj ref z prop
-  React.useEffect(() => {
+  useEffect(() => {
     isSliderActiveRef.current = isSliderActive;
   }, [isSliderActive]);
-  
-  // Powiadom parent o zmianie ekranu
-  React.useEffect(() => {
-    onScreenChange(currentScreen);
+
+  // Zsynchronizuj ref z prop
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
   }, [currentScreen]);
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: (evt, gestureState) => {
-        // Jeśli slider aktywny, nie bierz kontroli na starcie
+
+  // Utwórz PanResponder za każdym razem gdy zmienia się currentScreen
+  const panResponder = useMemo(() => {
+    return PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onStartShouldSetPanResponderCapture: (evt, gestureState) => {
+        // Capture swipe gestures at the capture phase
         if (isSliderActiveRef.current) return false;
         return Math.abs(gestureState.dx) > 10;
       },
-      onMoveShouldSetPanResponder: (evt, gestureState) => {
-        // Jeśli slider aktywny, nie bierz kontroli podczas ruchu
+      onMoveShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponderCapture: (evt, gestureState) => {
+        // Capture swipe gestures at the capture phase
         if (isSliderActiveRef.current) return false;
         const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
         const isLargeMovement = Math.abs(gestureState.dx) > 5;
@@ -42,28 +48,29 @@ const ScreenNavigator = ({ screens = [], onScreenChange = () => {}, isSliderActi
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
+        console.log('Swipe detected:', gestureState.dx, 'screens:', screens.length, 'current:', currentScreenRef.current);
         const swipeThreshold = screenWidth * 0.2;
-        let newScreen = currentScreen;
+        let newScreen = currentScreenRef.current;
 
         if (gestureState.dx > swipeThreshold) {
-          if (currentScreen > 0) {
-            newScreen = currentScreen - 1;
+          if (currentScreenRef.current > 0) {
+            newScreen = currentScreenRef.current - 1;
           }
         } else if (gestureState.dx < -swipeThreshold) {
-          if (currentScreen < screens.length - 1) {
-            newScreen = currentScreen + 1;
+          if (currentScreenRef.current < screens.length - 1) {
+            newScreen = currentScreenRef.current + 1;
           }
         }
 
-        setCurrentScreen(newScreen);
+        onScreenChange(newScreen);
 
         Animated.spring(xOffset, {
           toValue: 0,
           useNativeDriver: false,
         }).start();
       },
-    })
-  ).current;
+    });
+  }, [screens.length]);
 
   return (
     <View style={{ flex: 1 }} {...panResponder.panHandlers}>
