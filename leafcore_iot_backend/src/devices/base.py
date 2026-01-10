@@ -1,6 +1,28 @@
 # src/devices/base.py
 """
 Base abstract class for device backends
+
+⚠️ IMPORTANT SEMANTICS:
+
+OUTPUTS (set_*):
+- set_light(intensity: float) - Controls LED PWM (0-100%)
+- set_fan(state: bool) - Controls fan relay (on/off)
+- set_pump(state: bool) - Controls pump relay (on/off)
+- set_heater(state: bool) - Controls heater relay (on/off)
+- set_sprinkler(state: bool) - Controls sprinkler relay (on/off)
+
+INPUTS (read_*):
+- read_sensor() -> (temp, hum) - Returns external sensors (AHT10)
+- read_light_intensity() -> brightness - Returns LIGHT SENSOR (VEML7700), NOT LED state
+
+STATE GETTERS (get_*_state):
+- get_light_state() -> intensity - Returns CURRENT LED intensity (what we set)
+- get_*_state() -> bool - Returns current relay state (what we set)
+
+KEY DISTINCTION:
+- get_light_state() = LED intensity (what we CONTROL)
+- read_light_intensity() = Environmental brightness (what we MEASURE)
+These are INDEPENDENT values!
 """
 from typing import Tuple, Optional
 
