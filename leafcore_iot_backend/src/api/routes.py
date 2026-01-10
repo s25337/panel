@@ -137,6 +137,28 @@ def create_api_routes(device_manager: 'DeviceManager',
         settings_service.set_setting(key, data['value'])
         return jsonify({"status": "OK", key: data['value']})
 
+    @api.route('/watering-days', methods=['GET'])
+    def get_watering_days():
+        """Get watering days list"""
+        days = settings_service.get_setting("watering_days", ["MONDAY", "WEDNESDAY", "FRIDAY"])
+        return jsonify({"watering_days": days})
+
+    @api.route('/watering-days', methods=['POST'])
+    def update_watering_days():
+        """Update watering days list"""
+        data = request.json or {}
+        days = data.get('watering_days', [])
+        
+        # Validate days
+        valid_days = {"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"}
+        invalid = [d for d in days if d not in valid_days]
+        
+        if invalid:
+            return jsonify({"error": f"Invalid days: {invalid}"}), 400
+        
+        settings_service.set_setting("watering_days", days)
+        return jsonify({"status": "OK", "watering_days": days})
+
     # ========== MANUAL SETTINGS ==========
     
     @api.route('/manual-settings', methods=['GET'])
@@ -172,15 +194,20 @@ def create_api_routes(device_manager: 'DeviceManager',
     
     @api.route('/watering-timer', methods=['GET'])
     def get_watering_timer():
-        """Get watering schedule info"""
-        interval_seconds = control_service.get_watering_interval()
-        water_times = settings_service.get_setting("water_times", 3)
-        time_remaining = control_service.format_time_remaining(interval_seconds)
+        """Get next watering time based on watering_days schedule"""
+        # Get next watering time (exact time with days, hours, minutes, seconds)
+        next_watering = control_service.get_next_watering_time()
+        
+        # Also get watering days for UI display
+        watering_days = settings_service.get_setting("watering_days", ["MONDAY", "WEDNESDAY", "FRIDAY"])
         
         return jsonify({
-            "interval_seconds": interval_seconds,
-            **time_remaining,
-            "water_times_per_week": water_times
+            "days": next_watering["days"],
+            "hours": next_watering["hours"],
+            "minutes": next_watering["minutes"],
+            "seconds": next_watering["seconds"],
+            "watering_days": watering_days,
+            "next_watering_at": "12:00"
         })
 
     # ========== LIGHT SCHEDULE ==========

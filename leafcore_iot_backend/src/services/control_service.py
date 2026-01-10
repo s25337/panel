@@ -189,6 +189,79 @@ class ControlService:
         seconds_per_week = 7 * 24 * 3600
         return int(seconds_per_week / water_times)
 
+    def get_next_watering_time(self) -> Dict[str, int]:
+        """
+        Calculate exact time until next watering (12:00 on next scheduled day)
+        Returns dict with days, hours, minutes, seconds
+        """
+        import time
+        from datetime import datetime, timedelta
+        
+        current_time = datetime.now()
+        current_hour = current_time.hour
+        current_minute = current_time.minute
+        current_second = current_time.second
+        day_of_week = current_time.weekday()  # 0=Monday, 6=Sunday
+        
+        # Get watering days list
+        watering_days_names = self.settings_service.get_setting("watering_days", ["MONDAY", "WEDNESDAY", "FRIDAY"])
+        
+        # Map day names to weekday numbers (0=Monday)
+        day_map = {
+            "MONDAY": 0,
+            "TUESDAY": 1,
+            "WEDNESDAY": 2,
+            "THURSDAY": 3,
+            "FRIDAY": 4,
+            "SATURDAY": 5,
+            "SUNDAY": 6
+        }
+        
+        # Get numeric days
+        watering_day_numbers = sorted([day_map.get(day, -1) for day in watering_days_names if day_map.get(day, -1) >= 0])
+        
+        if not watering_day_numbers:
+            # No watering days configured, return 7 days
+            return self.format_time_remaining(7 * 24 * 3600)
+        
+        # Watering happens at 12:00
+        target_hour = 12
+        target_minute = 0
+        target_second = 0
+        
+        # Calculate time until 12:00 today
+        target_time_today = current_time.replace(hour=target_hour, minute=target_minute, second=target_second, microsecond=0)
+        
+        # Find next watering day
+        next_watering_day = None
+        
+        # Check if today is watering day and 12:00 hasn't passed yet
+        if day_of_week in watering_day_numbers and current_time < target_time_today:
+            next_watering_day = current_time
+        else:
+            # Find next watering day in this week
+            for offset in range(1, 8):
+                next_day = day_of_week + offset
+                if next_day % 7 in watering_day_numbers:
+                    next_watering_day = current_time + timedelta(days=offset)
+                    break
+        
+        if next_watering_day is None:
+            # Shouldn't happen, but fallback to 7 days
+            return self.format_time_remaining(7 * 24 * 3600)
+        
+        # Set next watering to 12:00 on that day
+        next_watering = next_watering_day.replace(hour=target_hour, minute=target_minute, second=target_second, microsecond=0)
+        
+        # Calculate time remaining
+        time_remaining = (next_watering - current_time).total_seconds()
+        
+        # Make sure it's positive
+        if time_remaining < 0:
+            time_remaining = 0
+        
+        return self.format_time_remaining(int(time_remaining))
+
     @staticmethod
     def format_time_remaining(seconds: int) -> Dict[str, int]:
         """Convert seconds to days, hours, minutes, seconds"""
