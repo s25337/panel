@@ -1,7 +1,8 @@
 {
   "light_hours": 23.0,
-  "target_temp": 50.0,
-  "target_hum": 100.0,
+  "target_temp": 26,
+  "target_hum": 23,
   "water_times": 3,
-  "water_seconds": 1
+  "water_seconds": 1,
+  "light_intensity": 53
 }

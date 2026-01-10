@@ -1,5 +1,19 @@
 // GlobalStyles.js - Dark Theme
-import { StyleSheet } from "react-native";
+import { StyleSheet, Dimensions } from "react-native";
+
+// Responsive scaling for 1024x600 resolution
+const { width, height } = Dimensions.get('window');
+const DESIGN_WIDTH = 1024;
+const DESIGN_HEIGHT = 600;
+export const scale = Math.min(width / DESIGN_WIDTH, height / DESIGN_HEIGHT);
+
+/* Responsive component sizes optimized for 1024x600 */
+export const ResponsiveSizes = {
+  sliderWidth: Math.round(280 * scale),         // 280px on 1024x600
+  sliderHeight: Math.round(60 * scale),         // 60px on 1024x600
+  sliderBorderRadius: Math.round(30 * scale),   // 30px border radius
+  sliderFontSize: Math.round(13 * scale),       // 13px font on slider
+};
 
 /* Fonts */
 export const FontFamily = {

@@ -1,0 +1,202 @@
+# src/services/control_service.py
+"""
+Device control and automation service
+"""
+import time
+from typing import Optional, Dict, Any
+from src.devices import DeviceManager
+from src.services.settings_service import SettingsService
+
+
+class ControlService:
+    """Manages device control logic and automation"""
+    
+    LIGHT_START_TIME = 8  # Light starts at 8:00 AM
+    
+    def __init__(self, device_manager: DeviceManager, settings_service: SettingsService):
+        """Initialize control service"""
+        self.device_manager = device_manager
+        self.settings_service = settings_service
+        
+        # Hysteresis state for fan (prevents rapid switching)
+        self._fan_hysteresis_on = False
+        
+        # Current light intensity based on sensor
+        self._light_intensity = 0.0
+
+    # ========== FAN CONTROL WITH HYSTERESIS ==========
+    
+    def control_fan_auto(self, current_humidity: Optional[float]) -> bool:
+        """
+        Auto control fan with hysteresis
+        Turns on at target_hum + 5%, turns off at target_hum
+        """
+        if current_humidity is None:
+            return self._fan_hysteresis_on
+        
+        target_hum = self.settings_service.get_setting("target_hum", 60)
+        
+        if self._fan_hysteresis_on:
+            # Fan is ON - turn off at target humidity
+            if current_humidity <= target_hum:
+                self._fan_hysteresis_on = False
+                self.device_manager.set_fan(False)
+        else:
+            # Fan is OFF - turn on if humidity exceeds target + 5%
+            if current_humidity > (target_hum + 5):
+                self._fan_hysteresis_on = True
+                self.device_manager.set_fan(True)
+        
+        return self._fan_hysteresis_on
+
+    # ========== LIGHT CONTROL WITH AUTO-INTENSITY ==========
+    
+    def should_light_be_on(self) -> bool:
+        """
+        Check if light should be on based on schedule
+        Light starts at LIGHT_START_TIME and runs for light_hours
+        """
+        light_hours = self.settings_service.get_setting("light_hours", 12)
+        current_time = time.localtime()
+        current_hour = current_time.tm_hour
+        current_minute = current_time.tm_min
+        
+        # Convert light_hours to minutes
+        light_duration_minutes = int(light_hours * 60)
+        
+        # Calculate start and end times in minutes from midnight
+        start_minutes = self.LIGHT_START_TIME * 60
+        end_minutes = start_minutes + light_duration_minutes
+        
+        # Current time in minutes from midnight
+        current_minutes = current_hour * 60 + current_minute
+        
+        # Check if current time is within schedule
+        if end_minutes < 24 * 60:  # Normal case (doesn't cross midnight)
+            return start_minutes <= current_minutes < end_minutes
+        else:  # Crosses midnight
+            end_minutes_adjusted = end_minutes - (24 * 60)
+            return current_minutes >= start_minutes or current_minutes < end_minutes_adjusted
+
+    def control_light_auto(self, light_sensor_reading: Optional[float]) -> float:
+        """
+        Auto control light with sensor feedback
+        If light should be on: intensity = 100 - sensor_reading
+        If light should be off: intensity = 0
+        """
+        if not self.should_light_be_on():
+            self._light_intensity = 0.0
+            self.device_manager.set_light(0.0)
+            return 0.0
+        
+        if light_sensor_reading is None:
+            # No sensor, use default intensity
+            default_intensity = self.settings_service.get_setting("light_intensity", 50)
+            self.device_manager.set_light(default_intensity)
+            return default_intensity
+        
+        # Inverse logic: if sensor reads high (bright), reduce light
+        # If sensor reads low (dark), increase light
+        intensity = 100.0 - light_sensor_reading
+        intensity = max(0.0, min(100.0, intensity))
+        
+        self._light_intensity = intensity
+        self.device_manager.set_light(intensity)
+        return intensity
+
+    # ========== GET LIGHT SCHEDULE ==========
+    
+    def get_light_schedule(self) -> Dict[str, Any]:
+        """Get light on/off schedule"""
+        light_hours = self.settings_service.get_setting("light_hours", 12)
+        
+        start_hour = self.LIGHT_START_TIME
+        end_hour = self.LIGHT_START_TIME + int(light_hours)
+        end_minute = int((light_hours % 1) * 60)
+        
+        # Handle crossing midnight
+        if end_hour >= 24:
+            end_hour = end_hour - 24
+        
+        return {
+            "start_hour": start_hour,
+            "start_minute": 0,
+            "end_hour": end_hour,
+            "end_minute": end_minute,
+            "light_hours": light_hours
+        }
+
+    # ========== WATERING CONTROL ==========
+    
+    def get_watering_interval(self) -> int:
+        """
+        Get watering interval in seconds
+        water_times = number of waterings per week
+        """
+        water_times = self.settings_service.get_setting("water_times", 3)
+        
+        if water_times <= 0:
+            return 7 * 24 * 3600  # 7 days if 0 waterings
+        
+        seconds_per_week = 7 * 24 * 3600
+        return int(seconds_per_week / water_times)
+
+    @staticmethod
+    def format_time_remaining(seconds: int) -> Dict[str, int]:
+        """Convert seconds to days, hours, minutes, seconds"""
+        days = seconds // (24 * 3600)
+        seconds %= (24 * 3600)
+        hours = seconds // 3600
+        seconds %= 3600
+        minutes = seconds // 60
+        seconds %= 60
+        
+        return {
+            "days": days,
+            "hours": hours,
+            "minutes": minutes,
+            "seconds": seconds
+        }
+
+    # ========== MANUAL DEVICE CONTROL ==========
+    
+    def set_device(self, device: str, state: Any) -> bool:
+        """
+        Set device state (manual control)
+        Returns True if successful
+        """
+        try:
+            if device == "fan":
+                self.device_manager.set_fan(bool(state))
+            elif device == "light":
+                intensity = float(state) if isinstance(state, (int, float)) else (1.0 if state else 0.0)
+                intensity = max(0.0, min(100.0, intensity))
+                self.device_manager.set_light(intensity)
+            elif device == "pump":
+                self.device_manager.set_pump(bool(state))
+            elif device == "heater":
+                self.device_manager.set_heater(bool(state))
+            elif device == "sprinkler":
+                self.device_manager.set_sprinkler(bool(state))
+            else:
+                return False
+            return True
+        except Exception:
+            return False
+
+    # ========== STATE QUERIES ==========
+    
+    def get_device_states(self) -> Dict[str, Any]:
+        """Get current state of all devices"""
+        return {
+            "fan": self.device_manager.get_fan_state(),
+            "light": self.device_manager.get_light_state(),
+            "pump": self.device_manager.get_pump_state(),
+            "heater": self.device_manager.get_heater_state(),
+            "sprinkler": self.device_manager.get_sprinkler_state(),
+        }
+
+    def get_device_state(self, device: str) -> Any:
+        """Get state of specific device"""
+        states = self.get_device_states()
+        return states.get(device)

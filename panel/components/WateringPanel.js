@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import Svg, { Circle, Path } from 'react-native-svg';
+import { View, StyleSheet, Text } from 'react-native';
+import { FontFamily, ResponsiveSizes } from '../GlobalStyles';
 import apiService from '../services/apiService';
 
-const WateringPanel = () => {
+const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   const [timeLeft, setTimeLeft] = useState(null);
-  const [intervalSeconds, setIntervalSeconds] = useState(0);
-  const [waterTimesPerWeek, setWaterTimesPerWeek] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [sliderValue, setSliderValue] = useState(0);
+  const [hasTriggeredWater, setHasTriggeredWater] = useState(false);
+  const [trackWidth, setTrackWidth] = useState(null);
 
   // Pobierz czas podlewania z backendu na starcie
   useEffect(() => {
@@ -20,8 +21,6 @@ const WateringPanel = () => {
           minutes: data.minutes,
           seconds: data.seconds,
         });
-        setIntervalSeconds(data.interval_seconds);
-        setWaterTimesPerWeek(data.water_times_per_week || 0);
         setIsLoading(false);
       } catch (error) {
         console.error('Failed to fetch watering timer:', error);
@@ -32,6 +31,7 @@ const WateringPanel = () => {
     fetchWateringTimer();
   }, []);
 
+  // Odliczanie czasu
   useEffect(() => {
     if (!timeLeft) return;
 
@@ -60,129 +60,153 @@ const WateringPanel = () => {
     return () => clearInterval(timer);
   }, [timeLeft]);
 
-  const handlePress = async () => {
-    // Pobierz świeże dane z backendu (może ustawienia się zmieniły)
-    const data = await apiService.getWateringTimer();
+  // Kiedy slider przesunięty > 80, podlej
+  useEffect(() => {
+    if (sliderValue > 80 && !hasTriggeredWater) {
+      handleWaterTrigger();
+    } else if (sliderValue < 60) {
+      setHasTriggeredWater(false);
+    }
+  }, [sliderValue, hasTriggeredWater]);
+
+  const handleSliderMove = (e) => {
+    if (!trackWidth) return;
+    const x = e.nativeEvent.locationX;
+    const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
+    setSliderValue(percentage);
+  };
+
+  const handleResponderGrant = (e) => {
+    onSliderStart?.();
+    handleSliderMove(e);
+  };
+
+  const handleResponderRelease = () => {
+    onSliderEnd?.();
+  };
+
+  const handleWaterTrigger = async () => {
+    setHasTriggeredWater(true);
     
-    // Reset timer na pełny interwał z backendu
-    setTimeLeft({
-      days: data.days,
-      hours: data.hours,
-      minutes: data.minutes,
-      seconds: data.seconds,
-    });
-    setIntervalSeconds(data.interval_seconds);
-    
-    // Pobierz settings aby dowiedzieć się ile sekund włączyć pompę
-    const settings = await apiService.getSettings();
-    const waterSeconds = settings.water_seconds || 1;
-    
-    // Włącz pompę
-    await apiService.toggleDevice('pump', 'on');
-    
-    // Czekaj określony czas
-    await new Promise(resolve => setTimeout(resolve, waterSeconds * 1000));
-    
-    // Wyłącz pompę
-    await apiService.toggleDevice('pump', 'off');
-    
-    onToggle();
+    try {
+      const settings = await apiService.getSettings();
+      const waterSeconds = settings.water_seconds || 1;
+      
+      // Włącz pompę
+      await apiService.toggleDevice('pump', 'on');
+      
+      // Czekaj określony czas
+      await new Promise(resolve => setTimeout(resolve, waterSeconds * 1000));
+      
+      // Wyłącz pompę
+      await apiService.toggleDevice('pump', 'off');
+      
+      // Odśwież timer
+      const data = await apiService.getWateringTimer();
+      setTimeLeft({
+        days: data.days,
+        hours: data.hours,
+        minutes: data.minutes,
+        seconds: data.seconds,
+      });
+      
+      // Reset slidera
+      setSliderValue(0);
+      setHasTriggeredWater(false);
+    } catch (error) {
+      console.error('Failed to water:', error);
+      setSliderValue(0);
+      setHasTriggeredWater(false);
+    }
   };
 
   const formatTime = (val) => String(val).padStart(2, '0');
 
+  const timeString = !isLoading && timeLeft 
+    ? `${formatTime(timeLeft.days)}d ${formatTime(timeLeft.hours)}h ${formatTime(timeLeft.minutes)}m`
+    : '--:--:--';
+
   return (
-    <TouchableOpacity 
-      style={styles.container}
-      onPress={handlePress}
-      activeOpacity={0.9}
-    >
-      <Text style={styles.title}>Watering</Text>
-
-      <View style={styles.content}>
-        <Svg width="40" height="40" viewBox="0 0 60 60">
-          <Circle
-            cx="30"
-            cy="30"
-            r="28"
-            fill="none"
-            stroke={status ? '#00FF00' : '#5DADE2'}
-            strokeWidth="2"
+    <View style={styles.container}>
+      <Text style={styles.timeDisplay}>{timeString}</Text>
+      
+      {/* Slider - taki sam jak Light */}
+      <View style={styles.sliderWrapper}>
+        <View
+          style={styles.sliderTrack}
+          onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
+          onResponderGrant={handleResponderGrant}
+          onResponderMove={handleSliderMove}
+          onResponderRelease={handleResponderRelease}
+        >
+          {/* Filled portion */}
+          <View
+            style={[
+              styles.sliderFill,
+              {
+                width: `${sliderValue}%`,
+                backgroundColor: '#4ECDC4',
+              }
+            ]}
+            pointerEvents="none"
           />
-          {/* Water drop */}
-          <Path
-            d="M 30 12 C 24 18 20 25 20 32 C 20 41 24 48 30 48 C 36 48 40 41 40 32 C 40 25 36 18 30 12 Z"
-            fill={status ? '#00FF00' : '#5DADE2'}
-          />
-        </Svg>
-
-        <View style={styles.info}>
-          <Text style={styles.timeLabel}>Next in:</Text>
-          <Text style={styles.timer}>
-            {isLoading || !timeLeft ? '--:--:--:--' : `${formatTime(timeLeft.days)}:${formatTime(timeLeft.hours)}:${formatTime(timeLeft.minutes)}:${formatTime(timeLeft.seconds)}`}
+          {/* Label na środku slidera */}
+          <Text style={styles.sliderLabel} pointerEvents="none">
+            {sliderValue > 80 ? 'Watering' : 'Slide to water'}
           </Text>
-          <View style={styles.scheduleRow}>
-            <Text style={styles.scheduleInfo}>
-              {isLoading || !waterTimesPerWeek ? 'Loading...' : `${waterTimesPerWeek}x/week`}
-            </Text>
-          </View>
         </View>
       </View>
-    </TouchableOpacity>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    borderRadius: 0,
-    padding: 0,
     justifyContent: 'center',
     alignItems: 'center',
-    cursor: 'pointer',
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#aaaaaa',
-    letterSpacing: 0.5,
-    marginBottom: 12,
-    textAlign: 'center',
     width: '100%',
   },
-  content: {
-    flexDirection: 'column',
+  timeDisplay: {
+    fontSize: 12,
+    fontFamily: FontFamily.workSansMedium,
+    color: '#e0e0e0',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  sliderWrapper: {
+    width: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    flex: 1,
     gap: 8,
   },
-  iconContainer: {
-    marginBottom: 0,
-  },
-  info: {
+  sliderTrack: {
+    width: ResponsiveSizes.sliderWidth,
+    height: ResponsiveSizes.sliderHeight,
+    borderRadius: ResponsiveSizes.sliderBorderRadius,
+    backgroundColor: '#3a3a3a',
+    overflow: 'hidden',
+    justifyContent: 'center',
     alignItems: 'center',
+    position: 'relative',
   },
-  scheduleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
+  sliderFill: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    height: '100%',
+    borderRadius: ResponsiveSizes.sliderBorderRadius,
   },
-  timeLabel: {
-    fontSize: 12,
+  sliderLabel: {
+    fontSize: ResponsiveSizes.sliderFontSize,
+    fontFamily: FontFamily.workSansMedium,
     color: '#888888',
-    marginBottom: 2,
-  },
-  timer: {
-    fontSize: 13,
-    color: '#4ECDC4',
-    marginBottom: 2,
-    letterSpacing: 0.3,
-    fontWeight: '600',
-  },
-  scheduleInfo: {
-    fontSize: 12,
-    color: '#666666',
+    letterSpacing: 0.5,
+    position: 'absolute',
+    zIndex: 10,
   },
 });
 

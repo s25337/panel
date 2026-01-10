@@ -26,7 +26,12 @@
       "requireFullScreen": true
     },
     "android": {
-      "screenOrientation": "landscape"
+      "screenOrientation": "landscape",
+      "resizeableActivity": false,
+      "softwareKeyboardLayoutMode": "pan"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }

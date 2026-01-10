@@ -20,7 +20,7 @@ const ControlPanel = () => {
     try {
       const manualSettings = await apiService.getManualSettings();
       setManualMode(manualSettings.is_manual === true);
-      setLightOn(manualSettings.light === true);
+      setLightOn(manualSettings.light === true || manualSettings.light > 0);
       setHeaterOn(manualSettings.heater === true);
       setFanOn(manualSettings.fan === true);
       // Nie pobieramy pump/sprinkler - są obsługiwane przez press/hold UI
@@ -34,9 +34,15 @@ const ControlPanel = () => {
     setLoading(prev => ({ ...prev, [device]: true }));
 
     try {
-      await apiService.toggleDevice(device, newState);
-      // Refetch status po zmianie aby być pewnym stanu
-      await fetchStatus();
+      if (device === 'manual_mode') {
+        // Special handling for manual mode toggle
+        await apiService.toggleManualMode(newState);
+        setManualMode(newState === 'on');
+      } else {
+        await apiService.toggleDevice(device, newState);
+        // Refetch status po zmianie aby być pewnym stanu
+        await fetchStatus();
+      }
     } catch (error) {
       Alert.alert('Błąd', `Nie udało się zmienić stanu ${device}`);
       console.error(`Error toggling ${device}:`, error);

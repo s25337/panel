@@ -170,6 +170,24 @@ const apiService = {
       };
     }
   },
+
+  /**
+   * Przełącza tryb manual on/off
+   * @param {string} state - 'on' lub 'off'
+   */
+  async toggleManualMode(state) {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/manual-mode/${state}`,
+        { method: 'POST' }
+      );
+      if (!response.ok) throw new Error('Failed to toggle manual mode');
+      return await response.json();
+    } catch (error) {
+      console.error('Error toggling manual mode:', error);
+      return { status: 'error' };
+    }
+  },
 };
 
 export default apiService;

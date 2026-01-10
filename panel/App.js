@@ -1,18 +1,30 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground } from 'react-native';
+import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image } from 'react-native';
 import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
-import { FontFamily, Color } from './GlobalStyles';
+import { FontFamily, Color, scale } from './GlobalStyles';
 import CircularGauge from './components/CircularGauge';
 import LightPanel from './components/LightPanel';
-import LightSchedulePanel from './components/LightSchedulePanel';
-import FanPanel from './components/FanPanel';
+import ValueSlider from './components/ValueSlider';
 import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
 import ScreenNavigator from './components/ScreenNavigator';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
+
+// Responsive sizes optimized for 1024x600
+const RESPONSIVE_SIZES = {
+  circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
+  gridPaddingHorizontal: Math.round(40 * scale),     // 40px horizontal padding
+  gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
+  gridGap: Math.round(28 * scale),                   // 28px gap between items
+  borderRadius: Math.round(24 * scale),              // 24px border radius
+  componentPadding: Math.round(12 * scale),          // 12px component internal padding
+  screensaverSliderWidth: Math.round(320 * scale),   // 320px on 1024x600
+  screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
+  topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
+};
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -23,10 +35,12 @@ export default function App() {
   const [targetHumidity, setTargetHumidity] = useState(60);
   const [isScreenOn, setIsScreenOn] = useState(true);
   const [lightStatus, setLightStatus] = useState(false);
-  const [fanStatus, setFanStatus] = useState(false);
+  const [lightIntensity, setLightIntensity] = useState(50);
+  const [lightSchedule, setLightSchedule] = useState(null);
   const [manualMode, setManualMode] = useState(false);
   const [wateringInterval, setWateringInterval] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
+  const [isSliderActive, setIsSliderActive] = useState(false);
   const screenTimeoutRef = useRef(null);
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
@@ -55,13 +69,17 @@ export default function App() {
     const data = await apiService.getSensors();
     if (data.temperature !== null) setTemperature(data.temperature);
     if (data.humidity !== null) setHumidity(data.humidity);
+    // Nie ustawiaj lightIntensity z czujnika - to jest PWM, nie czytanie sensora!
   };
 
   const fetchStatus = async () => {
     const data = await apiService.getStatus();
     setLightStatus(data.light || false);
+    if (typeof data.light === 'number') {
+      setLightIntensity(data.light);  // Light intensity (0-100) z backendu
+    }
     // Nie pobieramy pump/sprinkler - są obsługiwane w ControlPanel
-    setFanStatus(data.fan || false);
+    // Fan jest teraz w ControlPanel
     setManualMode(data.manual_mode || false);
   };
 
@@ -78,6 +96,15 @@ export default function App() {
     }
   };
 
+  const fetchLightSchedule = async () => {
+    try {
+      const data = await apiService.getLightSchedule();
+      setLightSchedule(data);
+    } catch (error) {
+      console.error('Error fetching light schedule:', error);
+    }
+  };
+
   // Pobieraj dane czujników co 2 sekundy
   useEffect(() => {
     // Początkowe pobranie
@@ -85,6 +112,7 @@ export default function App() {
     fetchStatus();
     fetchSettings();
     fetchWateringTimer();
+    fetchLightSchedule();
 
     // Polling co 2 sekundy
     sensorPollInterval.current = setInterval(() => {
@@ -95,6 +123,7 @@ export default function App() {
     // Polling dla watering timera co 5 sekund (rzadsze)
     wateringPollInterval.current = setInterval(() => {
       fetchWateringTimer();
+      fetchLightSchedule();
     }, 5000);
 
     return () => {
@@ -146,6 +175,14 @@ export default function App() {
 
   const handleInteraction = () => {
     resetScreenTimeout();
+  };
+
+  const handleSliderStart = () => {
+    setIsSliderActive(true);
+  };
+
+  const handleSliderEnd = () => {
+    setIsSliderActive(false);
   };
 
   useEffect(() => {
@@ -221,16 +258,25 @@ export default function App() {
           >
             <ScreenNavigator
               onScreenChange={setCurrentScreen}
+              isSliderActive={isSliderActive}
               screens={[
                 // Screen 0: Main Panel - 3x2 Grid
                 <View
                   key="main"
                   style={styles.screenContainer}
                 >
-                  {/* Top Left Time and Date */}
+                  {/* Top Left Time and Date + Manual Mode */}
                   <View style={styles.topLeftTimeContainer}>
-                    <Text style={styles.topLeftTime}>{formatTime()}</Text>
-                    <Text style={styles.topLeftDate}>{formatDate()}</Text>
+                    <View>
+                      <Text style={styles.topLeftTime}>{formatTime()}</Text>
+                      <Text style={styles.topLeftDate}>{formatDate()}</Text>
+                    </View>
+                    <Text style={[
+                      styles.manualModeIndicator,
+                      { color: manualMode ? '#FF9800' : '#666666' }
+                    ]}>
+                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
+                    </Text>
                   </View>
 
                   <View 
@@ -247,14 +293,8 @@ export default function App() {
                         setTargetHumidity(newHum);
                         apiService.updateSettings({ target_hum: newHum });
                       }}
-                      size={230}
+                      size={RESPONSIVE_SIZES.circularGaugeSize}
                     />
-                    <View style={styles.currentValueContainer}>
-                      <Text style={styles.currentLabel}>Current: </Text>
-                      <Text style={[styles.currentValue, { color: '#4ECDC4' }]}>
-                        {humidity}%
-                      </Text>
-                    </View>
                   </View>
 
                   {/* Col 2: Temperature Slider */}
@@ -266,24 +306,22 @@ export default function App() {
                         setTargetTemp(newTemp);
                         apiService.updateSettings({ target_temp: newTemp });
                       }}
-                      size={230}
+                      size={RESPONSIVE_SIZES.circularGaugeSize}
                     />
-                    <View style={styles.currentValueContainer}>
-                      <Text style={styles.currentLabel}>Current: </Text>
-                      <Text style={[styles.currentValue, { color: '#FF6B6B' }]}>
-                        {temperature}°C
-                      </Text>
-                    </View>
                   </View>
 
-                  {/* Col 3: Manual Mode Indicator */}
-                  <View style={styles.gridItemTall}>
-                    <View style={styles.headerBox}>
-                      <Text style={[
-                        styles.manualModeIndicator,
-                        { color: manualMode ? '#FF9800' : '#666666' }
-                      ]}>
-                        MANUAL IS {manualMode ? 'ON' : 'OFF'}
+                  {/* Col 3: Current Temperature & Humidity */}
+                  <View style={[styles.gridItemTall, { flex: 0.6, justifyContent: 'center', gap: 20 }]}>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={styles.sensorLabel}>Temperature</Text>
+                      <Text style={styles.sensorValue}>
+                        {temperature.toFixed(1)}°C
+                      </Text>
+                    </View>
+                    <View style={{ alignItems: 'center' }}>
+                      <Text style={styles.sensorLabel}>Humidity</Text>
+                      <Text style={styles.sensorValue}>
+                        {humidity.toFixed(0)}%
                       </Text>
                     </View>
                   </View>
@@ -291,19 +329,50 @@ export default function App() {
 
                 {/* ROW 2 - SHORT */}
                 <View style={styles.rowWrapperShort}>
-                  {/* Col 1: Light Schedule */}
+                  {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
-                    <LightSchedulePanel status={lightStatus} />
+                    {!manualMode && (
+                      <Text style={styles.lightScheduleText}>
+                        {lightSchedule 
+                          ? `${String(lightSchedule.start_hour).padStart(2, '0')}:${String(lightSchedule.start_minute).padStart(2, '0')} - ${String(lightSchedule.end_hour).padStart(2, '0')}:${String(lightSchedule.end_minute).padStart(2, '0')}`
+                          : '--:-- - --:--'
+                        }
+                      </Text>
+                    )}
+                    <ValueSlider
+                      name1="Light"
+                      value={lightIntensity}
+                      min={0}
+                      max={100}
+                      step={1}
+                      unit="%"
+                      onSliderStart={handleSliderStart}
+                      onSliderEnd={handleSliderEnd}
+                      onValueChange={(newIntensity) => {
+                        setLightIntensity(newIntensity);
+                        if (manualMode) {
+                          // W manual mode wysyłaj bezpośrednio do control endpoint
+                          apiService.toggleDevice('light', newIntensity);
+                        } else {
+                          // W auto mode ustawiaj settings
+                          apiService.updateSettings({ light_intensity: newIntensity });
+                        }
+                      }}
+                    />
                   </View>
 
                   {/* Col 2: Watering Info */}
                   <View style={styles.gridItemShort}>
-                    <WateringPanel />
+                    <WateringPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
                   </View>
 
-                  {/* Col 3: Fan Status */}
-                  <View style={styles.gridItemShort}>
-                    <FanPanel status={fanStatus} />
+                  {/* Col 3: Bluetooth Status */}
+                  <View style={[styles.gridItemShort, { flex: 0.6 }]}>
+                    <Image 
+                      source={require('./assets/bluetooth.png')} 
+                      style={styles.bluetoothImage}
+                    />
+                    <Text style={styles.bluetoothStatus}>Connected</Text>
                   </View>
                 </View>
               </View>
@@ -328,7 +397,6 @@ export default function App() {
     </ImageBackground>
   );
 }
-
 const styles = StyleSheet.create({
   fullBackground: {
     flex: 1,
@@ -354,27 +422,27 @@ const styles = StyleSheet.create({
   mainGrid: {
     flex: 1,
     flexDirection: 'column',
-    paddingHorizontal: 35,
-    paddingVertical: 35,
-    gap: 25,
+    paddingHorizontal: RESPONSIVE_SIZES.gridPaddingHorizontal,
+    paddingVertical: RESPONSIVE_SIZES.gridPaddingVertical,
+    gap: RESPONSIVE_SIZES.gridGap,
     justifyContent: 'space-between',
-    marginTop: 45,
+    marginTop: Math.round(50 * scale),  // Responsive margin for time/date area
   },
   rowWrapperTall: {
     flex: 1.2,
     flexDirection: 'row',
-    gap: 25,
+    gap: RESPONSIVE_SIZES.gridGap,
   },
   rowWrapperShort: {
     flex: 0.7,
     flexDirection: 'row',
-    gap: 25,
+    gap: RESPONSIVE_SIZES.gridGap,
   },
   gridItemTall: {
     flex: 1,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 24,
-    padding: 8,
+    borderRadius: RESPONSIVE_SIZES.borderRadius,
+    padding: RESPONSIVE_SIZES.componentPadding,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.7,
@@ -382,8 +450,8 @@ const styles = StyleSheet.create({
   gridItemShort: {
     flex: 1,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 24,
-    padding: 8,
+    borderRadius: RESPONSIVE_SIZES.borderRadius,
+    padding: RESPONSIVE_SIZES.componentPadding,
     justifyContent: 'center',
     alignItems: 'center',
     opacity: 0.7,
@@ -410,6 +478,20 @@ const styles = StyleSheet.create({
     alignItems: 'baseline',
     marginTop: -20,
     justifyContent: 'center',
+  },
+  sensorLabel: {
+    fontSize: 12,
+    fontFamily: FontFamily.workSansRegular,
+    color: '#888888',
+    letterSpacing: 0.3,
+    marginBottom: 4,
+  },
+  sensorValue: {
+    fontSize: 36,
+    fontFamily: FontFamily.workSansExtraLight,
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+    fontWeight: '600',
   },
   headerBox: {
     justifyContent: 'center',
@@ -527,8 +609,8 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   screensaverSlider: {
-    width: 300,
-    height: 80,
+    width: RESPONSIVE_SIZES.screensaverSliderWidth,
+    height: RESPONSIVE_SIZES.screensaverSliderHeight,
     backgroundColor: '#252525',
     borderRadius: 12,
     justifyContent: 'center',
@@ -544,11 +626,13 @@ const styles = StyleSheet.create({
   },
   topLeftTimeContainer: {
     position: 'absolute',
-    top: 20,
-    left: 20,
+    top: RESPONSIVE_SIZES.topLeftMargin,
+    left: RESPONSIVE_SIZES.topLeftMargin,
+    right: RESPONSIVE_SIZES.topLeftMargin,
     zIndex: 100,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 16,
   },
   topLeftTime: {
@@ -562,5 +646,27 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 0.5,
+  },
+  lightScheduleText: {
+    fontSize: 12,
+    fontFamily: FontFamily.workSansMedium,
+    color: '#e0e0e0',
+    letterSpacing: 0.5,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  bluetoothImage: {
+    width: 50,
+    height: 50,
+    marginBottom: 6,
+    resizeMode: 'contain',
+    tintColor: '#ffffff',
+  },
+  bluetoothStatus: {
+    fontSize: 13,
+    fontFamily: FontFamily.workSansRegular,
+    color: '#ffffff',
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
