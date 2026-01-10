@@ -200,3 +200,82 @@ class ControlService:
         """Get state of specific device"""
         states = self.get_device_states()
         return states.get(device)
+
+    # ========== AUTO-MODE CONTROL ==========
+    
+    def update_auto_devices(self, temperature: Optional[float], humidity: Optional[float],
+                           brightness: Optional[float]) -> Dict[str, Any]:
+        """
+        Update device states based on current sensor readings and auto-mode settings
+        Returns dict with updated device states
+        """
+        settings = self.settings_service.get_settings()
+        modes = self.settings_service.get_manual_settings().get("modes", {})
+        
+        updated_states = {}
+        
+        # Heater control (based on temperature)
+        if modes.get("heat_mat", {}).get("mode") == "auto" and temperature is not None:
+            target_temp = settings.get("target_temp", 25)
+            heater_on = temperature < target_temp
+            self.device_manager.set_heater(heater_on)
+            updated_states["heater"] = heater_on
+        
+        # Fan control (based on temperature + humidity)
+        if modes.get("fan", {}).get("mode") == "auto":
+            fan_on = self.control_fan_auto(humidity)
+            if temperature is not None:
+                target_temp = settings.get("target_temp", 25)
+                if temperature > target_temp:
+                    fan_on = True
+            if fan_on:
+                self.device_manager.set_fan(True)
+            updated_states["fan"] = fan_on
+        
+        # Sprinkler control (based on humidity)
+        if modes.get("sprinkler", {}).get("mode") == "auto" and humidity is not None:
+            target_hum = settings.get("target_hum", 60)
+            sprinkler_on = humidity < (target_hum - 5)
+            self.device_manager.set_sprinkler(sprinkler_on)
+            updated_states["sprinkler"] = sprinkler_on
+        
+        # Light control (schedule + sensor feedback)
+        if modes.get("light", {}).get("mode") == "auto":
+            self.control_light_auto(brightness)
+            updated_states["light"] = {
+                "intensity": self._light_intensity,
+                "on": self._light_intensity > 0
+            }
+        
+        return updated_states
+
+    def get_device_modes(self) -> Dict[str, Dict[str, Any]]:
+        """Get current modes for all devices"""
+        manual = self.settings_service.get_manual_settings()
+        modes = manual.get("modes", {})
+        
+        return {
+            "fan": modes.get("fan", {"mode": "auto"}),
+            "light": modes.get("light", {"mode": "auto"}),
+            "pump": modes.get("pump", {"mode": "manual"}),
+            "heater": modes.get("heat_mat", {"mode": "auto"}),
+            "sprinkler": modes.get("sprinkler", {"mode": "auto"}),
+        }
+
+    def set_device_mode(self, device: str, mode: str) -> bool:
+        """Set device mode (auto/manual)"""
+        try:
+            manual = self.settings_service.get_manual_settings()
+            modes = manual.get("modes", {})
+            
+            if device == "heater":
+                device_key = "heat_mat"
+            else:
+                device_key = device
+            
+            modes[device_key] = {"mode": mode}
+            manual["modes"] = modes
+            self.settings_service.save_manual_settings(manual)
+            return True
+        except Exception:
+            return False

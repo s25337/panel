@@ -256,4 +256,87 @@ def create_api_routes(device_manager: 'DeviceManager',
             "queue_size": sync_service.change_queue.qsize()
         })
 
+    # ========== DEVICE CONTROL (from gpio_manager) ==========
+    
+    @api.route('/device-control', methods=['POST'])
+    def device_control():
+        """Control individual device (on/off or intensity)"""
+        data = request.json or {}
+        component = data.get("component")
+        action = data.get("action")  # "on"/"off" or intensity value
+        
+        if not component:
+            return jsonify({"error": "Missing component"}), 400
+        
+        try:
+            if component == "light":
+                # Light control with intensity
+                intensity = data.get("intensity")
+                if intensity is not None:
+                    intensity = float(intensity)
+                    control_service.set_device("light", intensity)
+                else:
+                    # Toggle based on action
+                    current = device_manager.get_light_state()
+                    control_service.set_device("light", 100.0 if action == "on" else 0.0)
+            else:
+                # Binary devices
+                state = action == "on"
+                control_service.set_device(component, state)
+            
+            states = control_service.get_device_states()
+            return jsonify({
+                "state": "success",
+                "current_states": states,
+                "component": component
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+    
+    @api.route('/device-mode-edit', methods=['POST'])
+    def device_mode_edit():
+        """Change device mode (auto/manual)"""
+        data = request.json or {}
+        component = data.get("type")  # device type
+        mode = data.get("mode")  # "auto" or "manual"
+        state = data.get("state")  # for manual mode: desired state
+        
+        if not component or not mode:
+            return jsonify({"error": "Missing component or mode"}), 400
+        
+        try:
+            # Set the mode
+            control_service.set_device_mode(component, mode)
+            
+            # If manual mode with a state, apply it
+            if mode == "manual" and state is not None:
+                if component == "light":
+                    intensity = data.get("intensity")
+                    control_service.set_device("light", intensity or 0.0)
+                else:
+                    control_service.set_device(component, state)
+            
+            modes = control_service.get_device_modes()
+            states = control_service.get_device_states()
+            
+            return jsonify({
+                "state": "success",
+                "current_mode": modes.get(component, {}).get("mode"),
+                "current_state": states.get(component),
+                "component": component
+            })
+        except Exception as e:
+            return jsonify({"error": str(e)}), 400
+    
+    @api.route('/device-state', methods=['GET'])
+    def device_state():
+        """Get state of all devices"""
+        states = control_service.get_device_states()
+        modes = control_service.get_device_modes()
+        
+        return jsonify({
+            "states": states,
+            "modes": modes
+        })
+
     return api

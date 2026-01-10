@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -32,6 +32,14 @@ def create_app(use_hardware: bool = True) -> Flask:
     sensor_service = SensorService(device_manager)
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
+    
+    # Initialize Bluetooth service for Wi-Fi configuration
+    bluetooth_service = BluetoothService(
+        devices_info_file="source_files/devices_info.json",
+        settings_service=settings_service
+    )
+    if use_hardware:
+        bluetooth_service.start()
     
     # Start background sync
     sync_service.start_background_sync()
