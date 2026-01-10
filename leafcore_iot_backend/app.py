@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -32,6 +32,7 @@ def create_app(use_hardware: bool = True) -> Flask:
     sensor_service = SensorService(device_manager)
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
+    sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
@@ -40,6 +41,9 @@ def create_app(use_hardware: bool = True) -> Flask:
     )
     if use_hardware:
         bluetooth_service.start()
+    
+    # Start sensor reading service (for continuous sensor monitoring and cloud posting)
+    sensor_reading_service.start()
     
     # Start background sync
     sync_service.start_background_sync()
@@ -69,7 +73,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         settings_service=settings_service,
         control_service=control_service,
         sensor_service=sensor_service,
-        sync_service=sync_service
+        sync_service=sync_service,
+        sensor_reading_service=sensor_reading_service
     )
     app.register_blueprint(api_blueprint)
     
@@ -88,8 +93,9 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Shutdown handler
     def shutdown_handler():
-        """Stop background sync on shutdown"""
+        """Stop background services on shutdown"""
         logger.info("🛑 Shutting down...")
+        sensor_reading_service.stop()
         sync_service.stop_background_sync()
     
     import atexit

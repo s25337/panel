@@ -7,14 +7,15 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.devices import DeviceManager
-    from src.services import SettingsService, ControlService, SensorService, SyncService
+    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService
 
 
 def create_api_routes(device_manager: 'DeviceManager',
                       settings_service: 'SettingsService',
                       control_service: 'ControlService',
                       sensor_service: 'SensorService',
-                      sync_service: 'SyncService' = None) -> Blueprint:
+                      sync_service: 'SyncService' = None,
+                      sensor_reading_service: 'SensorReadingService' = None) -> Blueprint:
     """Create API routes with dependency injection"""
     
     api = Blueprint('api', __name__, url_prefix='/api')
@@ -338,5 +339,33 @@ def create_api_routes(device_manager: 'DeviceManager',
             "states": states,
             "modes": modes
         })
+
+    # ========== SENSOR READING SERVICE ENDPOINTS ==========
+    
+    @api.route('/sensor-reading/device-info', methods=['GET'])
+    def get_device_info():
+        """Get device information"""
+        if not sensor_reading_service:
+            return jsonify({"error": "Sensor reading service not available"}), 503
+        
+        return jsonify(sensor_reading_service.get_device_info())
+    
+    @api.route('/sensor-reading/device-info', methods=['POST'])
+    def set_device_info():
+        """Update device information"""
+        if not sensor_reading_service:
+            return jsonify({"error": "Sensor reading service not available"}), 503
+        
+        data = request.get_json()
+        sensor_reading_service.save_device_info(data)
+        return jsonify({"status": "ok"})
+    
+    @api.route('/sensor-reading/current', methods=['GET'])
+    def get_current_sensor_data():
+        """Get current sensor readings from cache"""
+        if not sensor_reading_service:
+            return jsonify({"error": "Sensor reading service not available"}), 503
+        
+        return jsonify(sensor_reading_service.get_sensor_data())
 
     return api
