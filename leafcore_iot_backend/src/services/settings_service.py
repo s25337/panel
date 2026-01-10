@@ -23,7 +23,9 @@ class SettingsService:
                 "target_hum": 38.0,
                 "watering_days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
                 "water_seconds": 1,
-                "light_intensity": 50.0
+                "light_intensity": 50.0,
+                "start_hour": 4,
+                "end_hour": 5
             }
         },
         "manual": {

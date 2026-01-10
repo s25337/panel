@@ -117,22 +117,15 @@ class ControlService:
     
     def get_light_schedule(self) -> Dict[str, Any]:
         """Get light on/off schedule"""
-        light_hours = self.settings_service.get_setting("light_hours", 12)
-        
-        start_hour = self.LIGHT_START_TIME
-        end_hour = self.LIGHT_START_TIME + int(light_hours)
-        end_minute = int((light_hours % 1) * 60)
-        
-        # Handle crossing midnight
-        if end_hour >= 24:
-            end_hour = end_hour - 24
+        start_hour = self.settings_service.get_setting("start_hour", 4)
+        end_hour = self.settings_service.get_setting("end_hour", 5)
         
         return {
-            "start_hour": start_hour,
+            "start_hour": int(start_hour),
             "start_minute": 0,
-            "end_hour": end_hour,
-            "end_minute": end_minute,
-            "light_hours": light_hours
+            "end_hour": int(end_hour),
+            "end_minute": 0,
+            "light_hours": (end_hour - start_hour) if end_hour >= start_hour else (24 - start_hour + end_hour)
         }
 
     # ========== WATERING CONTROL ==========
