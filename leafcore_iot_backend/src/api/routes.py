@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.devices import DeviceManager
-    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService
+    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService, ExternalTerriumService
 
 
 def create_api_routes(device_manager: 'DeviceManager',
@@ -15,7 +15,8 @@ def create_api_routes(device_manager: 'DeviceManager',
                       control_service: 'ControlService',
                       sensor_service: 'SensorService',
                       sync_service: 'SyncService' = None,
-                      sensor_reading_service: 'SensorReadingService' = None) -> Blueprint:
+                      sensor_reading_service: 'SensorReadingService' = None,
+                      external_terrarium_service: 'ExternalTerriumService' = None) -> Blueprint:
     """Create API routes with dependency injection"""
     
     api = Blueprint('api', __name__, url_prefix='/api')
@@ -371,5 +372,26 @@ def create_api_routes(device_manager: 'DeviceManager',
             return jsonify({"error": "Sensor reading service not available"}), 503
         
         return jsonify(sensor_reading_service.get_sensor_data())
+
+    # ========== EXTERNAL TERRARIUM SERVER ==========
+    
+    @api.route('/terrarium/send', methods=['POST'])
+    def send_to_terrarium():
+        """Send current settings to external Terrarium server (172.19.14.15:8081)"""
+        if not external_terrarium_service:
+            return jsonify({"error": "Terrarium service not initialized"}), 503
+        
+        success = external_terrarium_service.send_current_settings()
+        
+        if success:
+            return jsonify({
+                "status": "OK",
+                "message": "Settings sent to Terrarium server"
+            })
+        else:
+            return jsonify({
+                "status": "ERROR",
+                "message": "Failed to send to Terrarium server"
+            }), 503
 
     return api

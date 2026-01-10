@@ -21,7 +21,7 @@ class SettingsService:
                 "light_hours": 23.0,
                 "target_temp": 39.0,
                 "target_hum": 38.0,
-                "water_times": 3,
+                "watering_days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
                 "water_seconds": 1,
                 "light_intensity": 50.0
             }

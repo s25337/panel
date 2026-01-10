@@ -137,15 +137,54 @@ class ControlService:
 
     # ========== WATERING CONTROL ==========
     
+    def should_water_today(self) -> bool:
+        """
+        Check if today is a watering day and current time is around 12:00
+        Returns True if should water now
+        """
+        import time
+        current_time = time.localtime()
+        current_hour = current_time.tm_hour
+        current_minute = current_time.tm_min
+        day_of_week = current_time.tm_wday  # 0=Monday, 6=Sunday
+        
+        # Get watering days list
+        watering_days_names = self.settings_service.get_setting("watering_days", ["MONDAY", "WEDNESDAY", "FRIDAY"])
+        
+        # Map day names to weekday numbers (0=Monday)
+        day_map = {
+            "MONDAY": 0,
+            "TUESDAY": 1,
+            "WEDNESDAY": 2,
+            "THURSDAY": 3,
+            "FRIDAY": 4,
+            "SATURDAY": 5,
+            "SUNDAY": 6
+        }
+        
+        # Get numeric days
+        watering_day_numbers = [day_map.get(day, -1) for day in watering_days_names]
+        
+        # Check if today is watering day
+        if day_of_week not in watering_day_numbers:
+            return False
+        
+        # Check if time is around 12:00 (between 11:50 and 12:10)
+        if current_hour == 12 and 50 <= current_minute <= 10:
+            return True
+        
+        return False
+    
     def get_watering_interval(self) -> int:
         """
-        Get watering interval in seconds
-        water_times = number of waterings per week
+        Get watering interval in seconds (for legacy support)
+        Now based on number of watering days per week
         """
-        water_times = self.settings_service.get_setting("water_times", 3)
+        watering_days = self.settings_service.get_setting("watering_days", ["MONDAY", "WEDNESDAY", "FRIDAY"])
+        water_times = len(watering_days)  # Number of days per week
         
         if water_times <= 0:
-            return 7 * 24 * 3600  # 7 days if 0 waterings
+            return 7 * 24 * 3600  # 7 days if no watering days
         
         seconds_per_week = 7 * 24 * 3600
         return int(seconds_per_week / water_times)

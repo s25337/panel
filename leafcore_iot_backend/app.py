@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -38,6 +38,7 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
+    external_terrarium_service = ExternalTerriumService(settings_service)
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
@@ -79,7 +80,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         control_service=control_service,
         sensor_service=sensor_service,
         sync_service=sync_service,
-        sensor_reading_service=sensor_reading_service
+        sensor_reading_service=sensor_reading_service,
+        external_terrarium_service=external_terrarium_service
     )
     app.register_blueprint(api_blueprint)
     
