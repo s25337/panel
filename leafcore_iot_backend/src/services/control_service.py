@@ -13,6 +13,15 @@ class ControlService:
     
     LIGHT_START_TIME = 8  # Light starts at 8:00 AM
     
+    # Device type mapping: device_name -> (setter_method, type_parser)
+    DEVICE_MAP = {
+        "fan": ("set_fan", bool),
+        "light": ("set_light", float),
+        "pump": ("set_pump", bool),
+        "heater": ("set_heater", bool),
+        "sprinkler": ("set_sprinkler", bool),
+    }
+    
     def __init__(self, device_manager: DeviceManager, settings_service: SettingsService):
         """Initialize control service"""
         self.device_manager = device_manager
@@ -163,25 +172,27 @@ class ControlService:
     def set_device(self, device: str, state: Any) -> bool:
         """
         Set device state (manual control)
+        Uses DEVICE_MAP for dispatch (eliminates switch statement)
         Returns True if successful
         """
+        if device not in self.DEVICE_MAP:
+            return False
+        
         try:
-            if device == "fan":
-                self.device_manager.set_fan(bool(state))
-            elif device == "light":
-                intensity = float(state) if isinstance(state, (int, float)) else (1.0 if state else 0.0)
+            setter_name, parser = self.DEVICE_MAP[device]
+            
+            # Special handling for light (preserve intensity)
+            if device == "light":
+                intensity = float(state) if isinstance(state, (int, float)) else (100.0 if state else 0.0)
                 intensity = max(0.0, min(100.0, intensity))
-                self.device_manager.set_light(intensity)
-            elif device == "pump":
-                self.device_manager.set_pump(bool(state))
-            elif device == "heater":
-                self.device_manager.set_heater(bool(state))
-            elif device == "sprinkler":
-                self.device_manager.set_sprinkler(bool(state))
+                getattr(self.device_manager, setter_name)(intensity)
             else:
-                return False
+                # Binary devices: parse as bool
+                parsed_state = parser(state)
+                getattr(self.device_manager, setter_name)(parsed_state)
+            
             return True
-        except Exception:
+        except (ValueError, AttributeError):
             return False
 
     # ========== STATE QUERIES ==========
