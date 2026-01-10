@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import apiService from '../services/apiService';
+import { FontFamily } from '../GlobalStyles';
 
 const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -69,8 +70,6 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Watering Days (12:00)</Text>
-      
       <View style={styles.daysGrid}>
         {DAYS.map((day, index) => {
           const isSelected = selectedDays.includes(day);
@@ -99,49 +98,37 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
           );
         })}
       </View>
-
-      <Text style={styles.infoText}>
-        Selected: {selectedDays.length > 0 ? selectedDays.join(', ') : 'None'}
-      </Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 16,
+    width: '100%',
+    height: '100%',
+    paddingHorizontal: 6,
+    paddingVertical: 4,
     alignItems: 'center',
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
-    marginBottom: 20,
-    letterSpacing: 0.5,
+    justifyContent: 'center',
   },
   daysGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-around',
-    gap: 12,
+    flexWrap: 'nowrap',
+    justifyContent: 'space-between',
+    gap: 8,
     width: '100%',
-    marginBottom: 16,
   },
   dayCircle: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#666666',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#666666',
+    borderWidth: 0,
   },
   dayCircleSelected: {
-    backgroundColor: '#FFD700',
-    borderColor: '#FFD700',
+    backgroundColor: '#4CAF50',
   },
   innerCircle: {
     width: 42,
@@ -149,14 +136,15 @@ const styles = StyleSheet.create({
     borderRadius: 21,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    backgroundColor: 'transparent',
   },
   innerCircleSelected: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: 'transparent',
   },
   dayLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
     color: '#ffffff',
     letterSpacing: 0.3,
   },

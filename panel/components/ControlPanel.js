@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, PanResponder } from 'react-native';
 import apiService from '../services/apiService';
+import WateringDaysPicker from './WateringDaysPicker';
+import LightScheduleEditor from './LightScheduleEditor';
+import { FontFamily } from '../GlobalStyles';
 
 const ControlPanel = () => {
   const [manualMode, setManualMode] = useState(false);
@@ -8,8 +11,6 @@ const ControlPanel = () => {
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
   const [loading, setLoading] = useState({});
-  const [isWateringPressed, setIsWateringPressed] = useState(false);
-  const [isSprinklerPressed, setIsSprinklerPressed] = useState(false);
 
   // Fetch initial status
   useEffect(() => {
@@ -48,40 +49,6 @@ const ControlPanel = () => {
       console.error(`Error toggling ${device}:`, error);
     } finally {
       setLoading(prev => ({ ...prev, [device]: false }));
-    }
-  };
-
-  // Watering - click dla 2 sekundy
-  const handleWateringClick = async () => {
-    setIsWateringPressed(true);
-    try {
-      await apiService.toggleDevice('pump', 'on');
-      // Wyłącz po 2 sekundach
-      setTimeout(() => {
-        apiService.toggleDevice('pump', 'off');
-        setIsWateringPressed(false);
-      }, 2000);
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się włączyć nawadniania');
-      setIsWateringPressed(false);
-      console.error('Error toggling watering:', error);
-    }
-  };
-
-  // Sprinkler - click dla 2 sekundy
-  const handleSprinklerClick = async () => {
-    setIsSprinklerPressed(true);
-    try {
-      await apiService.toggleDevice('sprinkler', 'on');
-      // Wyłącz po 2 sekundach
-      setTimeout(() => {
-        apiService.toggleDevice('sprinkler', 'off');
-        setIsSprinklerPressed(false);
-      }, 2000);
-    } catch (error) {
-      Alert.alert('Błąd', 'Nie udało się włączyć zraszania');
-      setIsSprinklerPressed(false);
-      console.error('Error toggling sprinkler:', error);
     }
   };
 
@@ -137,22 +104,14 @@ const ControlPanel = () => {
           label="Fan" 
           isOn={fanOn}
         />
+      </View>
 
-        {/* Row 3 */}
-        <ControlTile 
-          device="pump" 
-          label="Watering" 
-          isOn={isWateringPressed}
-          isPressable={true}
-          onClick={handleWateringClick}
-        />
-        <ControlTile 
-          device="sprinkler" 
-          label="Sprinkler" 
-          isOn={isSprinklerPressed}
-          isPressable={true}
-          onClick={handleSprinklerClick}
-        />
+      {/* Light Schedule Editor - Full Width Above Watering Days */}
+      <LightScheduleEditor />
+
+      {/* Watering Days Picker - Full Width Below Grid */}
+      <View style={styles.tileWateringDays}>
+        <WateringDaysPicker />
       </View>
     </View>
   );
@@ -165,15 +124,16 @@ const styles = StyleSheet.create({
     paddingTop: 20,
     paddingHorizontal: 60,
     paddingBottom: 20,
-    justifyContent: 'center',
+    justifyContent: 'space-between',
+    flexDirection: 'column',
   },
   grid: {
-    flex: 1,
+    flex: 0.6,
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 30,
-    alignContent: 'space-around',
+    alignContent: 'flex-start',
   },
   tile: {
     width: '22%',
@@ -195,12 +155,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(76, 175, 80, 0.9)',
   },
   tileDisabled: {
-    backgroundColor: 'rgba(80, 80, 80, 0.5)',
-    opacity: 0.5,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
+    opacity: 0.6,
   },
   tileLabel: {
     fontSize: 13,
     fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
     color: '#aaa',
     marginBottom: 6,
     textAlign: 'center',
@@ -212,10 +173,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#888',
     fontWeight: '500',
+    fontFamily: FontFamily.workSansRegular,
     textAlign: 'center',
   },
   tileStatusActive: {
     color: '#fff',
+  },
+  tileLarge: {
+    width: '46%',
+    aspectRatio: 1,
+    padding: 10,
+  },
+  tileWateringDays: {
+    width: '100%',
+    aspectRatio: 'auto',
+    height: 100,
+    backgroundColor: 'rgba(37, 37, 37, 0.7)',
+    borderRadius: 16,
+    padding: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 
