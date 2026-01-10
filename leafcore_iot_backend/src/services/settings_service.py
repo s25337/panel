@@ -1,138 +1,163 @@
 # src/services/settings_service.py
 """
-Settings management service
+Settings management service with generic JSON store
 """
 import json
-import time
 from pathlib import Path
 from typing import Dict, Any, Optional
 
 
 class SettingsService:
-    """Manages application settings (persistent storage)"""
+    """
+    Manages application settings with generic JSON store pattern
+    Eliminates code duplication between settings and manual_settings
+    """
     
-    DEFAULT_SETTINGS = {
-        "light_hours": 23.0,
-        "target_temp": 39.0,
-        "target_hum": 38.0,
-        "water_times": 3,
-        "water_seconds": 1,
-        "light_intensity": 50.0
-    }
-    
-    DEFAULT_MANUAL_SETTINGS = {
-        "is_manual": False,
-        "light": False,
-        "heater": False,
-        "fan": False,
-        "pump": False,
-        "sprinkler": False
+    # Store configurations: name -> {file, defaults}
+    STORES = {
+        "settings": {
+            "file": "settings_config.json",
+            "defaults": {
+                "light_hours": 23.0,
+                "target_temp": 39.0,
+                "target_hum": 38.0,
+                "water_times": 3,
+                "water_seconds": 1,
+                "light_intensity": 50.0
+            }
+        },
+        "manual": {
+            "file": "manual_settings.json",
+            "defaults": {
+                "is_manual": False,
+                "light": False,
+                "heater": False,
+                "fan": False,
+                "pump": False,
+                "sprinkler": False
+            }
+        }
     }
     
     def __init__(self, settings_file: str = "settings_config.json", 
                  manual_settings_file: str = "manual_settings.json"):
-        """Initialize settings service"""
-        self.settings_file = Path(settings_file)
-        self.manual_settings_file = Path(manual_settings_file)
-        self._settings = self._load_settings()
-        self._manual_settings = self._load_manual_settings()
+        """Initialize settings service with generic store pattern"""
+        # Override file paths if provided
+        self.STORES["settings"]["file"] = settings_file
+        self.STORES["manual"]["file"] = manual_settings_file
+        
+        # Load all stores
+        self._stores = {}
+        for store_name, config in self.STORES.items():
+            self._stores[store_name] = self._load_store(
+                config["file"],
+                config["defaults"]
+            )
 
-    # ========== SETTINGS ==========
+    # ========== GENERIC STORE OPERATIONS ==========
     
-    def _load_settings(self) -> Dict[str, Any]:
-        """Load settings from JSON file"""
+    def _load_store(self, filepath: str, defaults: Dict[str, Any]) -> Dict[str, Any]:
+        """Generic load for any JSON store"""
         try:
-            with open(self.settings_file, 'r') as f:
-                settings = json.load(f)
-        except FileNotFoundError:
-            settings = self.DEFAULT_SETTINGS.copy()
-            self._save_settings_to_file(settings)
+            with open(filepath, 'r') as f:
+                content = f.read()
+                # Fix potential JSON corruption (duplicate braces)
+                while '}}' in content:
+                    content = content.replace('}}', '}')
+                data = json.loads(content)
+        except (FileNotFoundError, json.JSONDecodeError):
+            data = defaults.copy()
+            self._save_store(filepath, data)
         
-        # Ensure all required keys exist
-        for key, value in self.DEFAULT_SETTINGS.items():
-            if key not in settings:
-                settings[key] = value
+        # Merge with defaults (ensure all keys exist)
+        for key, value in defaults.items():
+            if key not in data:
+                data[key] = value
         
-        return settings
+        return data
 
-    def _save_settings_to_file(self, settings: Dict[str, Any]) -> None:
-        """Save settings to JSON file"""
-        with open(self.settings_file, 'w') as f:
-            json.dump(settings, f, indent=2)
+    def _save_store(self, filepath: str, data: Dict[str, Any]) -> None:
+        """Generic save for any JSON store"""
+        with open(filepath, 'w') as f:
+            json.dump(data, f, indent=2)
 
+    def _get_store(self, store: str) -> Dict[str, Any]:
+        """Get store data"""
+        return self._stores.get(store, {})
+
+    def _set_store(self, store: str, updates: Dict[str, Any]) -> Dict[str, Any]:
+        """Update store with validation against defaults"""
+        if store not in self.STORES:
+            return {}
+        
+        defaults = self.STORES[store]["defaults"]
+        store_data = self._stores[store]
+        
+        # Only update keys that exist in defaults
+        for key, value in updates.items():
+            if key in defaults:
+                store_data[key] = value
+        
+        # Persist to disk
+        filepath = self.STORES[store]["file"]
+        self._save_store(filepath, store_data)
+        
+        return store_data.copy()
+
+    # ========== SETTINGS API (backward compatible) ==========
+    
     def get_settings(self) -> Dict[str, Any]:
         """Get all settings"""
-        return self._settings.copy()
+        return self._get_store("settings").copy()
 
     def get_setting(self, key: str, default: Any = None) -> Any:
         """Get specific setting"""
-        return self._settings.get(key, default)
+        return self._get_store("settings").get(key, default)
 
     def update_settings(self, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update settings"""
-        for key, value in updates.items():
-            if key in self.DEFAULT_SETTINGS:
-                self._settings[key] = value
-        
-        self._save_settings_to_file(self._settings)
-        return self._settings.copy()
+        """Update multiple settings"""
+        return self._set_store("settings", updates)
 
     def set_setting(self, key: str, value: Any) -> None:
         """Set individual setting"""
-        if key in self.DEFAULT_SETTINGS:
-            self._settings[key] = value
-            self._save_settings_to_file(self._settings)
+        self._set_store("settings", {key: value})
 
-    # ========== MANUAL SETTINGS ==========
+    def save_settings(self, settings: Dict[str, Any]) -> None:
+        """Save complete settings dict"""
+        self._stores["settings"] = settings
+        self._save_store(self.STORES["settings"]["file"], settings)
+
+    def load_settings(self) -> Dict[str, Any]:
+        """Load settings from disk (refresh)"""
+        self._stores["settings"] = self._load_store(
+            self.STORES["settings"]["file"],
+            self.STORES["settings"]["defaults"]
+        )
+        return self.get_settings()
+
+    # ========== MANUAL SETTINGS API (backward compatible) ==========
     
-    def _load_manual_settings(self) -> Dict[str, Any]:
-        """Load manual settings from JSON file"""
-        try:
-            with open(self.manual_settings_file, 'r') as f:
-                content = f.read()
-                # Fix potential duplicates
-                while '}}\n' in content or '}}' in content:
-                    content = content.replace('}}', '}')
-                manual_settings = json.loads(content)
-        except (json.JSONDecodeError, FileNotFoundError):
-            manual_settings = self.DEFAULT_MANUAL_SETTINGS.copy()
-            self._save_manual_settings_to_file(manual_settings)
-        
-        # Ensure all required keys exist
-        for key, value in self.DEFAULT_MANUAL_SETTINGS.items():
-            if key not in manual_settings:
-                manual_settings[key] = value
-        
-        return manual_settings
-
-    def _save_manual_settings_to_file(self, settings: Dict[str, Any]) -> None:
-        """Save manual settings to JSON file"""
-        with open(self.manual_settings_file, 'w') as f:
-            json.dump(settings, f, indent=2)
-
     def get_manual_settings(self) -> Dict[str, Any]:
         """Get all manual settings"""
-        return self._manual_settings.copy()
+        return self._get_store("manual").copy()
 
     def get_manual_setting(self, key: str, default: Any = None) -> Any:
         """Get specific manual setting"""
-        return self._manual_settings.get(key, default)
+        return self._get_store("manual").get(key, default)
 
     def update_manual_settings(self, updates: Dict[str, Any]) -> Dict[str, Any]:
-        """Update manual settings"""
-        for key, value in updates.items():
-            if key in self.DEFAULT_MANUAL_SETTINGS:
-                self._manual_settings[key] = value
-        
-        self._save_manual_settings_to_file(self._manual_settings)
-        return self._manual_settings.copy()
+        """Update multiple manual settings"""
+        return self._set_store("manual", updates)
 
     def set_manual_setting(self, key: str, value: Any) -> None:
         """Set individual manual setting"""
-        if key in self.DEFAULT_MANUAL_SETTINGS:
-            self._manual_settings[key] = value
-            self._save_manual_settings_to_file(self._manual_settings)
+        self._set_store("manual", {key: value})
+
+    def save_manual_settings(self, settings: Dict[str, Any]) -> None:
+        """Save complete manual settings dict"""
+        self._stores["manual"] = settings
+        self._save_store(self.STORES["manual"]["file"], settings)
 
     def is_manual_mode(self) -> bool:
         """Check if manual mode is enabled"""
-        return self._manual_settings.get("is_manual", False)
+        return self._get_store("manual").get("is_manual", False)
