@@ -385,7 +385,7 @@ export default function App() {
                 <View
                   style={styles.container}
                 >
-                  <ControlPanel />
+                  <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
                 </View>
               </View>,
             ]}

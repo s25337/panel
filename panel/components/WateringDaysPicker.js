@@ -70,33 +70,41 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
 
   return (
     <View style={styles.container}>
-      <View style={styles.daysGrid}>
-        {DAYS.map((day, index) => {
-          const isSelected = selectedDays.includes(day);
-          return (
-            <TouchableOpacity
-              key={day}
-              style={[
-                styles.dayCircle,
-                isSelected && styles.dayCircleSelected
-              ]}
-              onPress={() => toggleDay(day)}
-              activeOpacity={0.7}
-            >
-              <View style={[
-                styles.innerCircle,
-                isSelected && styles.innerCircleSelected
-              ]}>
-                <Text style={[
-                  styles.dayLabel,
-                  isSelected && styles.dayLabelSelected
+      <View style={styles.contentWrapper}>
+        {/* Water Label */}
+        <View style={styles.waterLabelWrapper}>
+          <Text style={styles.waterLabel}>Water</Text>
+        </View>
+
+        {/* Days Grid */}
+        <View style={styles.daysGrid}>
+          {DAYS.map((day, index) => {
+            const isSelected = selectedDays.includes(day);
+            return (
+              <TouchableOpacity
+                key={day}
+                style={[
+                  styles.dayCircle,
+                  isSelected && styles.dayCircleSelected
+                ]}
+                onPress={() => toggleDay(day)}
+                activeOpacity={0.7}
+              >
+                <View style={[
+                  styles.innerCircle,
+                  isSelected && styles.innerCircleSelected
                 ]}>
-                  {DAY_LABELS[index]}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
+                  <Text style={[
+                    styles.dayLabel,
+                    isSelected && styles.dayLabelSelected
+                  ]}>
+                    {DAY_LABELS[index]}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
     </View>
   );
@@ -111,29 +119,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  contentWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 20,
+    width: '100%',
+  },
+  waterLabelWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+  },
+  waterLabel: {
+    fontSize: 22,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    letterSpacing: 0.3,
+  },
   daysGrid: {
     flexDirection: 'row',
     flexWrap: 'nowrap',
-    justifyContent: 'space-between',
-    gap: 8,
-    width: '100%',
+    justifyContent: 'center',
+    gap: 12,
+    flex: 1,
   },
   dayCircle: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     backgroundColor: '#666666',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 0,
   },
   dayCircleSelected: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#4ECDC4',
   },
   innerCircle: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',

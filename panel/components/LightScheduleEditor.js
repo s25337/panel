@@ -4,7 +4,7 @@ import apiService from '../services/apiService';
 import ValueSlider from './ValueSlider';
 import { FontFamily } from '../GlobalStyles';
 
-const LightScheduleEditor = () => {
+const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
   const [startHour, setStartHour] = useState(18);
   const [endHour, setEndHour] = useState(6);
   const [isLoading, setIsLoading] = useState(true);
@@ -47,7 +47,6 @@ const LightScheduleEditor = () => {
   if (isLoading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>Light Schedule</Text>
         <Text style={styles.loadingText}>Loading...</Text>
       </View>
     );
@@ -55,9 +54,12 @@ const LightScheduleEditor = () => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Light Schedule</Text>
-      
       <View style={styles.slidersContainer}>
+        {/* Light Label */}
+        <View style={styles.lightLabelWrapper}>
+          <Text style={styles.lightLabel}>Light</Text>
+        </View>
+
         {/* Start Hour Slider */}
         <View style={styles.sliderWrapper}>
           <Text style={styles.label}>On at</Text>
@@ -69,6 +71,8 @@ const LightScheduleEditor = () => {
             step={1}
             unit="h"
             onValueChange={handleStartHourChange}
+            onSliderStart={onSliderStart}
+            onSliderEnd={onSliderEnd}
           />
         </View>
 
@@ -94,6 +98,8 @@ const LightScheduleEditor = () => {
             step={1}
             unit="h"
             onValueChange={handleEndHourChange}
+            onSliderStart={onSliderStart}
+            onSliderEnd={onSliderEnd}
           />
         </View>
       </View>
@@ -105,8 +111,12 @@ const styles = StyleSheet.create({
   container: {
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 16,
-    padding: 16,
-    marginBottom: 20,
+    paddingLeft: 20,
+    paddingRight: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    minHeight: 120,
+    opacity: 0.7,
   },
   title: {
     fontSize: 16,
@@ -119,9 +129,22 @@ const styles = StyleSheet.create({
   },
   slidersContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    gap: 20,
     marginBottom: 12,
+  },
+  lightLabelWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 50,
+  },
+  lightLabel: {
+    fontSize: 22,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    letterSpacing: 0.3,
   },
   sliderWrapper: {
     flex: 1,
@@ -139,6 +162,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 8,
+    flexDirection: 'column',
   },
   scheduleLabel: {
     fontSize: 12,
@@ -148,7 +172,7 @@ const styles = StyleSheet.create({
     marginVertical: 4,
   },
   scheduleText: {
-    fontSize: 14,
+    fontSize: 18,
     fontWeight: '300',
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',

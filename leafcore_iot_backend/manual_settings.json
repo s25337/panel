@@ -1,7 +1,7 @@
 {
   "is_manual": false,
-  "light": 75.0,
-  "heater": true,
+  "light": false,
+  "heater": false,
   "fan": false,
   "pump": false,
   "sprinkler": false

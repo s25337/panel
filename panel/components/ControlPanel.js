@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, PanResponder } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, PanResponder, Dimensions } from 'react-native';
 import apiService from '../services/apiService';
 import WateringDaysPicker from './WateringDaysPicker';
 import LightScheduleEditor from './LightScheduleEditor';
-import { FontFamily } from '../GlobalStyles';
+import { FontFamily, scale } from '../GlobalStyles';
 
-const ControlPanel = () => {
+const { width, height } = Dimensions.get('window');
+
+// Responsive sizes optimized for 1024x600
+const RESPONSIVE_SIZES = {
+  gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
+  gridPaddingHorizontal: Math.round(60 * scale),     // 60px horizontal padding
+  topMargin: Math.round(50 * scale),                 // 50px top margin
+};
+
+const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [manualMode, setManualMode] = useState(false);
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
@@ -107,7 +116,7 @@ const ControlPanel = () => {
       </View>
 
       {/* Light Schedule Editor - Full Width Above Watering Days */}
-      <LightScheduleEditor />
+      <LightScheduleEditor onSliderStart={onSliderStart} onSliderEnd={onSliderEnd} />
 
       {/* Watering Days Picker - Full Width Below Grid */}
       <View style={styles.tileWateringDays}>
@@ -121,19 +130,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-    paddingTop: 20,
-    paddingHorizontal: 60,
-    paddingBottom: 20,
-    justifyContent: 'space-between',
+    paddingTop: RESPONSIVE_SIZES.topMargin,
+    paddingHorizontal: RESPONSIVE_SIZES.gridPaddingHorizontal,
+    paddingBottom: RESPONSIVE_SIZES.gridPaddingVertical,
+    justifyContent: 'flex-start',
     flexDirection: 'column',
+    gap: 20,
   },
   grid: {
-    flex: 0.6,
+    width: '100%',
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
     gap: 30,
-    alignContent: 'flex-start',
   },
   tile: {
     width: '22%',
@@ -187,12 +196,16 @@ const styles = StyleSheet.create({
   tileWateringDays: {
     width: '100%',
     aspectRatio: 'auto',
-    height: 100,
-    backgroundColor: 'rgba(37, 37, 37, 0.7)',
+    height: 120,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 16,
-    padding: 12,
+    paddingLeft: 20,
+    paddingRight: 12,
+    paddingTop: 12,
+    paddingBottom: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    opacity: 0.7,
   },
 });
 
