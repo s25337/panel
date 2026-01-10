@@ -4,7 +4,7 @@
 
 API_BASE="http://localhost:5000/api"
 CLOUD_URL="http://33.11.238.45:8081/terrarium"
-LOCAL_URL="http://172.19.14.15:8080/terrarium"
+LOCAL_URL="http://172.19.14.15:8080/terrarium/dataTerrarium"  # Match sync_service.py
 
 echo "=================================================="
 echo "CLOUD SYNC TESTING - CURL COMMANDS"

@@ -1,6 +1,6 @@
 {
   "is_manual": false,
-  "light": 76.0,
+  "light": true,
   "heater": true,
   "fan": false,
   "pump": false,

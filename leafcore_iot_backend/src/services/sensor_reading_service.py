@@ -18,7 +18,7 @@ class SensorReadingService:
     
     # Server endpoints
     CLOUD_URL = "http://33.11.238.45:8081/terrarium"
-    LOCAL_URL = "http://172.19.14.15:8080/terrarium"
+    LOCAL_URL = "http://172.19.14.15:8080/terrarium/dataTerrarium"  # Match sync_service.py
     READ_INTERVAL = 2.0  # Read every 2 seconds
     
     def __init__(self, device_manager: DeviceManager, app_dir: str = "."):

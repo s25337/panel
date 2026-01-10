@@ -24,7 +24,11 @@ def create_api_routes(device_manager: 'DeviceManager',
     
     @api.route('/sensors', methods=['GET'])
     def get_sensors():
-        """Get current sensor readings"""
+        """
+        Get current sensor readings from cache
+        ⚠️ IMPORTANT: Reads from SensorReadingService (updated every 2s background thread)
+        This ensures consistent readings across all endpoints
+        """
         data = sensor_service.refresh_all()
         return jsonify(data)
 

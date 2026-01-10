@@ -29,10 +29,15 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Initialize services
     device_manager = DeviceManager(use_hardware=use_hardware)
     settings_service = SettingsService()
-    sensor_service = SensorService(device_manager)
+    
+    # Initialize SensorReadingService FIRST (it's the single source of truth)
+    sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
+    
+    # SensorService reads from SensorReadingService cache
+    sensor_service = SensorService(device_manager, sensor_reading_service=sensor_reading_service)
+    
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
-    sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
