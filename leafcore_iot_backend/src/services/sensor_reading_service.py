@@ -18,7 +18,7 @@ class SensorReadingService:
     
     # Server endpoints
     CLOUD_URL = "http://33.11.238.45:8081/terrarium"
-    READ_INTERVAL = 2.0  # Read every 2 seconds
+    READ_INTERVAL = 5.0  # Read every 5 seconds
     
     def __init__(self, device_manager: DeviceManager, app_dir: str = "."):
         """
@@ -179,3 +179,47 @@ class SensorReadingService:
             "brightness": self._last_brightness,
             "timestamp": datetime.now().isoformat()
         }
+    
+    def get_recent_sensor_history(self, minutes: int = 5) -> list:
+        """
+        Get sensor data from last N minutes from cache (sensor_data.json)
+        
+        Args:
+            minutes: Number of minutes of history to return (default 5)
+        
+        Returns:
+            List of sensor readings from last N minutes, ordered newest first
+        """
+        try:
+            file_path = os.path.join(self.source_files_dir, "sensor_data.json")
+            if not os.path.exists(file_path):
+                return []
+            
+            with open(file_path, 'r') as f:
+                all_data = json.load(f)
+            
+            if not isinstance(all_data, list):
+                return []
+            
+            # Filter data from last N minutes
+            from datetime import datetime, timedelta
+            cutoff_time = datetime.now() - timedelta(minutes=minutes)
+            
+            recent_data = []
+            for entry in all_data:
+                try:
+                    timestamp_str = entry.get('timestamp', '')
+                    entry_time = datetime.fromisoformat(timestamp_str)
+                    
+                    if entry_time >= cutoff_time:
+                        recent_data.append(entry)
+                    else:
+                        break  # Data is sorted newest first, so we can stop here
+                except:
+                    continue
+            
+            return recent_data
+        
+        except Exception as e:
+            return []
+

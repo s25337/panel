@@ -41,7 +41,11 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
-    external_terrarium_service = ExternalTerriumService(settings_service, sensor_service=sensor_service)
+    external_terrarium_service = ExternalTerriumService(
+        settings_service, 
+        sensor_service=sensor_service,
+        sensor_reading_service=sensor_reading_service
+    )
     
     # Initialize automation service (handles scheduled watering at 12:00 daily)
     automation_service = AutomationService(device_manager, control_service, settings_service)
@@ -79,6 +83,9 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Start background history capture (every 60s)
     history_service.start_background_capture()
+    
+    # Start external terrarium server sync (every 5 minutes)
+    external_terrarium_service.start_background_sync(group_id="group-A1")
     
     # Initialize devices from saved manual settings on startup
     manual_settings = settings_service.get_manual_settings()
@@ -134,6 +141,7 @@ def create_app(use_hardware: bool = True) -> Flask:
         if gpio_automation_service:
             gpio_automation_service.stop()
         sync_service.stop_background_sync()
+        external_terrarium_service.stop_background_sync()
     
     import atexit
     atexit.register(shutdown_handler)
