@@ -18,7 +18,7 @@ class SensorReadingService:
     
     # Server endpoints
     CLOUD_URL = "http://33.11.238.45:8081/terrarium"
-    READ_INTERVAL = 5.0  # Read every 5 seconds
+    READ_INTERVAL = 20.0  # Read every 20 seconds (only history, not current sensor)
     
     def __init__(self, device_manager: DeviceManager, app_dir: str = "."):
         """
@@ -121,7 +121,7 @@ class SensorReadingService:
             with open(current_file, 'w') as f:
                 json.dump(reading, f, indent=2)
             
-            # === SAVE TO HISTORY (5 minutes, every 5 seconds = ~60 readings) ===
+            # === SAVE TO HISTORY (5 minutes, every 20 seconds = ~15 readings) ===
             history_file = os.path.join(self.source_files_dir, "sensor_data_history.json")
             
             # Load existing history
@@ -139,9 +139,9 @@ class SensorReadingService:
             # Insert at beginning (newest first)
             history_list.insert(0, history_reading)
             
-            # Keep only last 60 entries (5 min * 60s / 5s = 60 readings)
-            # This maintains exactly 5 minutes of data
-            history_list = history_list[:60]
+            # Keep only last 15 entries (5 min * 60s / 20s = 15 readings)
+            # This maintains exactly 5 minutes of data at 20s intervals
+            history_list = history_list[:15]
             
             # Save history
             with open(history_file, 'w') as f:

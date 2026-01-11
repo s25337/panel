@@ -88,6 +88,16 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Start external terrarium server sync (every 5 minutes)
     external_terrarium_service.start_background_sync(group_id="group-A1")
     
+    # Send initial data immediately on startup (don't wait 5 minutes)
+    import threading
+    def send_initial_data():
+        """Send sensor data immediately on startup"""
+        import time
+        time.sleep(2)  # Wait 2 seconds for sensors to be read at least once
+        external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
+    
+    threading.Thread(target=send_initial_data, daemon=True).start()
+    
     # Initialize devices from saved manual settings on startup
     manual_settings = settings_service.get_manual_settings()
     if manual_settings.get('is_manual', False):
@@ -152,5 +162,6 @@ def create_app(use_hardware: bool = True) -> Flask:
 
 if __name__ == "__main__":
     app = create_app(use_hardware=False)  # Use MockBackend for development
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # Enable debug for better error messages, but disable auto-reload to keep background threads alive
+    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
 
