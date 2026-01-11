@@ -8,8 +8,6 @@ const ScreenNavigator = ({ screens = [], currentScreen = 0, onScreenChange = () 
   const isSliderActiveRef = useRef(isSliderActive);
   const currentScreenRef = useRef(currentScreen);
   
-  console.log('ScreenNavigator - screens.length:', screens.length, 'currentScreen:', currentScreen);
-  
   // Zsynchronizuj ref z prop
   useEffect(() => {
     isSliderActiveRef.current = isSliderActive;
@@ -48,7 +46,6 @@ const ScreenNavigator = ({ screens = [], currentScreen = 0, onScreenChange = () 
         }
       },
       onPanResponderRelease: (evt, gestureState) => {
-        console.log('Swipe detected:', gestureState.dx, 'screens:', screens.length, 'current:', currentScreenRef.current);
         const swipeThreshold = screenWidth * 0.2;
         let newScreen = currentScreenRef.current;
 

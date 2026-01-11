@@ -19,22 +19,16 @@ const HistoryPanel = () => {
       setLoading(true);
       setError(null);
       
-      console.log(`📡 Fetching history (attempt ${4 - retries}/3)...`);
-      
       const response = await fetch('http://localhost:5000/api/history', {
         method: 'GET',
         headers: { 'Content-Type': 'application/json' },
       });
-      
-      console.log('📡 Response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('📊 History data received:', data);
-      console.log('✅ Data points:', data.count);
       
       // Transform API data to graph format
       const transformToGraphData = (values, title, yMin, yMax, color) => {
@@ -79,8 +73,6 @@ const HistoryPanel = () => {
       ));
       
     } catch (err) {
-      console.error('❌ Error fetching history:', err);
-      console.error('❌ Error message:', err.message);
       setError(err.message);
       // Use fallback data on error
       useFallbackData();

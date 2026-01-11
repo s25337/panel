@@ -51,13 +51,11 @@ class SensorReadingService:
     def start(self):
         """Start sensor reading background thread"""
         if self._running:
-            print("[SensorReadingService] Already running")
             return
         
         self._running = True
         self._thread = threading.Thread(target=self._read_loop, daemon=True)
         self._thread.start()
-        print("[SensorReadingService] Started sensor reading loop (2s interval)")
     
     def stop(self):
         """Stop sensor reading background thread"""
@@ -67,7 +65,6 @@ class SensorReadingService:
         self._running = False
         if self._thread:
             self._thread.join(timeout=1.0)
-        print("[SensorReadingService] Stopped")
     
     def _read_loop(self):
         """Main sensor reading loop"""
@@ -91,7 +88,6 @@ class SensorReadingService:
                 
                 time.sleep(self.READ_INTERVAL)
             except Exception as e:
-                print(f"[SensorReadingService] Error in read loop: {e}")
                 time.sleep(self.READ_INTERVAL)
     
     # ========== SENSOR DATA I/O ==========
@@ -112,7 +108,7 @@ class SensorReadingService:
             with open(file_path, 'w') as f:
                 json.dump(data, f, indent=2)
         except Exception as e:
-            print(f"Error saving sensor data: {e}")
+            pass
     
     def _post_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
                          brightness: Optional[float]):
@@ -134,12 +130,8 @@ class SensorReadingService:
             try:
                 endpoint = f"{base_url}/sensor-data"
                 response = requests.post(endpoint, json=payload, timeout=3.0)
-                if response.status_code == 200:
-                    print(f"✓ Posted sensor data to {url_name}")
-                else:
-                    print(f"⚠ {url_name} returned {response.status_code}")
             except Exception as e:
-                print(f"⚠ Failed to post to {url_name}: {e}")
+                pass
     
     # ========== CONFIG FILE MANAGEMENT ==========
     
@@ -152,7 +144,7 @@ class SensorReadingService:
                 with open(file_path, 'r') as f:
                     return json.load(f)
         except Exception as e:
-            print(f"Error loading device info: {e}")
+            pass
         
         # Default device info
         return {
@@ -170,9 +162,8 @@ class SensorReadingService:
             with open(file_path, 'w') as f:
                 json.dump(info, f, indent=2)
             self._device_info = info
-            print(f"✓ Saved device info")
         except Exception as e:
-            print(f"Error saving device info: {e}")
+            pass
     
     def get_device_info(self) -> Dict[str, Any]:
         """Get device info"""
