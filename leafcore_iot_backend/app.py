@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 def create_app(use_hardware: bool = True) -> Flask:
     """Application factory"""
     app = Flask(__name__)
+    app.config['ENV'] = 'production'  # Disable Flask debug mode and auto-reloading
     
     # Configure CORS
     CORS(app, resources={

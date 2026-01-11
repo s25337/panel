@@ -93,13 +93,14 @@ class SensorReadingService:
     
     def _save_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
                          brightness: Optional[float]):
-        """Save sensor data to JSON file only if data is valid"""
+        """Save sensor data to both single point and history files"""
         # Skip saving if any sensor value is None (invalid reading)
         if temp is None or humidity is None or brightness is None:
             return
         
         try:
-            data = {
+            # Current reading (with device_id)
+            reading = {
                 "timestamp": datetime.now().isoformat(),
                 "temperature": temp,
                 "humidity": humidity,
@@ -107,9 +108,44 @@ class SensorReadingService:
                 "device_id": self._device_info.get("device_id", "unknown")
             }
             
-            file_path = os.path.join(self.source_files_dir, "sensor_data.json")
-            with open(file_path, 'w') as f:
-                json.dump(data, f, indent=2)
+            # History reading (without device_id - just sensor data)
+            history_reading = {
+                "timestamp": datetime.now().isoformat(),
+                "temperature": temp,
+                "humidity": humidity,
+                "brightness": brightness
+            }
+            
+            # === SAVE CURRENT (for quick access) ===
+            current_file = os.path.join(self.source_files_dir, "sensor_data.json")
+            with open(current_file, 'w') as f:
+                json.dump(reading, f, indent=2)
+            
+            # === SAVE TO HISTORY (5 minutes, every 5 seconds = ~60 readings) ===
+            history_file = os.path.join(self.source_files_dir, "sensor_data_history.json")
+            
+            # Load existing history
+            if os.path.exists(history_file):
+                try:
+                    with open(history_file, 'r') as f:
+                        history_list = json.load(f)
+                        if not isinstance(history_list, list):
+                            history_list = []
+                except:
+                    history_list = []
+            else:
+                history_list = []
+            
+            # Insert at beginning (newest first)
+            history_list.insert(0, history_reading)
+            
+            # Keep only last 60 entries (5 min * 60s / 5s = 60 readings)
+            # This maintains exactly 5 minutes of data
+            history_list = history_list[:60]
+            
+            # Save history
+            with open(history_file, 'w') as f:
+                json.dump(history_list, f, indent=2)
         except Exception as e:
             pass
     
@@ -182,31 +218,37 @@ class SensorReadingService:
     
     def get_recent_sensor_history(self, minutes: int = 5) -> list:
         """
-        Get sensor data from last N minutes from cache (sensor_data.json)
+        Get sensor data from last N minutes from history file
         
         Args:
             minutes: Number of minutes of history to return (default 5)
         
         Returns:
-            List of sensor readings from last N minutes, ordered newest first
+            List of sensor readings from history, ordered newest first
         """
         try:
-            file_path = os.path.join(self.source_files_dir, "sensor_data.json")
-            if not os.path.exists(file_path):
+            # Read from dedicated history file
+            history_file = os.path.join(self.source_files_dir, "sensor_data_history.json")
+            if not os.path.exists(history_file):
                 return []
             
-            with open(file_path, 'r') as f:
-                all_data = json.load(f)
+            with open(history_file, 'r') as f:
+                history_list = json.load(f)
             
-            if not isinstance(all_data, list):
+            if not isinstance(history_list, list):
                 return []
             
-            # Filter data from last N minutes
+            # If requesting exactly 5 minutes and file contains 5 min history,
+            # just return all (it's already filtered by _save_sensor_data)
+            if minutes == 5:
+                return history_list
+            
+            # If requesting different time window, filter accordingly
             from datetime import datetime, timedelta
             cutoff_time = datetime.now() - timedelta(minutes=minutes)
             
             recent_data = []
-            for entry in all_data:
+            for entry in history_list:
                 try:
                     timestamp_str = entry.get('timestamp', '')
                     entry_time = datetime.fromisoformat(timestamp_str)
@@ -214,7 +256,7 @@ class SensorReadingService:
                     if entry_time >= cutoff_time:
                         recent_data.append(entry)
                     else:
-                        break  # Data is sorted newest first, so we can stop here
+                        break  # Data is sorted newest first
                 except:
                     continue
             

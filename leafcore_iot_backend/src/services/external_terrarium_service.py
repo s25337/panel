@@ -132,18 +132,22 @@ class ExternalTerriumService:
     def send_sensor_data_by_group(self, group_id: str) -> bool:
         """
         Send last 5 minutes of sensor data to group-specific endpoint
-        Gets data from sensor_reading_service cache (updated every 2 seconds)
+        Gets data from sensor_data_history.json (maintained by SensorReadingService)
         """
         if not self.sensor_reading_service:
             logger.warning("SensorReadingService not initialized, cannot get historical data")
             return False
         
         try:
-            # Get last 5 minutes of sensor data from cache
+            # Get last 5 minutes of sensor data from history
             recent_data = self.sensor_reading_service.get_recent_sensor_history(minutes=5)
             
+            logger.info(f"[History] Readings count: {len(recent_data)}")
+            if recent_data and len(recent_data) > 0:
+                logger.info(f"[History] Newest: {recent_data[0].get('timestamp')} | Oldest: {recent_data[-1].get('timestamp')}")
+            
             if not recent_data:
-                logger.warning("No sensor data available in last 5 minutes")
+                logger.warning(f"No sensor history available (history file might not exist yet)")
                 return False
             
             # Ensure all readings have required fields in correct format
@@ -166,7 +170,7 @@ class ExternalTerriumService:
             )
             response.raise_for_status()
             
-            logger.info(f"✅ Posted {len(formatted_data)} sensor readings to group '{group_id}' (last 5 min)")
+            logger.info(f"✅ Posted {len(formatted_data)} sensor readings to group '{group_id}' (5-min history)")
             return True
             
         except requests.exceptions.RequestException as e:
