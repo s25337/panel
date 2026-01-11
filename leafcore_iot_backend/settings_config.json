@@ -1,14 +1,14 @@
 {
   "light_hours": 23.0,
-  "target_temp": 42,
-  "target_hum": 9,
+  "target_temp": 37,
+  "target_hum": 79,
   "watering_days": [
     "WEDNESDAY",
-    "FRIDAY",
-    "SUNDAY"
+    "THURSDAY",
+    "FRIDAY"
   ],
   "water_seconds": 1,
-  "light_intensity": 44,
+  "light_intensity": 66,
   "start_hour": 17,
-  "end_hour": 0
+  "end_hour": 17
 }

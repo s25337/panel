@@ -20,16 +20,7 @@ logger = logging.getLogger(__name__)
 
 
 class HistoryService:
-    """
-    Manages sensor data history (24-hour rolling window)
-    
-    Features:
-    - In-memory circular buffer (last 24 hours)
-    - Persistent storage to JSON file
-    - Background thread to capture data every 60 seconds
-    - Automatic cleanup of data older than 24 hours
-    """
-    
+
     # Store data point every 30 minutes
     CAPTURE_INTERVAL = 30 * 60  # seconds (30 minutes)
     
@@ -40,18 +31,12 @@ class HistoryService:
     MAX_POINTS = int(HISTORY_DURATION / CAPTURE_INTERVAL)
     
     def __init__(self, sensor_service: Optional['SensorService'] = None, data_dir: str = "."):
-        """
-        Initialize history service
-        
-        Args:
-            sensor_service: SensorService to read current values
-            data_dir: Directory to store history JSON file
-        """
+
         self.sensor_service = sensor_service
-        self.data_dir = Path(data_dir)
+        self.data_dir = Path(data_dir) / "source_files"
         self.data_dir.mkdir(exist_ok=True)
         
-        self.history_file = self.data_dir / "sensor_history.json"
+        self.history_file = self.data_dir / "history.json"
         
         # In-memory circular buffers for each sensor
         self.temperature_history: deque = deque(maxlen=self.MAX_POINTS)
@@ -73,17 +58,16 @@ class HistoryService:
                 with open(self.history_file, 'r') as f:
                     data = json.load(f)
                 
-                # Only load data from last 24 hours
-                cutoff_time = datetime.now() - timedelta(seconds=self.HISTORY_DURATION)
+                # Load all entries (last 48 points, regardless of time cutoff)
+                # Keep last 48 entries for 24-hour rolling window
+                entries_to_load = data[-self.MAX_POINTS:] if len(data) > self.MAX_POINTS else data
                 
-                for entry in data:
+                for entry in entries_to_load:
                     try:
-                        entry_time = datetime.fromisoformat(entry['timestamp'])
-                        if entry_time > cutoff_time:
-                            self.temperature_history.append(entry['temperature'])
-                            self.humidity_history.append(entry['humidity'])
-                            self.brightness_history.append(entry['brightness'])
-                            self.timestamps.append(entry['timestamp'])
+                        self.temperature_history.append(entry['temperature'])
+                        self.humidity_history.append(entry['humidity'])
+                        self.brightness_history.append(entry['brightness'])
+                        self.timestamps.append(entry['timestamp'])
                     except (ValueError, KeyError):
                         continue
                 

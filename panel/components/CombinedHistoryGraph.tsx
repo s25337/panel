@@ -1,13 +1,23 @@
 import * as React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Dimensions } from "react-native";
 import Svg, { Defs, Line, Polyline, Stop } from "react-native-svg";
 import { Border, Color, FontFamily, FontSize, Padding } from "../GlobalStyles";
 
-const GRAPH_HEIGHT = 250;
-const GRAPH_PADDING = Padding.padding_12;
-const Y_AXIS_WIDTH = 30;
+const screenWidth = Dimensions.get('window').width;
+
+const Y_AXIS_WIDTH = 35;
 const Y_LABEL_HEIGHT = 12;
-const X_STEP = 35;
+
+// Calculate graph width for 48 data points with padding
+// Total screen: 1024px, Container padding: 60px*2 = 120px, Tile padding: 20px*2 = 40px
+// Y-axis: 35px, Available for SVG: 1024 - 120 - 40 - 35 = 829px
+// For 48 points: 829 / 48 ≈ 17px per point
+const GRAPH_WIDTH = screenWidth - 120; // Container padding 60*2
+const TILE_PADDING = 40; // Tile padding 20*2
+const AVAILABLE_WIDTH = GRAPH_WIDTH - TILE_PADDING - Y_AXIS_WIDTH; // ~829px (excluding Y-axis)
+const X_STEP = Math.floor(AVAILABLE_WIDTH / 48); // ~17px per point
+const GRAPH_HEIGHT = 300; // Tall graph to fill height
+const GRAPH_PADDING = Padding.padding_12;
 
 type SeriesData = {
   label: string;
@@ -29,7 +39,8 @@ const CombinedHistoryGraph = ({
   const [graphWidth, setGraphWidth] = React.useState(0);
   const labelsScrollRef = React.useRef<ScrollView | null>(null);
 
-  const contentWidth = Math.max(graphWidth, xLabels.length * X_STEP + X_STEP);
+  // Fixed width for exactly 7 days visible at once (no scroll needed)
+  const contentWidth = AVAILABLE_WIDTH;
   const yMin = 0;
   const yMax = 100;
   const yTicks = [0, 25, 50, 75, 100];
@@ -58,7 +69,6 @@ const CombinedHistoryGraph = ({
   return (
     <View style={styles.graphCard}>
       <View style={styles.graphHeader}>
-        <Text style={styles.graphTitle}>{title}</Text>
         <View style={styles.legend}>
           {series.map((s) => (
             <View key={s.label} style={styles.legendItem}>
@@ -76,10 +86,10 @@ const CombinedHistoryGraph = ({
               const range = yMax - yMin || 1;
               const ratio = (tick - yMin) / range;
               const y = GRAPH_PADDING + (GRAPH_HEIGHT - GRAPH_PADDING * 2) * (1 - ratio);
-              const top = Math.max(0, Math.min(GRAPH_HEIGHT - Y_LABEL_HEIGHT, y - Y_LABEL_HEIGHT));
+              const bottom = GRAPH_HEIGHT - y - Y_LABEL_HEIGHT / 2;
 
               return (
-                <Text key={`tick-${tick}`} style={[styles.axisTick, { top }]}>
+                <Text key={`tick-${tick}`} style={[styles.axisTick, { bottom }]}>
                   {tick}%
                 </Text>
               );
@@ -87,22 +97,9 @@ const CombinedHistoryGraph = ({
           </View>
         </View>
 
-        <View style={styles.graphCanvas} onLayout={(e) => setGraphWidth(e.nativeEvent.layout.width)}>
+        <View style={styles.graphCanvas}>
           <View style={styles.graphScrollContent}>
-            <ScrollView
-              horizontal
-              nestedScrollEnabled
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ width: contentWidth }}
-              keyboardShouldPersistTaps="handled"
-              scrollEventThrottle={16}
-              onScroll={(e) => {
-                labelsScrollRef.current?.scrollTo({
-                  x: e.nativeEvent.contentOffset.x,
-                  animated: false,
-                });
-              }}
-            >
+            <View style={{ width: contentWidth }}>
               <Svg width={contentWidth} height={GRAPH_HEIGHT}>
                 <Defs>
                   {series.map((s) => (
@@ -153,25 +150,16 @@ const CombinedHistoryGraph = ({
                   );
                 })}
               </Svg>
-            </ScrollView>
+            </View>
 
             {/* X-axis labels */}
-            <ScrollView
-              ref={labelsScrollRef}
-              horizontal
-              nestedScrollEnabled
-              showsHorizontalScrollIndicator={false}
-              scrollEnabled={false}
-              contentContainerStyle={{ width: contentWidth }}
-            >
-              <View style={styles.xAxisLabels}>
-                {xLabels.map((label, idx) => (
-                  <Text key={`label-${idx}`} style={styles.xAxisTick}>
-                    {label}
-                  </Text>
-                ))}
-              </View>
-            </ScrollView>
+            <View style={styles.xAxisLabels}>
+              {xLabels.map((label, idx) => (
+                <Text key={`label-${idx}`} style={styles.xAxisTick}>
+                  {label}
+                </Text>
+              ))}
+            </View>
           </View>
         </View>
       </View>
@@ -182,17 +170,20 @@ const CombinedHistoryGraph = ({
 const styles = StyleSheet.create({
   graphCard: {
     width: "100%",
-    minHeight: 320,
+    flex: 1,
     borderRadius: Border.br_16,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "transparent",
     paddingHorizontal: Padding.padding_16,
     paddingVertical: Padding.padding_16,
-    elevation: 6,
+    elevation: 0,
     rowGap: Padding.padding_12,
+    display: "flex",
+    flexDirection: "column",
   },
   graphHeader: {
-    flexDirection: "column",
-    rowGap: Padding.padding_8,
+    flexDirection: "row",
+    rowGap: Padding.padding_12,
+    marginBottom: Padding.padding_8,
   },
   graphTitle: {
     fontSize: FontSize.size_16_medium,
@@ -200,26 +191,26 @@ const styles = StyleSheet.create({
     color: "#ffffff",
   },
   legend: {
-    flexDirection: "row",
-    gap: Padding.padding_16,
+    gap: Padding.padding_40,
     flexWrap: "wrap",
   },
   legendItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: Padding.padding_6,
+    gap: Padding.padding_8,
   },
   legendDot: {
-    width: 10,
-    height: 10,
+    width: 12,
+    height: 12,
     borderRadius: 2,
   },
   legendLabel: {
-    fontSize: FontSize.size_12_regular,
-    fontFamily: FontFamily.workSansRegular,
-    color: "#cccccc",
+    fontSize: 15,
+    fontFamily: FontFamily.workSansLight,
+    color: "#ffffff",
   },
   graphBody: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "flex-start",
     width: "100%",
@@ -245,15 +236,14 @@ const styles = StyleSheet.create({
   graphScrollContent: {
     flex: 1,
     alignItems: "center",
+    justifyContent: "center",
   },
   xAxisLabels: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     marginTop: Padding.padding_8,
-    columnGap: Padding.padding_8,
-    paddingHorizontal: Padding.padding_4,
-    paddingRight: Padding.padding_12,
-    width: "100%",
+    width: AVAILABLE_WIDTH,
+    paddingHorizontal: GRAPH_PADDING,
   },
   axisTick: {
     fontSize: FontSize.size_11_regular,
@@ -268,7 +258,7 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.workSansRegular,
     color: "#888888",
     textAlign: "center",
-    minWidth: X_STEP,
+    flex: 1,
   },
 });
 
