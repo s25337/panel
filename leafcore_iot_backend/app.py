@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService, AutomationService, GPIOAutomationService
+from src.services import SettingsService, ControlService, SensorService, BluetoothService, SensorReadingService, ExternalTerriumService, GPIOAutomationService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -41,23 +41,16 @@ def create_app(use_hardware: bool = True) -> Flask:
     sensor_service = SensorService(device_manager, sensor_reading_service=sensor_reading_service)
     
     control_service = ControlService(device_manager, settings_service)
-    sync_service = SyncService(settings_service, app_dir=".")
     external_terrarium_service = ExternalTerriumService(
         settings_service, 
         sensor_service=sensor_service,
         sensor_reading_service=sensor_reading_service
     )
     
-    # Initialize automation service (handles scheduled watering at 12:00 daily)
-    automation_service = AutomationService(device_manager, control_service, settings_service)
-    
     # Initialize GPIO automation service (for hardware backend auto-mode control)
     gpio_automation_service = None
     if use_hardware:
         gpio_automation_service = GPIOAutomationService(device_manager, control_service, settings_service)
-    
-    # Initialize history service (24-hour rolling window with 60s interval)
-    history_service = HistoryService(sensor_service=sensor_service, data_dir=".")
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
@@ -70,20 +63,14 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Start sensor reading service (for continuous sensor monitoring and cloud posting)
     sensor_reading_service.start()
     
-    # Start automation service (checks at 12:00 daily for watering)
-    automation_service.start()
+    # Start watering automation (checks at 12:00 daily)
+    control_service.start_watering_automation()
     
     # Start GPIO automation service (hardware-specific auto-mode control)
     if gpio_automation_service:
         gpio_automation_service.start()
     
     logger.info("✅ All automation services started")
-    
-    # Start background sync
-    sync_service.start_background_sync()
-    
-    # Start background history capture (every 60s)
-    history_service.start_background_capture()
     
     # Start external terrarium server sync (every 5 minutes)
     external_terrarium_service.start_background_sync(group_id="group-A1")
@@ -129,10 +116,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         settings_service=settings_service,
         control_service=control_service,
         sensor_service=sensor_service,
-        sync_service=sync_service,
         sensor_reading_service=sensor_reading_service,
-        external_terrarium_service=external_terrarium_service,
-        history_service=history_service
+        external_terrarium_service=external_terrarium_service
     )
     app.register_blueprint(api_blueprint)
     
@@ -154,10 +139,9 @@ def create_app(use_hardware: bool = True) -> Flask:
         """Stop background services on shutdown"""
         logger.info("🛑 Shutting down...")
         sensor_reading_service.stop()
-        automation_service.stop()
+        control_service.stop_watering_automation()
         if gpio_automation_service:
             gpio_automation_service.stop()
-        sync_service.stop_background_sync()
         external_terrarium_service.stop_background_sync()
     
     import atexit

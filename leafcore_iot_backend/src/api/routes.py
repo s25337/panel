@@ -7,17 +7,15 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.devices import DeviceManager
-    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService, ExternalTerriumService, HistoryService
+    from src.services import SettingsService, ControlService, SensorService, SensorReadingService, ExternalTerriumService
 
 
 def create_api_routes(device_manager: 'DeviceManager',
                       settings_service: 'SettingsService',
                       control_service: 'ControlService',
                       sensor_service: 'SensorService',
-                      sync_service: 'SyncService' = None,
                       sensor_reading_service: 'SensorReadingService' = None,
-                      external_terrarium_service: 'ExternalTerriumService' = None,
-                      history_service: 'HistoryService' = None) -> Blueprint:
+                      external_terrarium_service: 'ExternalTerriumService' = None) -> Blueprint:
     """Create API routes with dependency injection"""
     
     api = Blueprint('api', __name__, url_prefix='/api')
@@ -235,60 +233,6 @@ def create_api_routes(device_manager: 'DeviceManager',
 
     # ========== SYNC WITH EXTERNAL SERVER ==========
     
-    @api.route('/sync/fetch', methods=['POST'])
-    def sync_fetch_external():
-        """Fetch settings from external server and update local settings"""
-        if not sync_service:
-            return jsonify({"error": "Sync service not initialized"}), 503
-        
-        success = sync_service.sync_external_to_local()
-        if success:
-            return jsonify({
-                "status": "OK",
-                "message": "Settings synced from external server",
-                "settings": settings_service.get_settings()
-            })
-        else:
-            return jsonify({
-                "status": "ERROR",
-                "message": "Failed to fetch from external server"
-            }), 503
-    
-    @api.route('/sync/push', methods=['POST'])
-    def sync_push_to_external():
-        """Push local settings to external server and add to queue if offline"""
-        if not sync_service:
-            return jsonify({"error": "Sync service not initialized"}), 503
-        
-        data = request.json or {}
-        local_settings = settings_service.get_settings()
-        local_settings.update(data)
-        
-        # Try to send immediately
-        success = sync_service.send_to_external(local_settings)
-        
-        # Also queue the change for later if offline
-        sync_service.add_change_to_queue(local_settings)
-        
-        return jsonify({
-            "status": "OK" if success else "QUEUED",
-            "message": "Settings pushed" if success else "Settings queued (offline)",
-            "settings": local_settings
-        })
-    
-    @api.route('/sync/status', methods=['GET'])
-    def sync_status():
-        """Get sync status"""
-        if not sync_service:
-            return jsonify({"error": "Sync service not initialized"}), 503
-        
-        return jsonify({
-            "running": sync_service.running,
-            "last_sync": sync_service.last_sync.isoformat() if sync_service.last_sync else None,
-            "sync_interval": sync_service.sync_interval,
-            "queue_size": sync_service.change_queue.qsize()
-        })
-
     # ========== DEVICE CONTROL (from gpio_manager) ==========
     
     @api.route('/device-control', methods=['POST'])
@@ -423,13 +367,4 @@ def create_api_routes(device_manager: 'DeviceManager',
 
     # ========== HISTORY ==========
     
-    @api.route('/history', methods=['GET'])
-    def get_history():
-        """Get 24-hour sensor history"""
-        if not history_service:
-            return jsonify({"error": "History service not initialized"}), 503
-        
-        history_data = history_service.get_history()
-        return jsonify(history_data)
-
     return api
