@@ -8,5 +8,6 @@ from .sensor_reading_service import SensorReadingService
 from .external_terrarium_service import ExternalTerriumService
 from .history_service import HistoryService
 from .automation_service import AutomationService
+from .gpio_automation_service import GPIOAutomationService
 
-__all__ = ["SettingsService", "ControlService", "SensorService", "SyncService", "BluetoothService", "SensorReadingService", "ExternalTerriumService", "HistoryService", "AutomationService"]
+__all__ = ["SettingsService", "ControlService", "SensorService", "SyncService", "BluetoothService", "SensorReadingService", "ExternalTerriumService", "HistoryService", "AutomationService", "GPIOAutomationService"]

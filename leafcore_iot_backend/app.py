@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService, AutomationService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService, AutomationService, GPIOAutomationService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,11 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Initialize automation service (handles scheduled watering at 12:00 daily)
     automation_service = AutomationService(device_manager, control_service, settings_service)
     
+    # Initialize GPIO automation service (for hardware backend auto-mode control)
+    gpio_automation_service = None
+    if use_hardware:
+        gpio_automation_service = GPIOAutomationService(device_manager, control_service, settings_service)
+    
     # Initialize history service (24-hour rolling window with 60s interval)
     history_service = HistoryService(sensor_service=sensor_service, data_dir=".")
     
@@ -62,6 +67,11 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Start automation service (checks at 12:00 daily for watering)
     automation_service.start()
+    
+    # Start GPIO automation service (hardware-specific auto-mode control)
+    if gpio_automation_service:
+        gpio_automation_service.start()
+    
     logger.info("✅ All automation services started")
     
     # Start background sync
@@ -121,6 +131,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         logger.info("🛑 Shutting down...")
         sensor_reading_service.stop()
         automation_service.stop()
+        if gpio_automation_service:
+            gpio_automation_service.stop()
         sync_service.stop_background_sync()
     
     import atexit
