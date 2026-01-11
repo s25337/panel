@@ -8,6 +8,7 @@ import LightPanel from './components/LightPanel';
 import ValueSlider from './components/ValueSlider';
 import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
+import HistoryPanel from './components/HistoryPanel';
 import ScreenNavigator from './components/ScreenNavigator';
 import apiService from './services/apiService';
 
@@ -407,12 +408,7 @@ export default function App() {
                   style={styles.container}
                   pointerEvents="auto"
                 >
-                  <Text style={{ color: '#ffffff', fontSize: 24, textAlign: 'center', marginTop: 30 }}>
-                    History
-                  </Text>
-                  <Text style={{ color: '#888888', fontSize: 14, textAlign: 'center', marginTop: 20 }}>
-                    Coming soon...
-                  </Text>
+                  <HistoryPanel />
                 </View>
               </View>,
             ]}

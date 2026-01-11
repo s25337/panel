@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from src.devices import DeviceManager
-    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService, ExternalTerriumService
+    from src.services import SettingsService, ControlService, SensorService, SyncService, SensorReadingService, ExternalTerriumService, HistoryService
 
 
 def create_api_routes(device_manager: 'DeviceManager',
@@ -16,7 +16,8 @@ def create_api_routes(device_manager: 'DeviceManager',
                       sensor_service: 'SensorService',
                       sync_service: 'SyncService' = None,
                       sensor_reading_service: 'SensorReadingService' = None,
-                      external_terrarium_service: 'ExternalTerriumService' = None) -> Blueprint:
+                      external_terrarium_service: 'ExternalTerriumService' = None,
+                      history_service: 'HistoryService' = None) -> Blueprint:
     """Create API routes with dependency injection"""
     
     api = Blueprint('api', __name__, url_prefix='/api')
@@ -56,9 +57,8 @@ def create_api_routes(device_manager: 'DeviceManager',
         temp, hum = sensor_service.get_temperature_humidity()
         light_sensor = sensor_service.get_light_intensity()
         
-        # Apply auto control
-        control_service.control_fan_auto(hum)
-        control_service.control_light_auto(light_sensor)
+        # Apply auto control for all devices based on current sensor readings
+        control_service.update_auto_devices(temp, hum, light_sensor)
         
         return jsonify({
             **control_service.get_device_states(),
@@ -420,5 +420,16 @@ def create_api_routes(device_manager: 'DeviceManager',
                 "status": "ERROR",
                 "message": "Failed to send to Terrarium server"
             }), 503
+
+    # ========== HISTORY ==========
+    
+    @api.route('/history', methods=['GET'])
+    def get_history():
+        """Get 24-hour sensor history"""
+        if not history_service:
+            return jsonify({"error": "History service not initialized"}), 503
+        
+        history_data = history_service.get_history()
+        return jsonify(history_data)
 
     return api

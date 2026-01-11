@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,10 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
-    external_terrarium_service = ExternalTerriumService(settings_service)
+    external_terrarium_service = ExternalTerriumService(settings_service, sensor_service=sensor_service)
+    
+    # Initialize history service (24-hour rolling window with 60s interval)
+    history_service = HistoryService(sensor_service=sensor_service, data_dir=".")
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
@@ -53,6 +56,12 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Start background sync
     sync_service.start_background_sync()
+    
+    # Start background sensor upload to terrarium server (every 30s)
+    external_terrarium_service.start_background_sensor_upload()
+    
+    # Start background history capture (every 60s)
+    history_service.start_background_capture()
     
     # Initialize devices from saved manual settings on startup
     manual_settings = settings_service.get_manual_settings()
@@ -81,7 +90,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         sensor_service=sensor_service,
         sync_service=sync_service,
         sensor_reading_service=sensor_reading_service,
-        external_terrarium_service=external_terrarium_service
+        external_terrarium_service=external_terrarium_service,
+        history_service=history_service
     )
     app.register_blueprint(api_blueprint)
     

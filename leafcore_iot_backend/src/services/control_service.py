@@ -63,29 +63,26 @@ class ControlService:
     def should_light_be_on(self) -> bool:
         """
         Check if light should be on based on schedule
-        Light starts at LIGHT_START_TIME and runs for light_hours
+        Uses start_hour and end_hour from settings
         """
-        light_hours = self.settings_service.get_setting("light_hours", 12)
+        # Read schedule from settings
+        start_hour = self.settings_service.get_setting("start_hour", 6)
+        end_hour = self.settings_service.get_setting("end_hour", 18)
+        
         current_time = time.localtime()
         current_hour = current_time.tm_hour
         current_minute = current_time.tm_min
         
-        # Convert light_hours to minutes
-        light_duration_minutes = int(light_hours * 60)
-        
-        # Calculate start and end times in minutes from midnight
-        start_minutes = self.LIGHT_START_TIME * 60
-        end_minutes = start_minutes + light_duration_minutes
-        
         # Current time in minutes from midnight
+        start_minutes = int(start_hour) * 60
+        end_minutes = int(end_hour) * 60
         current_minutes = current_hour * 60 + current_minute
         
         # Check if current time is within schedule
-        if end_minutes < 24 * 60:  # Normal case (doesn't cross midnight)
+        if end_minutes >= start_minutes:  # Normal case (doesn't cross midnight)
             return start_minutes <= current_minutes < end_minutes
-        else:  # Crosses midnight
-            end_minutes_adjusted = end_minutes - (24 * 60)
-            return current_minutes >= start_minutes or current_minutes < end_minutes_adjusted
+        else:  # Crosses midnight (e.g., 22:00 to 06:00)
+            return current_minutes >= start_minutes or current_minutes < end_minutes
 
     def control_light_auto(self, light_sensor_reading: Optional[float]) -> float:
         """
@@ -93,11 +90,13 @@ class ControlService:
         If light should be on: intensity = 100 - sensor_reading
         If light should be off: intensity = 0
         """
+        # First check if light should be on based on schedule
         if not self.should_light_be_on():
             self._light_intensity = 0.0
             self.device_manager.set_light(0.0)
             return 0.0
         
+        # Light should be on - now determine intensity
         if light_sensor_reading is None:
             # No sensor, use default intensity
             default_intensity = self.settings_service.get_setting("light_intensity", 50)

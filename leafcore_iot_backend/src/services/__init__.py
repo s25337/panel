@@ -6,5 +6,6 @@ from .sync_service import SyncService
 from .bluetooth_service import BluetoothService
 from .sensor_reading_service import SensorReadingService
 from .external_terrarium_service import ExternalTerriumService
+from .history_service import HistoryService
 
-__all__ = ["SettingsService", "ControlService", "SensorService", "SyncService", "BluetoothService", "SensorReadingService", "ExternalTerriumService"]
+__all__ = ["SettingsService", "ControlService", "SensorService", "SyncService", "BluetoothService", "SensorReadingService", "ExternalTerriumService", "HistoryService"]

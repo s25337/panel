@@ -1,8 +1,15 @@
 {
   "is_manual": false,
-  "light": false,
+  "light": 37.0,
   "heater": false,
   "fan": false,
   "pump": false,
-  "sprinkler": false
+  "sprinkler": false,
+  "modes": {
+    "heat_mat": {"mode": "auto"},
+    "fan": {"mode": "auto"},
+    "light": {"mode": "auto"},
+    "pump": {"mode": "manual"},
+    "sprinkler": {"mode": "auto"}
+  }
 }

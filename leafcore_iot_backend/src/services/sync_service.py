@@ -37,7 +37,7 @@ class SyncService:
                     changes = json.load(f)
                     for change in changes:
                         self.change_queue.put(change)
-                    logger.info(f"✅ Loaded {len(changes)} offline changes from queue")
+                    logger.info(f" Loaded {len(changes)} offline changes from queue")
         except Exception as e:
             logger.error(f"❌ Error loading offline queue: {e}")
     
