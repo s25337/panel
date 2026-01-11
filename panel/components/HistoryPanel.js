@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { FontFamily } from '../GlobalStyles';
-import HistoryGraph from './HistoryGraph';
+import { ScrollView, StyleSheet, Text, View, Dimensions } from 'react-native';
+import { FontFamily, scale } from '../GlobalStyles';
+import CombinedHistoryGraph from './CombinedHistoryGraph';
+
+const { width } = Dimensions.get('window');
 
 const HistoryPanel = () => {
-  const [temperatureData, setTemperatureData] = useState(null);
-  const [humidityData, setHumidityData] = useState(null);
-  const [lightData, setLightData] = useState(null);
+  const [graphData, setGraphData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -14,7 +14,7 @@ const HistoryPanel = () => {
     fetchHistoryData();
   }, []);
 
-  const fetchHistoryData = async (retries = 3) => {
+  const fetchHistoryData = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -30,47 +30,51 @@ const HistoryPanel = () => {
       
       const data = await response.json();
       
-      // Transform API data to graph format
-      const transformToGraphData = (values, title, yMin, yMax, color) => {
-        const labels = (data.timestamps || []).map((ts) => {
-          const date = new Date(ts);
-          return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      // Normalize all data to 0-100 scale
+      const normalizeData = (values, min, max) => {
+        if (!values || values.length === 0) return [];
+        return values.map(v => {
+          const normalized = ((v - min) / (max - min)) * 100;
+          return Math.max(0, Math.min(100, normalized));
         });
-        
-        return {
-          title,
-          labels: labels.length > 0 ? labels : ['No data'],
-          series: values && values.length > 0 ? values : [0],
-          yMin,
-          yMax,
-          yTicks: generateTicks(yMin, yMax),
-          color,
-        };
       };
+
+      // Generate day labels (Sun, Mon, Tue, etc.)
+      const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const xLabels = data.timestamps ? data.timestamps.map((ts) => {
+        const date = new Date(ts);
+        return dayLabels[date.getDay()];
+      }) : [];
+
+      // Normalize temperature (0-50°C → 0-100%)
+      const tempNormalized = normalizeData(data.temperature, 0, 50);
       
-      setTemperatureData(transformToGraphData(
-        data.temperature,
-        'Temperature History',
-        18,
-        30,
-        '#FF6B6B'
-      ));
+      // Humidity is already ~0-100%
+      const humNormalized = data.humidity || [];
       
-      setHumidityData(transformToGraphData(
-        data.humidity,
-        'Humidity History',
-        40,
-        70,
-        '#4ECDC4'
-      ));
-      
-      setLightData(transformToGraphData(
-        data.brightness,
-        'Light Intensity History',
-        0,
-        1000,
-        '#FFD93D'
-      ));
+      // Normalize light (0-1000 → 0-100%)
+      const lightNormalized = normalizeData(data.brightness, 0, 1000);
+
+      setGraphData({
+        xLabels,
+        series: [
+          {
+            label: 'Temperature',
+            data: tempNormalized,
+            color: '#FF6B6B',
+          },
+          {
+            label: 'Humidity',
+            data: humNormalized,
+            color: '#4ECDC4',
+          },
+          {
+            label: 'Light',
+            data: lightNormalized,
+            color: '#FFD93D',
+          },
+        ],
+      });
       
     } catch (err) {
       setError(err.message);
@@ -82,72 +86,46 @@ const HistoryPanel = () => {
   };
 
   const useFallbackData = () => {
-    const fallbackLabels = ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '24:00'];
+    const dayLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     
-    setTemperatureData({
-      title: 'Temperature History',
-      labels: fallbackLabels,
-      series: [22, 21, 20, 25, 28, 26, 23],
-      yMin: 18,
-      yMax: 30,
-      yTicks: [18, 21, 24, 27, 30],
-      color: '#FF6B6B',
+    setGraphData({
+      xLabels: dayLabels,
+      series: [
+        {
+          label: 'Temperature',
+          data: [40, 35, 30, 45, 60, 50, 40],
+          color: '#FF6B6B',
+        },
+        {
+          label: 'Humidity',
+          data: [45, 50, 55, 60, 58, 52, 48],
+          color: '#4ECDC4',
+        },
+        {
+          label: 'Light',
+          data: [0, 10, 20, 80, 100, 60, 0],
+          color: '#FFD93D',
+        },
+      ],
     });
-
-    setHumidityData({
-      title: 'Humidity History',
-      labels: fallbackLabels,
-      series: [45, 50, 55, 60, 58, 52, 48],
-      yMin: 40,
-      yMax: 70,
-      yTicks: [40, 50, 60, 70],
-      color: '#4ECDC4',
-    });
-
-    setLightData({
-      title: 'Light Intensity History',
-      labels: fallbackLabels,
-      series: [0, 0, 20, 80, 100, 60, 0],
-      yMin: 0,
-      yMax: 100,
-      yTicks: [0, 25, 50, 75, 100],
-      color: '#FFD93D',
-    });
-  };
-
-  const generateTicks = (min, max, count = 5) => {
-    const step = (max - min) / (count - 1);
-    return Array.from({ length: count }, (_, i) => Math.round(min + i * step));
   };
 
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text style={styles.loadingText}>Loading history...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <Text style={styles.retryText}>Using sample data</Text>
+        <View style={styles.tile}>
+          <Text style={styles.loadingText}>Loading history...</Text>
+        </View>
       </View>
     );
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
-      <View style={styles.header}>
-        <Text style={styles.title}>History</Text>
-        <Text style={styles.subtitle}>Daily Statistics</Text>
+    <View style={styles.container}>
+      <View style={styles.tile}>
+        {graphData && <CombinedHistoryGraph {...graphData} />}
       </View>
-
-      {temperatureData && <HistoryGraph {...temperatureData} />}
-      {humidityData && <HistoryGraph {...humidityData} />}
-      {lightData && <HistoryGraph {...lightData} />}
-    </ScrollView>
+    </View>
   );
 };
 
@@ -155,25 +133,15 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: 'transparent',
-  },
-  contentContainer: {
     paddingHorizontal: 60,
     paddingVertical: 50,
-    paddingBottom: 40,
   },
-  header: {
-    marginBottom: 30,
-    gap: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontFamily: FontFamily.workSansMedium,
-    color: '#ffffff',
-  },
-  subtitle: {
-    fontSize: 14,
-    fontFamily: FontFamily.workSansLight,
-    color: '#888888',
+  tile: {
+    flex: 1,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
+    borderRadius: 14,
+    padding: 20,
+    borderWidth: 0,
   },
   loadingText: {
     fontSize: 16,
@@ -181,20 +149,6 @@ const styles = StyleSheet.create({
     color: '#cccccc',
     textAlign: 'center',
     marginTop: 50,
-  },
-  errorText: {
-    fontSize: 14,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ff6b6b',
-    textAlign: 'center',
-    marginTop: 50,
-  },
-  retryText: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansLight,
-    color: '#888888',
-    textAlign: 'center',
-    marginTop: 10,
   },
 });
 
