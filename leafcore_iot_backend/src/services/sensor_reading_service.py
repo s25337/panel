@@ -18,7 +18,6 @@ class SensorReadingService:
     
     # Server endpoints
     CLOUD_URL = "http://33.11.238.45:8081/terrarium"
-    LOCAL_URL = "http://172.19.14.15:8080/terrarium/dataTerrarium"  # Match sync_service.py
     READ_INTERVAL = 2.0  # Read every 2 seconds
     
     def __init__(self, device_manager: DeviceManager, app_dir: str = "."):
@@ -112,7 +111,7 @@ class SensorReadingService:
     
     def _post_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
                          brightness: Optional[float]):
-        """POST sensor data to cloud and local servers"""
+        """POST sensor data to cloud server"""
         if temp is None or humidity is None or brightness is None:
             return
         
@@ -125,13 +124,12 @@ class SensorReadingService:
             "status": "ok"
         }
         
-        # Try posting to servers (non-blocking)
-        for url_name, base_url in [("CLOUD", self.CLOUD_URL), ("LOCAL", self.LOCAL_URL)]:
-            try:
-                endpoint = f"{base_url}/sensor-data"
-                response = requests.post(endpoint, json=payload, timeout=3.0)
-            except Exception as e:
-                pass
+        # Post to CLOUD server only
+        try:
+            endpoint = f"{self.CLOUD_URL}/sensor-data"
+            response = requests.post(endpoint, json=payload, timeout=3.0)
+        except Exception as e:
+            pass
     
     # ========== CONFIG FILE MANAGEMENT ==========
     
