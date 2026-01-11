@@ -93,8 +93,14 @@ def create_app(use_hardware: bool = True) -> Flask:
     def send_initial_data():
         """Send sensor data immediately on startup"""
         import time
-        time.sleep(2)  # Wait 2 seconds for sensors to be read at least once
-        external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
+        print("[STARTUP] Waiting 25 seconds for initial sensor readings...")
+        time.sleep(25)  # Wait 25s for at least one sensor read (interval=20s)
+        print("[STARTUP] Sending initial sensor data...")
+        try:
+            result = external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
+            print(f"[STARTUP] Initial send result: {result}")
+        except Exception as e:
+            print(f"[STARTUP] Error sending initial data: {e}")
     
     threading.Thread(target=send_initial_data, daemon=True).start()
     
