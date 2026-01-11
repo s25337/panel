@@ -93,7 +93,11 @@ class SensorReadingService:
     
     def _save_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
                          brightness: Optional[float]):
-        """Save sensor data to JSON file"""
+        """Save sensor data to JSON file only if data is valid"""
+        # Skip saving if any sensor value is None (invalid reading)
+        if temp is None or humidity is None or brightness is None:
+            return
+        
         try:
             data = {
                 "timestamp": datetime.now().isoformat(),

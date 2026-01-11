@@ -1,0 +1,83 @@
+{
+  "light": {
+    "device_name": "LC_Greenhouse_Module_Light001",
+    "type": "light",
+    "state": "off",
+    "mode": "auto",
+    "intensity": 0.0,
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "fan": {
+    "device_name": "LC_Greenhouse_Module_Fan001",
+    "type": "fan",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "pump": {
+    "device_name": "LC_Greenhouse_Module_Pump001",
+    "type": "water pump",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "sprinkler": {
+    "device_name": "LC_Greenhouse_Module_Sprinkler001",
+    "type": "sprinkler",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "heat_mat": {
+    "device_name": "LC_Greenhouse_Module_Heat001",
+    "type": "heating mat",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "temp_hum_sensor": {
+    "device_name": "LC_Greenhouse_Module_TempHumSensor001",
+    "type": "temperature and humidity sensor",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "light_sensor": {
+    "device_name": "LC_Greenhouse_Module_LightSensor001",
+    "type": "light sensor",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  },
+  "water_level_sensor": {
+    "device_name": "LC_Greenhouse_Module_WaterLevelSensor001",
+    "type": "water level sensor",
+    "state": "off",
+    "mode": "auto",
+    "group_id": "LC_Greenhouse_Box_ModuleGroup001",
+    "last_edit_date": "",
+    "is_registered": 0,
+    "user_id": null
+  }
+}

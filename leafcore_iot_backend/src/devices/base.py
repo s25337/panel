@@ -2,7 +2,6 @@
 """
 Base abstract class for device backends
 
-⚠️ IMPORTANT SEMANTICS:
 
 OUTPUTS (set_*):
 - set_light(intensity: float) - Controls LED PWM (0-100%)
@@ -16,13 +15,13 @@ INPUTS (read_*):
 - read_light_intensity() -> brightness - Returns LIGHT SENSOR (VEML7700), NOT LED state
 
 STATE GETTERS (get_*_state):
-- get_light_state() -> intensity - Returns CURRENT LED intensity (what we set)
-- get_*_state() -> bool - Returns current relay state (what we set)
+- get_light_state() -> intensity - Returns CURRENT LED intensity
+- get_*_state() -> bool - Returns current relay state 
 
 KEY DISTINCTION:
 - get_light_state() = LED intensity (what we CONTROL)
 - read_light_intensity() = Environmental brightness (what we MEASURE)
-These are INDEPENDENT values!
+
 """
 from typing import Tuple, Optional
 
@@ -40,33 +39,26 @@ class BaseBackend:
     # ========== OUTPUTS ==========
     
     def set_fan(self, state: bool) -> None:
-        """Set fan state"""
         self._fan_state = bool(state)
 
     def set_light(self, intensity: float) -> None:
-        """Set light intensity 0-100 (0 = off, 100 = full brightness)"""
         self._light_state = max(0.0, min(100.0, float(intensity)))
 
     def set_pump(self, state: bool) -> None:
-        """Set pump state"""
         self._pump_state = bool(state)
 
     def set_heater(self, state: bool) -> None:
-        """Set heater state"""
         self._heater_state = bool(state)
 
     def set_sprinkler(self, state: bool) -> None:
-        """Set sprinkler state"""
         self._sprinkler_state = bool(state)
 
     # ========== INPUTS ==========
     
     def read_sensor(self) -> Tuple[Optional[float], Optional[float]]:
-        """Return (temperature_C, humidity_percent) or (None, None) if unavailable."""
         return None, None
 
     def read_light_intensity(self) -> Optional[float]:
-        """Return light intensity (0-100) or None if unavailable."""
         return None
 
     # ========== STATE GETTERS ==========
@@ -75,7 +67,6 @@ class BaseBackend:
         return self._fan_state
 
     def get_light_state(self) -> float:
-        """Return current light intensity 0-100"""
         return self._light_state
 
     def get_pump_state(self) -> bool:
@@ -90,5 +81,4 @@ class BaseBackend:
     # ========== LIFECYCLE ==========
     
     def cleanup(self) -> None:
-        """Cleanup resources"""
         pass

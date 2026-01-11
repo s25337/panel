@@ -3,8 +3,11 @@
 Settings management service with generic JSON store
 """
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
+
+logger = logging.getLogger(__name__)
 
 
 class SettingsService:
@@ -18,14 +21,16 @@ class SettingsService:
         "settings": {
             "file": "settings_config.json",
             "defaults": {
-                "light_hours": 23.0,
-                "target_temp": 39.0,
-                "target_hum": 38.0,
+                "setting_id": "67",
+                "plant_name": "six seven",
+                "target_temp": 25.0,
+                "target_hum": 60.0,
                 "watering_days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
                 "water_seconds": 1,
+                "watering_mode": "standard",
                 "light_intensity": 50.0,
-                "start_hour": 4,
-                "end_hour": 5
+                "start_hour": 6,
+                "end_hour": 18
             }
         },
         "manual": {
@@ -44,6 +49,11 @@ class SettingsService:
     def __init__(self, settings_file: str = "settings_config.json", 
                  manual_settings_file: str = "manual_settings.json"):
         """Initialize settings service with generic store pattern"""
+        # Convert to absolute paths if relative
+        from pathlib import Path
+        settings_file = str(Path(settings_file).resolve())
+        manual_settings_file = str(Path(manual_settings_file).resolve())
+        
         # Override file paths if provided
         self.STORES["settings"]["file"] = settings_file
         self.STORES["manual"]["file"] = manual_settings_file
@@ -80,8 +90,13 @@ class SettingsService:
 
     def _save_store(self, filepath: str, data: Dict[str, Any]) -> None:
         """Generic save for any JSON store"""
-        with open(filepath, 'w') as f:
-            json.dump(data, f, indent=2)
+        try:
+            with open(filepath, 'w') as f:
+                json.dump(data, f, indent=2)
+            logger.debug(f"✅ Saved settings to {filepath}")
+        except Exception as e:
+            logger.error(f"❌ Failed to save settings to {filepath}: {e}")
+
 
     def _get_store(self, store: str) -> Dict[str, Any]:
         """Get store data"""
@@ -163,3 +178,19 @@ class SettingsService:
     def is_manual_mode(self) -> bool:
         """Check if manual mode is enabled"""
         return self._get_store("manual").get("is_manual", False)
+
+    def calculate_light_hours(self) -> float:
+        """
+        Calculate light hours based on start_hour and end_hour
+        If end_hour > start_hour: simple difference
+        If end_hour < start_hour: assumes light goes through midnight (24 - start + end)
+        """
+        settings = self.get_settings()
+        start = int(settings.get("start_hour", 6))
+        end = int(settings.get("end_hour", 18))
+        
+        if end > start:
+            return float(end - start)
+        else:
+            # Light goes through midnight
+            return float(24 - start + end)

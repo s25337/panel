@@ -115,16 +115,19 @@ class ControlService:
     # ========== GET LIGHT SCHEDULE ==========
     
     def get_light_schedule(self) -> Dict[str, Any]:
-        """Get light on/off schedule"""
+        """Get light on/off schedule with calculated light hours"""
         start_hour = self.settings_service.get_setting("start_hour", 4)
         end_hour = self.settings_service.get_setting("end_hour", 5)
+        
+        # Calculate light hours
+        light_hours = (end_hour - start_hour) if end_hour >= start_hour else (24 - start_hour + end_hour)
         
         return {
             "start_hour": int(start_hour),
             "start_minute": 0,
             "end_hour": int(end_hour),
             "end_minute": 0,
-            "light_hours": (end_hour - start_hour) if end_hour >= start_hour else (24 - start_hour + end_hour)
+            "light_hours": float(light_hours)
         }
 
     # ========== WATERING CONTROL ==========

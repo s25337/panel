@@ -7,7 +7,7 @@ from flask import Flask, render_template
 from flask_cors import CORS
 
 from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService
+from src.services import SettingsService, ControlService, SensorService, SyncService, BluetoothService, SensorReadingService, ExternalTerriumService, HistoryService, AutomationService
 from src.api import create_api_routes
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,10 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Initialize services
     device_manager = DeviceManager(use_hardware=use_hardware)
-    settings_service = SettingsService()
+    settings_service = SettingsService(
+        settings_file="source_files/settings_config.json",
+        manual_settings_file="manual_settings.json"
+    )
     
     # Initialize SensorReadingService FIRST (it's the single source of truth)
     sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
@@ -39,6 +42,9 @@ def create_app(use_hardware: bool = True) -> Flask:
     control_service = ControlService(device_manager, settings_service)
     sync_service = SyncService(settings_service, app_dir=".")
     external_terrarium_service = ExternalTerriumService(settings_service, sensor_service=sensor_service)
+    
+    # Initialize automation service (handles scheduled watering at 12:00 daily)
+    automation_service = AutomationService(device_manager, control_service, settings_service)
     
     # Initialize history service (24-hour rolling window with 60s interval)
     history_service = HistoryService(sensor_service=sensor_service, data_dir=".")
@@ -54,11 +60,12 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Start sensor reading service (for continuous sensor monitoring and cloud posting)
     sensor_reading_service.start()
     
+    # Start automation service (checks at 12:00 daily for watering)
+    automation_service.start()
+    logger.info("✅ All automation services started")
+    
     # Start background sync
     sync_service.start_background_sync()
-    
-    # Start background sensor upload to terrarium server (every 30s)
-    external_terrarium_service.start_background_sensor_upload()
     
     # Start background history capture (every 60s)
     history_service.start_background_capture()
@@ -113,6 +120,7 @@ def create_app(use_hardware: bool = True) -> Flask:
         """Stop background services on shutdown"""
         logger.info("🛑 Shutting down...")
         sensor_reading_service.stop()
+        automation_service.stop()
         sync_service.stop_background_sync()
     
     import atexit
