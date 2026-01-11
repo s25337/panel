@@ -34,7 +34,7 @@ class ExternalTerriumService:
         self.sensor_service = sensor_service
         self._background_thread = None
         self._running = False
-        self._sensor_upload_interval = 30  # seconds
+        self._sensor_upload_interval = 3600  # 1 hour in seconds
     
     def map_local_to_terrarium(self, local_settings: Dict[str, Any]) -> Dict[str, Any]:
         from datetime import datetime
@@ -60,10 +60,10 @@ class ExternalTerriumService:
             # Map local settings to Terrarium format
             terrarium_data = self.map_local_to_terrarium(local_settings)
             
-            # Send GET request with query parameters
-            response = requests.get(
+            # Send POST request with JSON body (GET with params also works but POST is more reliable)
+            response = requests.post(
                 self.TERRARIUM_SERVER_URL,
-                params=terrarium_data,
+                json=terrarium_data,
                 timeout=self.TIMEOUT
             )
             
@@ -104,8 +104,9 @@ class ExternalTerriumService:
     
     def send_sensor_data(self) -> bool:
         """
-        Send current sensor readings to Terrarium server
+        Send current sensor readings to Terrarium server using POST every hour
         Reads: temperature, humidity (moisture), light intensity (brightness)
+        Also sends optimal settings from SettingsService
         
         Returns:
             True if successful, False otherwise
@@ -125,23 +126,45 @@ class ExternalTerriumService:
                 logger.warning(f"⚠️ Sensor data incomplete: temp={temp}, hum={humidity}, light={light}")
                 return False
             
-            # Convert to Terrarium format
+            # Get target settings from SettingsService
+            optimal_temp = 25.0
+            optimal_hum = 60.0
+            optimal_brightness = 50.0
+            
+            if self.settings_service:
+                settings = self.settings_service.get_settings()
+                optimal_temp = float(settings.get("target_temp", 25.0))
+                optimal_hum = float(settings.get("target_hum", 60.0))
+                optimal_brightness = float(settings.get("light_intensity", 50.0))
+            
+            # Convert to Terrarium format (POST with JSON body)
             sensor_data = {
-                "temperature": float(temp),
-                "moisture": float(humidity),
-                "brightness": float(light) * 10,  # Scale to 0-1000
+                "setting_id": self.SETTING_ID,
+                "plant_name": self.PLANT_NAME,
+              #  "temperature": float(temp),
+              #  "moisture": float(humidity),
+              #  "brightness": float(light),
+                "optimal_temperature": optimal_temp,
+                "optimal_humidity": optimal_hum,
+                "optimal_brightness": optimal_brightness,
                 "timestamp": datetime.now().isoformat()
             }
             
-            # Send GET request with sensor data
-            response = requests.get(
+            # Send POST request with sensor data
+            response = requests.post(
                 self.TERRARIUM_SERVER_URL,
-                params=sensor_data,
+                json=sensor_data,
                 timeout=self.TIMEOUT
             )
             
             response.raise_for_status()
-            logger.info(f"✅ Sent sensor data to Terrarium server: {sensor_data}")
+            
+            # Parse and log the returned settings
+            returned_settings = response.json()
+            logger.info(f"✅ Posted to cloud (hourly): T={temp}°C, H={humidity}%, B={light}")
+            logger.info(f"   📤 Sent optimal: T={optimal_temp}°C, H={optimal_hum}%, B={optimal_brightness}")
+            logger.info(f"   🌿 Server returned: {returned_settings.get('plant_name')} (id: {returned_settings.get('setting_id')})")
+            logger.info(f"   🎯 Server optimal: T={returned_settings.get('optimal_temperature')}°C, H={returned_settings.get('optimal_humidity')}%")
             return True
             
         except requests.exceptions.ConnectionError:
@@ -151,7 +174,7 @@ class ExternalTerriumService:
             logger.warning(f"⚠️ Timeout connecting to Terrarium server (timeout={self.TIMEOUT}s)")
             return False
         except requests.exceptions.HTTPError as e:
-            logger.error(f"❌ HTTP error from Terrarium server: {e.response.status_code} - {e.response.text}")
+            logger.error(f"❌ HTTP error from Terrarium server: {e.response.status_code}")
             return False
         except Exception as e:
             logger.error(f"❌ Error sending sensor data: {e}")
