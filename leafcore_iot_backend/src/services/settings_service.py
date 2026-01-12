@@ -21,8 +21,8 @@ class SettingsService:
         "settings": {
             "file": "settings_config.json",
             "defaults": {
-                "setting_id": "67",
-                "plant_name": "six seven",
+                "setting_id": "1",
+                "plant_name": "default plant",
                 "target_temp": 25.0,
                 "target_hum": 60.0,
                 "watering_days": ["MONDAY", "WEDNESDAY", "FRIDAY"],
@@ -47,7 +47,8 @@ class SettingsService:
     }
     
     def __init__(self, settings_file: str = "settings_config.json", 
-                 manual_settings_file: str = "manual_settings.json"):
+                 manual_settings_file: str = "manual_settings.json",
+                 external_terrarium_service=None):
         """Initialize settings service with generic store pattern"""
         # Convert to absolute paths if relative
         from pathlib import Path
@@ -57,6 +58,9 @@ class SettingsService:
         # Override file paths if provided
         self.STORES["settings"]["file"] = settings_file
         self.STORES["manual"]["file"] = manual_settings_file
+        
+        # External terrarium service for syncing settings
+        self.external_terrarium_service = external_terrarium_service
         
         # Load all stores
         self._stores = {}
@@ -118,6 +122,16 @@ class SettingsService:
         # Persist to disk
         filepath = self.STORES[store]["file"]
         self._save_store(filepath, store_data)
+        
+        # Notify external terrarium service of settings changes
+        if store == "settings" and self.external_terrarium_service:
+            logger.info(f"[SettingsService] Settings updated, notifying external service...")
+            try:
+                self.external_terrarium_service.notify_settings_changed(updates)
+            except Exception as e:
+                logger.warning(f"Failed to notify external terrarium service: {e}")
+        elif store == "settings":
+            logger.warning(f"[SettingsService] external_terrarium_service is None - cannot notify")
         
         return store_data.copy()
 

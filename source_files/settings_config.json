@@ -1,6 +1,6 @@
 {
-  "setting_id": "67",
-  "plant_name": "six seven",
+  "setting_id": "1",
+  "plant_name": "default plant",
   "target_temp": 25.0,
   "target_hum": 60.0,
   "watering_days": [

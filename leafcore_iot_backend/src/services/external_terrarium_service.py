@@ -23,6 +23,7 @@ class ExternalTerriumService:
     BASE_URL = "http://31.11.238.45:8081/terrarium"
     ENDPOINT_ADD_MODULE = f"{BASE_URL}/module"
     ENDPOINT_SEND_DATA = f"{BASE_URL}/dataTerrarium"
+    ENDPOINT_UPDATE_SETTING = f"{BASE_URL}/updateSetting"
     
     TIMEOUT = 5
     SYNC_INTERVAL = 300  # 5 minutes in seconds
@@ -37,6 +38,7 @@ class ExternalTerriumService:
         # Background sync thread
         self._sync_running = False
         self._sync_thread: Optional[threading.Thread] = None
+        self._group_id: Optional[str] = None
     
     def add_module(self, device_name: str, device_type: str, user_id: Optional[int] = None, 
                    group_id: Optional[str] = None, status: str = "active", mode: str = "auto") -> bool:
@@ -142,12 +144,12 @@ class ExternalTerriumService:
             # Get last 5 minutes of sensor data from history
             recent_data = self.sensor_reading_service.get_recent_sensor_history(minutes=5)
             
-            logger.info(f"[History] Readings count: {len(recent_data)}")
+            logger.info(f"[5-min Sync] Readings count: {len(recent_data)}")
             if recent_data and len(recent_data) > 0:
-                logger.info(f"[History] Newest: {recent_data[0].get('timestamp')} | Oldest: {recent_data[-1].get('timestamp')}")
+                logger.info(f"[5-min Sync] Newest: {recent_data[0].get('timestamp')} | Oldest: {recent_data[-1].get('timestamp')}")
             
             if not recent_data:
-                logger.warning(f"No sensor history available (history file might not exist yet)")
+                logger.warning(f"[5-min Sync] No sensor history available (history file might not exist yet)")
                 return False
             
             # Ensure all readings have required fields in correct format
@@ -170,14 +172,68 @@ class ExternalTerriumService:
             )
             response.raise_for_status()
             
-            logger.info(f"✅ Posted {len(formatted_data)} sensor readings to group '{group_id}' (5-min history)")
+            logger.info(f"✅ [5-min Sync] Posted {len(formatted_data)} sensor readings to group '{group_id}'")
             return True
             
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ Error sending sensor data to group '{group_id}': {e}")
+            logger.error(f"❌ [5-min Sync] Error sending sensor data to group '{group_id}': {e}")
             return False
         except Exception as e:
-            logger.error(f"❌ Unexpected error in send_sensor_data_by_group: {e}")
+            logger.error(f"❌ [5-min Sync] Unexpected error in send_sensor_data_by_group: {e}")
+            return False
+    
+    def send_initial_history_file(self, group_id: str) -> bool:
+        """
+        Send entire sensor_data_history.json file on server startup
+        Called once when the server starts to sync all available historical data
+        
+        Args:
+            group_id: Group ID to send data to
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self.sensor_reading_service:
+            logger.warning("[STARTUP] SensorReadingService not initialized, cannot send history file")
+            return False
+        
+        try:
+            # Get all available sensor history
+            recent_data = self.sensor_reading_service.get_recent_sensor_history(minutes=5)
+            
+            if not recent_data:
+                logger.warning("[STARTUP] No sensor history available to send")
+                return False
+            
+            # Ensure all readings have required fields in correct format
+            formatted_data = []
+            for entry in recent_data:
+                formatted_entry = {
+                    "temperature": float(entry.get('temperature', 0)),
+                    "moisture": float(entry.get('humidity', 0)),  # humidity → moisture
+                    "brightness": float(entry.get('brightness', 0)),
+                    "timestamp": entry.get('timestamp', datetime.now().isoformat())
+                }
+                formatted_data.append(formatted_entry)
+            
+            # Send array of sensor readings
+            endpoint = f"{self.ENDPOINT_SEND_DATA}/{group_id}"
+            response = requests.post(
+                endpoint,
+                json=formatted_data,
+                timeout=self.TIMEOUT
+            )
+            response.raise_for_status()
+            
+            logger.info(f"✅ [STARTUP] Successfully sent {len(formatted_data)} historical readings to group '{group_id}'")
+            logger.info(f"[STARTUP] First reading: {formatted_data[0]['timestamp']} | Last reading: {formatted_data[-1]['timestamp']}")
+            return True
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ [STARTUP] Network error sending history file to group '{group_id}': {e}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ [STARTUP] Unexpected error sending history file: {e}")
             return False
     
     # ========== BACKGROUND SYNC (5 MINUTES) ==========
@@ -197,7 +253,7 @@ class ExternalTerriumService:
         self._group_id = group_id
         self._sync_thread = threading.Thread(
             target=self._background_sync_loop,
-            daemon=True
+            daemon=False  # Not a daemon thread so it keeps running
         )
         self._sync_thread.start()
         logger.info(f"🚀 Background sync started (interval: {self.SYNC_INTERVAL}s to group '{group_id}')")
@@ -214,19 +270,173 @@ class ExternalTerriumService:
         Background loop: send sensor data every 5 minutes
         Uses efficient chunked sleep to respond to stop signal
         """
+        print(f"[Sync] Background loop started - will sync every {self.SYNC_INTERVAL}s")
         logger.info(f"[Sync] Background loop started - will sync every {self.SYNC_INTERVAL}s")
         
+        iteration = 0
         while self._sync_running:
+            iteration += 1
             try:
+                # Log that we're about to send data
+                print(f"[5-min Sync] ⏰ Starting periodic sync at {datetime.now().isoformat()}")
+                logger.info(f"[5-min Sync] ⏰ Starting periodic sync at {datetime.now().isoformat()}")
+                
                 # Send sensor data to group endpoint
-                self.send_sensor_data_by_group(self._group_id)
+                result = self.send_sensor_data_by_group(self._group_id)
+                
+                if result:
+                    print(f"[5-min Sync] ✅ Periodic sync completed successfully")
+                    logger.info(f"[5-min Sync] ✅ Periodic sync completed successfully")
+                else:
+                    print(f"[5-min Sync] ⚠️ Periodic sync completed with warnings")
+                    logger.warning(f"[5-min Sync] ⚠️ Periodic sync completed with warnings")
                 
                 # Sleep in 1-second chunks so we can respond to stop signal quickly
-                for _ in range(self.SYNC_INTERVAL):
+                # Log countdown every 60 seconds
+                for i in range(self.SYNC_INTERVAL):
                     if not self._sync_running:
                         break
+                    # Log every 60 seconds
+                    if i > 0 and i % 60 == 0:
+                        remaining = self.SYNC_INTERVAL - i
+                        print(f"[5-min Sync] ⏳ Waiting... {remaining}s until next sync")
+                        logger.info(f"[5-min Sync] ⏳ Waiting... {remaining}s until next sync")
                     time.sleep(1)
             
             except Exception as e:
+                print(f"[Sync] Background loop error: {e}")
                 logger.error(f"[Sync] Background loop error: {e}")
                 time.sleep(5)  # Brief delay before retry
+    
+    # ========== SETTINGS SYNC ==========
+    
+    def _map_local_to_terrarium_settings(self, local_settings: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Convert local settings format to Terrarium server format
+        
+        Local format → Terrarium format mapping:
+        - target_temp → optimal_temperature
+        - target_hum → optimal_humidity
+        - light_intensity → optimal_brightness (also keep light_intensity)
+        - start_hour, end_hour → light_schedule_start_time, light_schedule_end_time
+        - water_seconds → water_amount
+        - watering_days → dayOfWeek
+        
+        Args:
+            local_settings: Dictionary of local settings
+        
+        Returns:
+            Dictionary in Terrarium format
+        """
+        terrarium_settings = {}
+        
+        # Direct mappings
+        if "setting_id" in local_settings:
+            terrarium_settings["setting_id"] = str(local_settings["setting_id"])
+        if "plant_name" in local_settings:
+            terrarium_settings["plant_name"] = local_settings["plant_name"]
+        if "watering_mode" in local_settings:
+            terrarium_settings["watering_mode"] = local_settings["watering_mode"]
+        
+        # Temperature mapping
+        if "target_temp" in local_settings:
+            terrarium_settings["optimal_temperature"] = float(local_settings["target_temp"])
+        
+        # Humidity mapping
+        if "target_hum" in local_settings:
+            terrarium_settings["optimal_humidity"] = float(local_settings["target_hum"])
+        
+        # Light intensity mapping
+        if "light_intensity" in local_settings:
+            light_val = float(local_settings["light_intensity"])
+            terrarium_settings["optimal_brightness"] = light_val
+            terrarium_settings["light_intensity"] = light_val
+        
+        # Light schedule mapping (hours → HH:MM format)
+        if "start_hour" in local_settings and "end_hour" in local_settings:
+            start_hour = int(local_settings["start_hour"])
+            end_hour = int(local_settings["end_hour"])
+            terrarium_settings["light_schedule_start_time"] = f"{start_hour:02d}:00"
+            terrarium_settings["light_schedule_end_time"] = f"{end_hour:02d}:00"
+        
+        # Water mapping
+        if "water_seconds" in local_settings:
+            terrarium_settings["water_amount"] = int(local_settings["water_seconds"])
+        
+        # Watering days mapping
+        if "watering_days" in local_settings:
+            terrarium_settings["dayOfWeek"] = local_settings["watering_days"]
+        
+        return terrarium_settings
+    
+    def send_settings(self, settings: Dict[str, Any], group_id: str = "group-A1") -> bool:
+        """
+        Send settings to external Terrarium server
+        Called whenever settings are updated
+        Automatically converts local settings format to Terrarium format
+        
+        Args:
+            settings: Dictionary of settings to send (local format)
+            group_id: Group ID to send settings to
+        
+        Returns:
+            True if successful, False otherwise
+        """
+        if not settings:
+            logger.warning("[Settings] No settings to send")
+            return False
+        
+        try:
+            # Convert local settings format to Terrarium format
+            logger.debug(f"[Settings] Converting settings: {list(settings.keys())}")
+            terrarium_settings = self._map_local_to_terrarium_settings(settings)
+            
+            if not terrarium_settings:
+                logger.warning("[Settings] No settings to send after mapping")
+                return False
+            
+            logger.debug(f"[Settings] Converted settings: {terrarium_settings}")
+            
+            # Send settings to group endpoint
+            endpoint = f"{self.ENDPOINT_UPDATE_SETTING}/{group_id}"
+            logger.info(f"[Settings] 🚀 Sending to {endpoint}")
+            response = requests.post(
+                endpoint,
+                json=terrarium_settings,
+                timeout=self.TIMEOUT
+            )
+            response.raise_for_status()
+            
+            logger.info(f"✅ [Settings] Sent {len(terrarium_settings)} setting(s) to group '{group_id}': {list(terrarium_settings.keys())}")
+            return True
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"❌ [Settings] Error sending settings to group '{group_id}': {e}")
+            return False
+        except Exception as e:
+            logger.error(f"❌ [Settings] Unexpected error sending settings: {e}")
+            return False
+    
+    def notify_settings_changed(self, updated_settings: Dict[str, Any], group_id: str = "group-A1"):
+        """
+        Callback to notify external server when settings are changed
+        This should be called from SettingsService whenever settings are updated
+        
+        Args:
+            updated_settings: Dictionary of updated settings
+            group_id: Group ID to send settings to
+        """
+        logger.info(f"[Settings Change] 🔔 Settings changed - sending to server")
+        logger.info(f"[Settings Change] Updated fields: {list(updated_settings.keys())}")
+        logger.info(f"[Settings Change] Values: {updated_settings}")
+        
+        # Send settings in background to avoid blocking the API call
+        def send_in_background():
+            logger.info(f"[Settings Change] 📤 Sending updated settings to {group_id}...")
+            result = self.send_settings(updated_settings, group_id)
+            logger.info(f"[Settings Change] ✅ Settings sent - result: {result}")
+        
+        threading.Thread(
+            target=send_in_background,
+            daemon=True
+        ).start()

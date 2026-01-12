@@ -1,17 +1,17 @@
 {
-  "setting_id": "67",
-  "plant_name": "six seven",
+  "setting_id": "1",
+  "plant_name": "default plant",
   "target_temp": 25,
-  "target_hum": 29,
+  "target_hum": 55,
   "watering_days": [
-    "WEDNESDAY",
+    "TUESDAY",
     "THURSDAY",
     "FRIDAY"
   ],
   "water_seconds": 1,
-  "light_intensity": 66,
-  "start_hour": 19,
-  "end_hour": 5,
+  "light_intensity": 76,
+  "start_hour": 12,
+  "end_hour": 7,
   "light_hours": 23.0,
   "watering_mode": "standard"
 }

@@ -5,13 +5,21 @@ Run Leafcore IoT Backend development server
 """
 import os
 import sys
+import logging
 from app import create_app
 
 
 def main():
+    # Configure logging to show all INFO and above messages
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    
     # Check if running in development or production mode
     use_hardware = os.getenv("USE_HARDWARE", "0").lower() in ["1", "true", "yes"]
-    debug = os.getenv("DEBUG", "1").lower() in ["1", "true", "yes"]
+    # Disable Flask debug mode (it interferes with background threads and logging)
+    debug = False  
     port = int(os.getenv("PORT", "5000"))
     host = os.getenv("HOST", "0.0.0.0")
     

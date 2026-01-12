@@ -29,10 +29,6 @@ def create_app(use_hardware: bool = True) -> Flask:
     
     # Initialize services
     device_manager = DeviceManager(use_hardware=use_hardware)
-    settings_service = SettingsService(
-        settings_file="source_files/settings_config.json",
-        manual_settings_file="manual_settings.json"
-    )
     
     # Initialize SensorReadingService FIRST (it's the single source of truth)
     sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
@@ -40,12 +36,23 @@ def create_app(use_hardware: bool = True) -> Flask:
     # SensorService reads from SensorReadingService cache
     sensor_service = SensorService(device_manager, sensor_reading_service=sensor_reading_service)
     
-    control_service = ControlService(device_manager, settings_service)
+    control_service = ControlService(device_manager, None)  # Temporarily None
     external_terrarium_service = ExternalTerriumService(
-        settings_service, 
+        None,  # Will be set later
         sensor_service=sensor_service,
         sensor_reading_service=sensor_reading_service
     )
+    
+    # Initialize SettingsService with ExternalTerriumService reference
+    settings_service = SettingsService(
+        settings_file="source_files/settings_config.json",
+        manual_settings_file="manual_settings.json",
+        external_terrarium_service=external_terrarium_service
+    )
+    
+    # NOW set the settings_service references (after SettingsService is created)
+    control_service.settings_service = settings_service
+    external_terrarium_service.settings_service = settings_service
     
     # Initialize GPIO automation service (for hardware backend auto-mode control)
     gpio_automation_service = None
@@ -73,23 +80,52 @@ def create_app(use_hardware: bool = True) -> Flask:
     logger.info("✅ All automation services started")
     
     # Start external terrarium server sync (every 5 minutes)
+    logger.info("🚀 Starting background sync service...")
+    print("[DEBUG] About to call start_background_sync()")
     external_terrarium_service.start_background_sync(group_id="group-A1")
+    print("[DEBUG] start_background_sync() called")
+    logger.info("🚀 Background sync service started")
     
-    # Send initial data immediately on startup (don't wait 5 minutes)
+    # Send initial history file and sensor data on startup
     import threading
-    def send_initial_data():
-        """Send sensor data immediately on startup"""
+    def send_startup_data():
+        """
+        Send settings and sensor data on startup
+        """
         import time
-        print("[STARTUP] Waiting 25 seconds for initial sensor readings...")
+        print("[STARTUP] Thread started - Waiting 25 seconds for initial sensor readings...")
+        logger.info("[STARTUP] Thread started - Waiting 25 seconds for initial sensor readings...")
         time.sleep(25)  # Wait 25s for at least one sensor read (interval=20s)
-        print("[STARTUP] Sending initial sensor data...")
+        
+        print("[STARTUP] 25 seconds passed - Sending current settings...")
+        logger.info("[STARTUP] 25 seconds passed - Sending current settings...")
         try:
-            result = external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
-            print(f"[STARTUP] Initial send result: {result}")
+            # Send current settings configuration to /updateSetting endpoint
+            current_settings = settings_service.get_settings()
+            print(f"[STARTUP] Current settings before send: {current_settings}")
+            logger.info(f"[STARTUP] Current settings before send: {current_settings}")
+            result = external_terrarium_service.send_settings(current_settings, group_id="group-A1")
+            print(f"[STARTUP] Settings send result: {result}")
+            logger.info(f"[STARTUP] Settings send result: {result}")
         except Exception as e:
-            print(f"[STARTUP] Error sending initial data: {e}")
+            print(f"[STARTUP] Error sending settings: {e}")
+            logger.error(f"[STARTUP] Error sending settings: {e}")
+        
+        print("[STARTUP] Sending sensor data (last 5 minutes)...")
+        logger.info("[STARTUP] Sending sensor data (last 5 minutes)...")
+        try:
+            # Send last 5 minutes of sensor data
+            result = external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
+            print(f"[STARTUP] Sensor data send result: {result}")
+            logger.info(f"[STARTUP] Sensor data send result: {result}")
+        except Exception as e:
+            print(f"[STARTUP] Error sending sensor data: {e}")
+            logger.error(f"[STARTUP] Error sending sensor data: {e}")
+        
+        print("[STARTUP] All startup tasks completed!")
+        logger.info("[STARTUP] All startup tasks completed!")
     
-    threading.Thread(target=send_initial_data, daemon=True).start()
+    threading.Thread(target=send_startup_data, daemon=False).start()
     
     # Initialize devices from saved manual settings on startup
     manual_settings = settings_service.get_manual_settings()

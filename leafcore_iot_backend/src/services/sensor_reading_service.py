@@ -40,7 +40,6 @@ class SensorReadingService:
         self._last_temp: Optional[float] = None
         self._last_humidity: Optional[float] = None
         self._last_brightness: Optional[float] = None
-        self._last_post_time: float = time.time()
         
         # Load device info
         self._device_info = self._load_device_info()
@@ -77,13 +76,8 @@ class SensorReadingService:
                 self._last_humidity = humidity
                 self._last_brightness = brightness
                 
-                # Save to local JSON
+                # Save to local JSON (current + history)
                 self._save_sensor_data(temp, humidity, brightness)
-                
-                # POST to servers (with rate limiting - post every 5 readings = 10s)
-                if time.time() - self._last_post_time >= 10.0:
-                    self._post_sensor_data(temp, humidity, brightness)
-                    self._last_post_time = time.time()
                 
                 time.sleep(self.READ_INTERVAL)
             except Exception as e:
@@ -149,28 +143,6 @@ class SensorReadingService:
         except Exception as e:
             pass
     
-    def _post_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
-                         brightness: Optional[float]):
-        """POST sensor data to cloud server"""
-        if temp is None or humidity is None or brightness is None:
-            return
-        
-        payload = {
-            "device_id": self._device_info.get("device_id", "unknown"),
-            "timestamp": datetime.now().isoformat(),
-            "temperature": float(temp),
-            "humidity": float(humidity),
-            "brightness": float(brightness),
-            "status": "ok"
-        }
-        
-        # Post to CLOUD server only
-        try:
-            endpoint = f"{self.CLOUD_URL}/sensor-data"
-            response = requests.post(endpoint, json=payload, timeout=3.0)
-        except Exception as e:
-            pass
-    
     # ========== CONFIG FILE MANAGEMENT ==========
     
     def _load_device_info(self) -> Dict[str, Any]:
@@ -187,7 +159,7 @@ class SensorReadingService:
         # Default device info
         return {
             "device_id": "leafcore-001",
-            "device_name": "Terrarium Panel",
+            "device_name": "Terrarium",
             "location": "Local",
             "model": "Orange Pi Zero 2W",
             "version": "1.0.0"
