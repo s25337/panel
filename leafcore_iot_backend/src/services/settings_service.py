@@ -95,10 +95,14 @@ class SettingsService:
     def _save_store(self, filepath: str, data: Dict[str, Any]) -> None:
         """Generic save for any JSON store"""
         try:
+            print(f"[_save_store] Attempting to write to: {filepath}")
+            print(f"[_save_store] Data: {data}")
             with open(filepath, 'w') as f:
                 json.dump(data, f, indent=2)
+            print(f"[_save_store] ✅ Successfully wrote to {filepath}")
             logger.debug(f"✅ Saved settings to {filepath}")
         except Exception as e:
+            print(f"[_save_store] ❌ ERROR: {e}")
             logger.error(f"❌ Failed to save settings to {filepath}: {e}")
 
 
@@ -114,14 +118,23 @@ class SettingsService:
         defaults = self.STORES[store]["defaults"]
         store_data = self._stores[store]
         
+        print(f"[SettingsService] _set_store called: store={store}, updates={updates}")
+        logger.info(f"[SettingsService] _set_store called: store={store}, updates={updates}")
+        
         # Only update keys that exist in defaults
         for key, value in updates.items():
             if key in defaults:
+                print(f"[SettingsService] Setting {key}={value}")
                 store_data[key] = value
+            else:
+                print(f"[SettingsService] Key {key} not in defaults, skipping")
         
         # Persist to disk
         filepath = self.STORES[store]["file"]
+        print(f"[SettingsService] Saving to {filepath}")
         self._save_store(filepath, store_data)
+        print(f"[SettingsService] Saved! Data: {store_data}")
+        logger.info(f"[SettingsService] Saved to {filepath}")
         
         # Notify external terrarium service of settings changes
         if store == "settings" and self.external_terrarium_service:

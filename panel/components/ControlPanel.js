@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, PanResponder, Dimensio
 import apiService from '../services/apiService';
 import WateringDaysPicker from './WateringDaysPicker';
 import LightScheduleEditor from './LightScheduleEditor';
+import ValueSlider from './ValueSlider';
 import { FontFamily, scale } from '../GlobalStyles';
 
 const { width, height } = Dimensions.get('window');
@@ -19,12 +20,23 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
+  const [lightIntensity, setLightIntensity] = useState(50);
   const [loading, setLoading] = useState({});
 
   // Fetch initial status
   useEffect(() => {
     fetchStatus();
+    fetchLightIntensity();
   }, []);
+
+  const fetchLightIntensity = async () => {
+    try {
+      const settings = await apiService.getSettings();
+      setLightIntensity(settings.light_intensity || 50);
+    } catch (error) {
+      console.error('Error fetching light intensity:', error);
+    }
+  };
 
   const fetchStatus = async () => {
     try {
@@ -58,6 +70,15 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       console.error(`Error toggling ${device}:`, error);
     } finally {
       setLoading(prev => ({ ...prev, [device]: false }));
+    }
+  };
+
+  const handleLightIntensityChange = async (newIntensity) => {
+    setLightIntensity(newIntensity);
+    try {
+      await apiService.updateSettings({ light_intensity: Math.round(newIntensity) });
+    } catch (error) {
+      console.error('Error updating light intensity:', error);
     }
   };
 
@@ -113,6 +134,27 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
           label="Fan" 
           isOn={fanOn}
         />
+      </View>
+
+      {/* Light Intensity Slider */}
+      <View style={styles.lightIntensityContainer}>
+        <View style={styles.intensityLabelWrapper}>
+          <Text style={styles.intensityLabel}>Target Light</Text>
+        </View>
+        <View style={styles.intensitySliderWrapper}>
+          <Text style={styles.intensityValue}>{Math.round(lightIntensity)}%</Text>
+          <ValueSlider
+            name1="Intensity"
+            value={lightIntensity}
+            min={0}
+            max={100}
+            step={1}
+            unit="%"
+            onValueChange={handleLightIntensityChange}
+            onSliderStart={onSliderStart}
+            onSliderEnd={onSliderEnd}
+          />
+        </View>
       </View>
 
       {/* Light Schedule Editor - Full Width Above Watering Days */}
@@ -206,6 +248,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.7,
+  },
+  lightIntensityContainer: {
+    width: '100%',
+    height: 80,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
+    borderRadius: 16,
+    paddingLeft: 20,
+    paddingRight: 16,
+    paddingTop: 12,
+    paddingBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+  },
+  intensityLabelWrapper: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 90,
+  },
+  intensityLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
+    color: '#aaaaaa',
+    letterSpacing: 0.3,
+    textAlign: 'center',
+  },
+  intensitySliderWrapper: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  intensityValue: {
+    fontSize: 16,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    marginBottom: 8,
+    letterSpacing: 0.3,
   },
 });
 
