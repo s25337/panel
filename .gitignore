@@ -11,7 +11,13 @@ npm-debug.*
 *.mobileprovision
 *.orig.*
 web-build/
-panel/assets/fonts/
+# Ignore all fonts except the ones we use
+panel/assets/fonts/*
+!panel/assets/fonts/WorkSans-ExtraLight.ttf
+!panel/assets/fonts/WorkSans-Light.ttf
+!panel/assets/fonts/WorkSans-Regular.ttf
+!panel/assets/fonts/WorkSans-Medium.ttf
+!panel/assets/fonts/.gitkeep
 
 # Backend
 __pycache__/
