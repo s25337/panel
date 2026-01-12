@@ -408,6 +408,23 @@ class ExternalTerriumService:
             response.raise_for_status()
             
             logger.info(f"✅ [Settings] Sent {len(terrarium_settings)} setting(s) to group '{group_id}': {list(terrarium_settings.keys())}")
+            
+            # Extract setting_id from response and update locally
+            try:
+                response_data = response.json()
+                if isinstance(response_data, dict) and "setting_id" in response_data:
+                    remote_setting_id = str(response_data.get("setting_id"))
+                    logger.info(f"[Settings] Received setting_id from server: {remote_setting_id}")
+                    
+                    # Update local settings with server's setting_id
+                    if self.settings_service:
+                        self.settings_service.set_setting("setting_id", remote_setting_id)
+                        logger.info(f"[Settings] ✅ Updated local setting_id to: {remote_setting_id}")
+                    else:
+                        logger.warning("[Settings] settings_service not available, cannot update setting_id")
+            except (ValueError, KeyError) as e:
+                logger.debug(f"[Settings] Could not extract setting_id from response: {e}")
+            
             return True
             
         except requests.exceptions.RequestException as e:
