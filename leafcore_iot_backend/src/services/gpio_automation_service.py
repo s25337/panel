@@ -70,6 +70,7 @@ class GPIOAutomationService:
                 # Get latest sensor data
                 sensor_data = self.settings_service.get_sensor_data()
                 settings = self.settings_service.get_settings()
+                modes = self.control_service.get_device_modes()
                 
                 if sensor_data:
                     # Latest sensor reading (usually first in list)
@@ -84,7 +85,7 @@ class GPIOAutomationService:
                     current_time_str = current_time.strftime("%H:%M")
                     
                     # ========== LIGHT AUTO-MODE ==========
-                    light_mode = self.control_service.get_device_state('light').get('mode', 'manual')
+                    light_mode = modes.get('light', {}).get('mode', 'manual')
                     if light_mode == 'auto':
                         try:
                             start_time = settings.get('start_hour', 6)
@@ -121,21 +122,17 @@ class GPIOAutomationService:
                             print(f"[GPIO] Light auto-mode error: {e}")
                     
                     # ========== FAN AUTO-MODE ==========
-                    fan_mode = self.control_service.get_device_state('fan').get('mode', 'manual')
+                    modes = self.control_service.get_device_modes()
+                    fan_mode = modes.get('fan', {}).get('mode', 'manual')
+                    print(f"[GPIO] Fan mode: {fan_mode}, current humidity: {humid}")
                     if fan_mode == 'auto':
                         try:
-                            target_temp = settings.get('target_temperature', 25.0)
-                            target_humid = settings.get('target_humidity', 60.0)
+                            target_humid = settings.get('target_hum', 60.0)
+                            print(f"[GPIO] Fan auto-mode: target_hum={target_humid}, current_humid={humid}")
                             
                             fan_on = False
                             reason = ""
-                            
-                            # Turn on fan if temp too high
-                            if temp is not None and temp > target_temp:
-                                fan_on = True
-                                reason = f"temp {temp:.1f}°C > {target_temp}°C"
-                            
-                            # Turn on fan if humidity too high
+                                     
                             if humid is not None and humid > target_humid:
                                 fan_on = True
                                 reason = f"humid {humid:.1f}% > {target_humid}%"
@@ -147,10 +144,12 @@ class GPIOAutomationService:
                             print(f"[GPIO] Fan auto-mode error: {e}")
                     
                     # ========== HEATER AUTO-MODE ==========
-                    heater_mode = self.control_service.get_device_state('heater').get('mode', 'manual')
+                    heater_mode = modes.get('heater', {}).get('mode', 'manual')
+                    print(f"[GPIO] Heater mode: {heater_mode}, current temp: {temp}")
                     if heater_mode == 'auto':
                         try:
-                            target_temp = settings.get('target_temperature', 25.0)
+                            target_temp = settings.get('target_temp', 25.0)
+                            print(f"[GPIO] Heater auto-mode: target_temp={target_temp}, current_temp={temp}")
                             
                             if temp is not None:
                                 heater_on = temp < target_temp
@@ -161,10 +160,10 @@ class GPIOAutomationService:
                             print(f"[GPIO] Heater auto-mode error: {e}")
                     
                     # ========== SPRINKLER AUTO-MODE ==========
-                    sprinkler_mode = self.control_service.get_device_state('sprinkler').get('mode', 'manual')
+                    sprinkler_mode = modes.get('sprinkler', {}).get('mode', 'manual')
                     if sprinkler_mode == 'auto':
                         try:
-                            target_humid = settings.get('target_humidity', 60.0)
+                            target_humid = settings.get('target_hum', 60.0)
                             
                             if humid is not None:
                                 sprinkler_on = humid < target_humid

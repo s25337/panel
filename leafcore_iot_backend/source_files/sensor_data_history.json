@@ -1,92 +1,92 @@
 [
   {
-    "timestamp": "2026-01-13T01:08:42.361661",
-    "temperature": 25.8,
-    "humidity": 54.0,
-    "brightness": 52.7
+    "timestamp": "2026-01-13T01:24:02.661787",
+    "temperature": 28.1,
+    "humidity": 45.1,
+    "brightness": 57.3
   },
   {
-    "timestamp": "2026-01-13T01:08:22.354213",
-    "temperature": 25.8,
-    "humidity": 54.2,
-    "brightness": 52.6
+    "timestamp": "2026-01-13T01:23:42.659058",
+    "temperature": 28.1,
+    "humidity": 45.3,
+    "brightness": 57.2
   },
   {
-    "timestamp": "2026-01-13T01:08:02.345829",
-    "temperature": 25.7,
-    "humidity": 54.4,
-    "brightness": 52.5
+    "timestamp": "2026-01-13T01:23:22.651610",
+    "temperature": 28.0,
+    "humidity": 45.5,
+    "brightness": 57.1
   },
   {
-    "timestamp": "2026-01-13T01:07:42.339052",
-    "temperature": 25.7,
-    "humidity": 54.6,
-    "brightness": 52.4
+    "timestamp": "2026-01-13T01:23:02.644221",
+    "temperature": 28.0,
+    "humidity": 45.7,
+    "brightness": 57.0
   },
   {
-    "timestamp": "2026-01-13T01:07:22.337550",
-    "temperature": 25.6,
-    "humidity": 54.8,
-    "brightness": 52.3
+    "timestamp": "2026-01-13T01:22:42.636736",
+    "temperature": 27.9,
+    "humidity": 45.9,
+    "brightness": 56.9
   },
   {
-    "timestamp": "2026-01-13T01:07:02.331833",
-    "temperature": 25.6,
-    "humidity": 55.0,
-    "brightness": 52.2
+    "timestamp": "2026-01-13T01:22:22.629993",
+    "temperature": 27.9,
+    "humidity": 46.1,
+    "brightness": 56.8
   },
   {
-    "timestamp": "2026-01-13T01:06:42.324690",
-    "temperature": 25.5,
-    "humidity": 55.2,
-    "brightness": 52.1
+    "timestamp": "2026-01-13T01:22:02.626951",
+    "temperature": 27.8,
+    "humidity": 46.3,
+    "brightness": 56.7
   },
   {
-    "timestamp": "2026-01-13T01:06:22.318844",
-    "temperature": 25.5,
-    "humidity": 55.4,
-    "brightness": 52.0
+    "timestamp": "2026-01-13T01:21:42.623644",
+    "temperature": 27.8,
+    "humidity": 46.5,
+    "brightness": 56.6
   },
   {
-    "timestamp": "2026-01-13T01:06:02.313294",
-    "temperature": 25.4,
-    "humidity": 55.6,
-    "brightness": 51.9
+    "timestamp": "2026-01-13T01:21:22.617753",
+    "temperature": 27.7,
+    "humidity": 46.7,
+    "brightness": 56.5
   },
   {
-    "timestamp": "2026-01-13T01:05:42.305790",
-    "temperature": 25.4,
-    "humidity": 55.8,
-    "brightness": 51.8
+    "timestamp": "2026-01-13T01:21:02.613471",
+    "temperature": 27.7,
+    "humidity": 46.9,
+    "brightness": 56.4
   },
   {
-    "timestamp": "2026-01-13T01:05:22.298298",
-    "temperature": 25.3,
-    "humidity": 56.0,
-    "brightness": 51.7
+    "timestamp": "2026-01-13T01:20:42.616708",
+    "temperature": 27.6,
+    "humidity": 47.1,
+    "brightness": 56.3
   },
   {
-    "timestamp": "2026-01-13T01:05:02.290359",
-    "temperature": 25.3,
-    "humidity": 56.2,
-    "brightness": 51.6
+    "timestamp": "2026-01-13T01:20:22.611908",
+    "temperature": 27.6,
+    "humidity": 47.3,
+    "brightness": 56.2
   },
   {
-    "timestamp": "2026-01-13T01:04:42.286304",
-    "temperature": 25.2,
-    "humidity": 56.4,
-    "brightness": 51.5
+    "timestamp": "2026-01-13T01:20:02.605634",
+    "temperature": 27.5,
+    "humidity": 47.5,
+    "brightness": 56.1
   },
   {
-    "timestamp": "2026-01-13T01:04:22.280405",
-    "temperature": 25.2,
-    "humidity": 56.6,
-    "brightness": 51.4
+    "timestamp": "2026-01-13T01:19:42.599690",
+    "temperature": 27.5,
+    "humidity": 47.7,
+    "brightness": 56.0
   },
   {
-    "timestamp": "2026-01-13T01:04:02.274854",
-    "temperature": 25.1,
-    "humidity": 56.8,
-    "brightness": 51.3
+    "timestamp": "2026-01-13T01:19:22.591985",
+    "temperature": 27.4,
+    "humidity": 47.9,
+    "brightness": 55.9
   }
 ]

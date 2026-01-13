@@ -162,17 +162,8 @@ def create_api_routes(device_manager: 'DeviceManager',
     @api.route('/manual-settings', methods=['GET'])
     def get_manual_settings():
         """Get manual settings with current device states"""
-        manual = settings_service.get_manual_settings()
-        # Return actual device states from device manager
-        if settings_service.is_manual_mode():
-            # In manual mode, return actual device states
-            return jsonify({
-                **control_service.get_device_states(),
-                "is_manual": True
-            })
-        else:
-            # In auto mode, return the stored manual settings
-            return jsonify(manual)
+        # Always return actual device states from device manager (for auto-mode GPIO automation)
+        return jsonify(control_service.get_device_states())
 
     @api.route('/manual-settings', methods=['POST'])
     def update_manual_settings():

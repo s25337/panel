@@ -412,18 +412,22 @@ class ControlService:
     def set_fan(self, state: bool) -> None:
         """Direct fan control (for GPIO automation)"""
         self.device_manager.set_fan(state)
+        self.settings_service.update_manual_settings({"fan": state})
     
     def set_heater(self, state: bool) -> None:
         """Direct heater control (for GPIO automation)"""
         self.device_manager.set_heater(state)
+        self.settings_service.update_manual_settings({"heater": state})
     
     def set_sprinkler(self, state: bool) -> None:
         """Direct sprinkler control (for GPIO automation)"""
         self.device_manager.set_sprinkler(state)
+        self.settings_service.update_manual_settings({"sprinkler": state})
     
     def set_light(self, intensity: float) -> None:
         """Direct light intensity control (for GPIO automation)"""
         self.device_manager.set_light(intensity)
+        self.settings_service.update_manual_settings({"light": intensity})
     
     # ========== WATERING AUTOMATION (formerly AutomationService) ==========
     

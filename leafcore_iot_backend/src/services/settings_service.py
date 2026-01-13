@@ -41,7 +41,14 @@ class SettingsService:
                 "heater": False,
                 "fan": False,
                 "pump": False,
-                "sprinkler": False
+                "sprinkler": False,
+                "modes": {
+                    "heat_mat": {"mode": "auto"},
+                    "fan": {"mode": "auto"},
+                    "light": {"mode": "auto"},
+                    "pump": {"mode": "manual"},
+                    "sprinkler": {"mode": "auto"}
+                }
             }
         }
     }
