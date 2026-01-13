@@ -1,8 +1,8 @@
 {
   "setting_id": "8",
   "plant_name": "Monstera",
-  "target_temp": 46,
-  "target_hum": 13,
+  "target_temp": 24,
+  "target_hum": 26,
   "watering_days": [
     "MONDAY",
     "WEDNESDAY",

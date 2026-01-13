@@ -113,9 +113,22 @@ def create_api_routes(device_manager: 'DeviceManager',
 
     @api.route('/settings', methods=['POST'])
     def update_settings():
-        """Update settings"""
+        """Update settings and send to external server"""
         data = request.json or {}
         updated = settings_service.update_settings(data)
+        
+        # Auto-send to external Terrarium server
+        if external_terrarium_service:
+            try:
+                result = external_terrarium_service.send_settings(updated)
+                print(f"✓ Settings sent to external server: {result}")
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to send settings to external server: {e}")
+                print(f"✗ Failed to send: {e}")
+        else:
+            print("⚠ External terrarium service not initialized")
+        
         return jsonify({"status": "OK", "settings": updated})
 
     @api.route('/settings/<key>', methods=['GET'])
@@ -128,12 +141,26 @@ def create_api_routes(device_manager: 'DeviceManager',
 
     @api.route('/settings/<key>', methods=['POST'])
     def set_setting(key):
-        """Set specific setting"""
+        """Set specific setting and send to external server"""
         data = request.json or {}
         if 'value' not in data:
             return jsonify({"error": "Missing 'value' field"}), 400
         
         settings_service.set_setting(key, data['value'])
+        updated = settings_service.get_all_settings()
+        
+        # Auto-send to external Terrarium server
+        if external_terrarium_service:
+            try:
+                result = external_terrarium_service.send_settings(updated)
+                print(f"✓ Settings sent to external server: {result}")
+            except Exception as e:
+                import logging
+                logging.warning(f"Failed to send settings to external server: {e}")
+                print(f"✗ Failed to send: {e}")
+        else:
+            print("⚠ External terrarium service not initialized")
+        
         return jsonify({"status": "OK", key: data['value']})
 
     @api.route('/watering-days', methods=['GET'])
