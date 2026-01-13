@@ -14,23 +14,28 @@ class DeviceManager:
     """Unified interface for device control"""
     
     def __init__(self, use_hardware: bool = True, 
-                 fan_pin: int = 17, light_pin: int = 27, pump_pin: int = 22,
-                 dht_pin: Optional[int] = 4):
+                 fan_pin: int = 271, light_pin: int = 269, pump_pin: int = 268,
+                 heater_pin: int = 272, sprinkler_pin: int = 258,
+                 dht_pin: Optional[int] = None):
         """
         Initialize device manager
         
         Args:
             use_hardware: Use real GPIO (True) or Mock backend (False)
-            fan_pin: GPIO pin for fan
-            light_pin: GPIO pin for light
-            pump_pin: GPIO pin for pump
-            dht_pin: GPIO pin for DHT sensor (optional)
+            fan_pin: GPIO pin for fan (default: 271 for Orange Pi Zero 2W)
+            light_pin: GPIO pin for light (default: 269 for Orange Pi Zero 2W)
+            pump_pin: GPIO pin for pump (default: 268 for Orange Pi Zero 2W)
+            heater_pin: GPIO pin for heater (default: 272 for Orange Pi Zero 2W)
+            sprinkler_pin: GPIO pin for sprinkler (default: 258 for Orange Pi Zero 2W)
+            dht_pin: GPIO pin for DHT sensor (optional, not used with current sensors)
         """
         self._backend = self._create_backend(
             use_hardware=use_hardware,
             fan_pin=fan_pin,
             light_pin=light_pin,
             pump_pin=pump_pin,
+            heater_pin=heater_pin,
+            sprinkler_pin=sprinkler_pin,
             dht_pin=dht_pin
         )
         
@@ -39,7 +44,8 @@ class DeviceManager:
 
     @staticmethod
     def _create_backend(use_hardware: bool, fan_pin: int, light_pin: int, 
-                        pump_pin: int, dht_pin: Optional[int]) -> BaseBackend:
+                        pump_pin: int, heater_pin: int, sprinkler_pin: int,
+                        dht_pin: Optional[int]) -> BaseBackend:
         """Factory method for backend selection"""
         
         if not use_hardware:
@@ -54,6 +60,8 @@ class DeviceManager:
                 fan_pin=fan_pin,
                 light_pin=light_pin,
                 pump_pin=pump_pin,
+                heater_pin=heater_pin,
+                sprinkler_pin=sprinkler_pin,
                 dht_pin=dht_pin
             )
         except Exception as e:

@@ -8,7 +8,7 @@
     "FRIDAY",
     "SUNDAY"
   ],
-  "water_seconds": 1,
+  "water_seconds": 5,
   "light_intensity": 60,
   "start_hour": 19,
   "end_hour": 7,
