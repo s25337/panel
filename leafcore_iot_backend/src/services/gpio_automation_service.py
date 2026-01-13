@@ -34,13 +34,10 @@ class GPIOAutomationService:
         
         self._running = False
         self._automation_thread: Optional[threading.Thread] = None
-        
-        print("✅ GPIOAutomationService.__init__() called")
     
     def start(self):
         """Start the automation loop in background thread"""
         if self._running:
-            print("⚠ GPIOAutomationService already running")
             return
         
         self._running = True
@@ -49,51 +46,45 @@ class GPIOAutomationService:
             daemon=True
         )
         self._automation_thread.start()
-        print("🚀 GPIOAutomationService.start() - background thread launched!")
     
     def stop(self):
         """Stop the automation loop"""
         self._running = False
         if self._automation_thread:
             self._automation_thread.join(timeout=2.0)
-        print("🛑 GPIOAutomationService.stop() - automation stopped")
     
     def _automation_loop(self):
         """
         Main automation loop
-        Runs continuously, checking sensor data and updating device states
+        Reads sensors every 2s, logs every 10s
         """
-        print(f"[GPIO Automation] Loop started at {datetime.now().isoformat()}")
+        log_counter = 0
         
         while self._running:
             try:
                 # Get latest sensor data from SensorReadingService
                 if not self.sensor_reading_service:
-                    time.sleep(5)
+                    time.sleep(2)
                     continue
                 
                 sensor_data = self.sensor_reading_service.get_sensor_data()
-                print(f"[GPIO] Sensor data: {sensor_data}")
                 
                 if sensor_data:
                     temp = sensor_data.get('temperature')
                     humid = sensor_data.get('humidity')
                     bright = sensor_data.get('brightness')
                     
-                    print(f"[GPIO] Got readings: temp={temp}, humid={humid}, bright={bright}")
-                    
-                    # Let control_service handle ALL auto-mode devices (heater, fan, sprinkler, light)
+                    # Let control_service handle ALL auto-mode devices
                     result = self.control_service.update_auto_devices(temp, humid, bright)
-                    print(f"[GPIO] Update result: {result}")
-                else:
-                    print(f"[GPIO] No sensor data available")
+                    
+                    # Log only every 5 cycles (5 * 2s = 10s)
+                    log_counter += 1
+                    if log_counter >= 5:
+                        print(f"[Sensors] temp={temp}°C, humid={humid}%, light={bright}")
+                        log_counter = 0
                 
-                # Sleep before next cycle (10 seconds = responsive but not CPU intensive)
-                for _ in range(10):
-                    if not self._running:
-                        break
-                    time.sleep(0.1)
+                # Sleep 2 seconds before next read
+                time.sleep(2)
             
             except Exception as e:
-                print(f"[GPIO] Automation loop error: {e}")
                 time.sleep(1.0)

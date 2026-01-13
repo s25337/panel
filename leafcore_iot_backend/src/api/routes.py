@@ -438,5 +438,203 @@ def create_api_routes(device_manager: 'DeviceManager',
             }), 500
 
     # ========== HISTORY ==========
+
+    # ========== EXTERNAL SERVER WEBHOOK ==========
+    
+    @api.route('/external/settings', methods=['POST'])
+    def receive_external_settings():
+        """
+        Webhook endpoint for external Terrarium server to send updated settings
+        Receives settings in Terrarium format and updates local settings
+        
+        Expected JSON format (from Terrarium server):
+        {
+            "setting_id": "123",
+            "plant_name": "Monstera",
+            "optimal_temperature": 24.5,
+            "optimal_humidity": 65.0,
+            "light_intensity": 80.0,
+            "light_schedule_start_time": "08:00",
+            "light_schedule_end_time": "18:00",
+            "watering_mode": "auto",
+            "water_amount": 30,
+            "dayOfWeek": ["MONDAY", "WEDNESDAY", "FRIDAY"]
+        }
+        """
+        try:
+            data = request.json or {}
+            
+            if not data:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": "No data provided"
+                }), 400
+            
+            # Map Terrarium format to local format
+            local_settings = {}
+            
+            # Direct mappings
+            if "setting_id" in data:
+                local_settings["setting_id"] = str(data["setting_id"])
+            
+            if "plant_name" in data:
+                local_settings["plant_name"] = data["plant_name"]
+            
+            if "optimal_temperature" in data:
+                local_settings["target_temp"] = float(data["optimal_temperature"])
+            
+            if "optimal_humidity" in data:
+                local_settings["target_hum"] = float(data["optimal_humidity"])
+            
+            if "light_intensity" in data:
+                local_settings["light_intensity"] = float(data["light_intensity"])
+            
+            if "watering_mode" in data:
+                local_settings["watering_mode"] = data["watering_mode"]
+            
+            if "water_amount" in data:
+                local_settings["water_seconds"] = int(data["water_amount"])
+            
+            # Parse time strings (HH:MM format)
+            if "light_schedule_start_time" in data:
+                try:
+                    start_time = str(data["light_schedule_start_time"])
+                    start_hour = int(start_time.split(":")[0])
+                    local_settings["start_hour"] = start_hour
+                except (ValueError, IndexError) as e:
+                    pass  # Skip on parse error
+            
+            if "light_schedule_end_time" in data:
+                try:
+                    end_time = str(data["light_schedule_end_time"])
+                    end_hour = int(end_time.split(":")[0])
+                    local_settings["end_hour"] = end_hour
+                except (ValueError, IndexError) as e:
+                    pass  # Skip on parse error
+            
+            # Map dayOfWeek array
+            if "dayOfWeek" in data:
+                days = data["dayOfWeek"]
+                if isinstance(days, list):
+                    local_settings["watering_days"] = days
+            
+            # Update local settings
+            if local_settings:
+                updated = settings_service.update_settings(local_settings)
+                return jsonify({
+                    "status": "OK",
+                    "message": f"Updated {len(local_settings)} settings",
+                    "updated_settings": list(local_settings.keys())
+                }), 200
+            else:
+                return jsonify({
+                    "status": "WARNING",
+                    "message": "No valid settings to update"
+                }), 200
+        
+        except Exception as e:
+            import logging
+            logging.error(f"Error in /api/external/settings: {e}")
+            return jsonify({
+                "status": "ERROR",
+                "message": str(e)
+            }), 500
+
+    # ========== EXTERNAL WATERING CONTROL ==========
+    
+    @api.route('/external/watering', methods=['POST'])
+    def external_watering_control():
+        """
+        Webhook endpoint for external server to control watering
+        
+        Expected JSON format:
+        {
+            "component": "pump",
+            "action": "on",
+            "duration": 5
+        }
+        
+        Or array format:
+        ["pump", "on", 5]
+        """
+        try:
+            data = request.json or {}
+            
+            # Handle array format ["pump", "on", 5]
+            if isinstance(data, list) and len(data) >= 3:
+                component = data[0]
+                action = data[1]
+                duration = data[2]
+            # Handle dict format
+            elif isinstance(data, dict):
+                component = data.get("component", "").lower()
+                action = data.get("action", "").lower()
+                duration = int(data.get("duration", 0))
+            else:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": "Invalid format. Use {component, action, duration} or [component, action, duration]"
+                }), 400
+            
+            # Validate inputs
+            if not component or not action:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": "component and action are required"
+                }), 400
+            
+            valid_components = ["pump", "sprinkler", "fan", "heater", "light"]
+            valid_actions = ["on", "off"]
+            
+            if component not in valid_components:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": f"Invalid component. Valid: {valid_components}"
+                }), 400
+            
+            if action not in valid_actions:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": f"Invalid action. Valid: {valid_actions}"
+                }), 400
+            
+            # Control the device
+            try:
+                control_service.set_device(component, action == "on")
+            except Exception as e:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": f"Failed to control device: {str(e)}"
+                }), 500
+            
+            # If duration specified and action is "on", turn off after duration
+            if duration > 0 and action == "on":
+                import threading
+                def auto_off():
+                    import time
+                    time.sleep(duration)
+                    try:
+                        control_service.set_device(component, False)
+                    except Exception as e:
+                        logging.error(f"Error auto-turning off {component}: {e}")
+                
+                thread = threading.Thread(target=auto_off, daemon=True)
+                thread.start()
+            
+            return jsonify({
+                "status": "OK",
+                "message": f"{component} turned {action} for {duration}s" if duration > 0 else f"{component} turned {action}",
+                "component": component,
+                "action": action,
+                "duration": duration
+            }), 200
+        
+        except Exception as e:
+            import logging
+            logging.error(f"Error in /api/external/watering: {e}")
+            return jsonify({
+                "status": "ERROR",
+                "message": str(e)
+            }), 500
     
     return api

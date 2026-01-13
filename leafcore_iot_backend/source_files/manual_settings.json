@@ -2,9 +2,9 @@
   "is_manual": false,
   "light": false,
   "heater": true,
-  "fan": false,
+  "fan": true,
   "pump": false,
-  "sprinkler": true,
+  "sprinkler": false,
   "modes": {
     "heat_mat": {
       "mode": "auto"

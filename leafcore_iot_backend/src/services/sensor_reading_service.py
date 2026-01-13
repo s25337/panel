@@ -18,7 +18,7 @@ class SensorReadingService:
     
     # Server endpoints
     CLOUD_URL = "http://33.11.238.45:8081/terrarium"
-    READ_INTERVAL = 20.0  # Read every 20 seconds (only history, not current sensor)
+    READ_INTERVAL = 10.0  # Read every 10 seconds
     
     def __init__(self, device_manager: DeviceManager, app_dir: str = "."):
         """

@@ -420,6 +420,11 @@ class ControlService:
         self.device_manager.set_sprinkler(state)
         self.settings_service.update_manual_settings({"sprinkler": state})
     
+    def set_pump(self, state: bool) -> None:
+        """Direct pump control (for GPIO automation)"""
+        self.device_manager.set_pump(state)
+        self.settings_service.update_manual_settings({"pump": state})
+    
     def set_light(self, intensity: float) -> None:
         """
         Adaptive light intensity control based on ambient light sensor

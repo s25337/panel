@@ -93,28 +93,46 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
       const waterSeconds = settings.water_seconds || 1;
       
       // Włącz pompę
-      await apiService.toggleDevice('pump', 'on');
+      try {
+        await apiService.toggleDevice('pump', 'on');
+      } catch (err) {
+        console.error('Error turning on pump:', err);
+      }
       
       // Czekaj określony czas
       await new Promise(resolve => setTimeout(resolve, waterSeconds * 1000));
       
       // Wyłącz pompę
-      await apiService.toggleDevice('pump', 'off');
+      try {
+        await apiService.toggleDevice('pump', 'off');
+      } catch (err) {
+        console.error('Error turning off pump:', err);
+      }
       
       // Odśwież timer
-      const data = await apiService.getWateringTimer();
-      setTimeLeft({
-        days: data.days,
-        hours: data.hours,
-        minutes: data.minutes,
-        seconds: data.seconds,
-      });
+      try {
+        const data = await apiService.getWateringTimer();
+        setTimeLeft({
+          days: data.days,
+          hours: data.hours,
+          minutes: data.minutes,
+          seconds: data.seconds,
+        });
+      } catch (err) {
+        console.error('Error refreshing timer:', err);
+      }
       
       // Reset slidera
       setSliderValue(0);
       setHasTriggeredWater(false);
     } catch (error) {
       console.error('Failed to water:', error);
+      // Upewnij się że pompa jest wyłączona nawet jeśli coś poszło nie tak
+      try {
+        await apiService.toggleDevice('pump', 'off');
+      } catch (err) {
+        console.error('Error turning off pump in catch block:', err);
+      }
       setSliderValue(0);
       setHasTriggeredWater(false);
     }

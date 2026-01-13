@@ -1,17 +1,17 @@
 {
   "setting_id": "8",
-  "plant_name": "default plant",
-  "target_temp": 23,
-  "target_hum": 63,
+  "plant_name": "Monstera",
+  "target_temp": 46,
+  "target_hum": 13,
   "watering_days": [
-    "THURSDAY",
-    "FRIDAY",
-    "SUNDAY"
+    "MONDAY",
+    "WEDNESDAY",
+    "FRIDAY"
   ],
-  "water_seconds": 5,
-  "light_intensity": 60,
-  "start_hour": 19,
-  "end_hour": 7,
+  "water_seconds": 30,
+  "light_intensity": 65,
+  "start_hour": 8,
+  "end_hour": 18,
   "light_hours": 23.0,
-  "watering_mode": "standard"
+  "watering_mode": "auto"
 }

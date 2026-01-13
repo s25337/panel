@@ -105,7 +105,7 @@ class GPIOdBackend(BaseBackend):
                 config=line_settings
             )
         except Exception as e:
-            print(f"GPIO setup error: {e}")
+            pass  # Silently ignore GPIO setup errors
             raise
 
     def _init_sensors(self):
@@ -123,7 +123,7 @@ class GPIOdBackend(BaseBackend):
                 self._aht_sensor = adafruit_ahtx0.AHTx0(self._i2c_bridge)
                 print("✓ AHT10 sensor initialized")
             except Exception as e:
-                print(f"⚠ AHT10 error: {e}")
+                pass  # Silently ignore sensor initialization errors
                 self._aht_sensor = None
             
             # Try to initialize VEML7700
@@ -132,11 +132,11 @@ class GPIOdBackend(BaseBackend):
                 self._veml_sensor = adafruit_veml7700.VEML7700(self._i2c_bridge)
                 print("✓ VEML7700 sensor initialized")
             except Exception as e:
-                print(f"⚠ VEML7700 error: {e}")
+                pass  # Silently ignore sensor initialization errors
                 self._veml_sensor = None
                 
         except Exception as e:
-            print(f"I2C Bridge error: {e}")
+            pass  # Silently ignore I2C bridge errors
             self._i2c_bridge = None
 
     def _write_gpio(self, pin: int, state: bool):
@@ -145,7 +145,7 @@ class GPIOdBackend(BaseBackend):
             value = self.Value.ACTIVE if state else self.Value.INACTIVE
             self._gpio_request.set_value(pin, value)
         except Exception as e:
-            print(f"GPIO write error on pin {pin}: {e}")
+            pass  # Silently ignore GPIO errors (common on non-ARM systems)
 
     def _pwm_control(self, pin: int, intensity: float):
         """Software PWM control for light dimming"""
