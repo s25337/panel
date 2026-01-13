@@ -37,7 +37,8 @@ LOCAL_SERVER_URL = "http://172.19.14.15:8080/terrarium/"
 class WifiConfigurator:
     """Manages Wi-Fi configuration via BLE"""
     
-    def __init__(self, devices_info_file: str, settings_service: Optional[Any] = None):
+    def __init__(self, devices_info_file: str, settings_service: Optional[Any] = None, 
+                 wifi_configured_event: Optional[threading.Event] = None):
         self.ssid_buffer = b""
         self.pass_buffer = b""
         self.ssid: Optional[str] = None
@@ -45,6 +46,7 @@ class WifiConfigurator:
         self.userid: Optional[str] = None
         self.devices_info_file = devices_info_file
         self.settings_service = settings_service
+        self.wifi_configured_event = wifi_configured_event  # Signal when Wi-Fi is configured
         self.logger = logging.getLogger("WifiConfigurator")
 
     def on_ssid_write(self, value: bytes, options: Dict[str, Any]) -> None:
@@ -111,6 +113,9 @@ class WifiConfigurator:
                 if result.returncode == 0:
                     self.logger.info("Successfully connected to Wi-Fi!")
                     self._register_device()
+                    # Signal that Wi-Fi is configured
+                    if self.wifi_configured_event:
+                        self.wifi_configured_event.set()
                 else:
                     self.logger.error(f"Wi-Fi connection failed: {result.stderr}")
 
@@ -171,12 +176,21 @@ class BluetoothService:
         self.running = False
         self.ble_thread: Optional[threading.Thread] = None
         self._ble_ready = threading.Event()  # Signal when BLE server is successfully started
+        self._wifi_configured = threading.Event()  # Signal when Wi-Fi is configured and connected
         
         if not BLUEZERO_AVAILABLE:
             self.logger.warning("Bluetooth service disabled - bluezero not available")
 
     def start(self) -> bool:
-        """Start Bluetooth service in background thread. Returns True if successful, False otherwise."""
+        """
+        Start Bluetooth service in background thread. Returns True if successful, False otherwise.
+        
+        Waits for:
+        1. BLE server to publish (up to 5 seconds)
+        2. Phone to connect and send Wi-Fi credentials (up to 60 seconds)
+        
+        Returns False if either step fails or times out.
+        """
         if not BLUEZERO_AVAILABLE:
             self.logger.warning("Cannot start Bluetooth service - bluezero not installed")
             return False
@@ -187,17 +201,26 @@ class BluetoothService:
 
         self.running = True
         self._ble_ready.clear()  # Reset ready flag
+        self._wifi_configured.clear()  # Reset Wi-Fi configured flag
         self.ble_thread = threading.Thread(target=self._run_ble_server, daemon=True)
         self.ble_thread.start()
         
         # Wait up to 5 seconds for BLE server to be ready
-        if self._ble_ready.wait(timeout=5):
-            self.logger.info("Bluetooth service started successfully")
-            return True
-        else:
+        if not self._ble_ready.wait(timeout=5):
             self.logger.error("Bluetooth service failed to start within timeout")
             self.running = False
             return False
+        
+        self.logger.info("BLE server ready, waiting for Wi-Fi configuration from phone (60 seconds)...")
+        
+        # Wait up to 60 seconds for phone to connect and send Wi-Fi credentials
+        if not self._wifi_configured.wait(timeout=60):
+            self.logger.error("No Wi-Fi configuration received from phone (timeout 60s)")
+            self.running = False
+            return False
+        
+        self.logger.info("Bluetooth pairing successful - Wi-Fi configured")
+        return True
 
     def stop(self) -> None:
         """Stop Bluetooth service"""
@@ -213,7 +236,8 @@ class BluetoothService:
 
         self.logger.info("Starting BLE server...")
         mainloop = async_tools.EventLoop()
-        config = WifiConfigurator(self.devices_info_file, self.settings_service)
+        config = WifiConfigurator(self.devices_info_file, self.settings_service, 
+                                 self._wifi_configured)  # Pass wifi_configured event
 
         try:
             # Get adapter
