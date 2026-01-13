@@ -345,21 +345,21 @@ class ControlService:
         if modes.get("heat_mat", {}).get("mode") == "auto" and temperature is not None:
             target_temp = settings.get("target_temp", 25)
             heater_on = temperature < target_temp
-            self.device_manager.set_heater(heater_on)
+            self.set_heater(heater_on)
             updated_states["heater"] = heater_on
         
         # Fan control (based on humidity) - SAME LOGIC AS HEATER
         if modes.get("fan", {}).get("mode") == "auto" and humidity is not None:
             target_hum = settings.get("target_hum", 60)
             fan_on = humidity > target_hum
-            self.device_manager.set_fan(fan_on)
+            self.set_fan(fan_on)
             updated_states["fan"] = fan_on
         
         # Sprinkler control (based on humidity)
         if modes.get("sprinkler", {}).get("mode") == "auto" and humidity is not None:
             target_hum = settings.get("target_hum", 60)
             sprinkler_on = humidity < target_hum
-            self.device_manager.set_sprinkler(sprinkler_on)
+            self.set_sprinkler(sprinkler_on)
             updated_states["sprinkler"] = sprinkler_on
         
         # Light control (schedule + sensor feedback)

@@ -67,6 +67,7 @@ class GPIOAutomationService:
             try:
                 # Get latest sensor data
                 sensor_data = self.settings_service.get_sensor_data()
+                print(f"[GPIO] Sensor data: {sensor_data}")
                 
                 if sensor_data:
                     # Latest sensor reading (usually first in list)
@@ -76,9 +77,13 @@ class GPIOAutomationService:
                     humid = sensor.get('humidity')
                     bright = sensor.get('brightness')
                     
+                    print(f"[GPIO] Got readings: temp={temp}, humid={humid}, bright={bright}")
+                    
                     # Let control_service handle ALL auto-mode devices (heater, fan, sprinkler, light)
-                    self.control_service.update_auto_devices(temp, humid, bright)
-                    print(f"[GPIO] Auto-mode cycle: temp={temp:.1f}°C, humid={humid:.1f}%, brightness={bright}")
+                    result = self.control_service.update_auto_devices(temp, humid, bright)
+                    print(f"[GPIO] Update result: {result}")
+                else:
+                    print(f"[GPIO] No sensor data available")
                 
                 # Sleep before next cycle (10 seconds = responsive but not CPU intensive)
                 for _ in range(10):
