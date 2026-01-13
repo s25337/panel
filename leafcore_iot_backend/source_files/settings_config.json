@@ -1,15 +1,15 @@
 {
   "setting_id": "8",
   "plant_name": "default plant",
-  "target_temp": 47,
-  "target_hum": 10,
+  "target_temp": 48,
+  "target_hum": 6,
   "watering_days": [
     "THURSDAY",
     "FRIDAY",
     "SUNDAY"
   ],
   "water_seconds": 1,
-  "light_intensity": 45,
+  "light_intensity": 60,
   "start_hour": 19,
   "end_hour": 7,
   "light_hours": 23.0,

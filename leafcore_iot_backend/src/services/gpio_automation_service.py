@@ -122,23 +122,11 @@ class GPIOAutomationService:
                             print(f"[GPIO] Light auto-mode error: {e}")
                     
                     # ========== FAN AUTO-MODE ==========
-                    modes = self.control_service.get_device_modes()
                     fan_mode = modes.get('fan', {}).get('mode', 'manual')
-                    print(f"[GPIO] Fan mode: {fan_mode}, current humidity: {humid}")
                     if fan_mode == 'auto':
                         try:
-                            target_humid = settings.get('target_hum', 60.0)
-                            print(f"[GPIO] Fan auto-mode: target_hum={target_humid}, current_humid={humid}")
-                            
-                            fan_on = False
-                            reason = ""
-                                     
-                            if humid is not None and humid > target_humid:
-                                fan_on = True
-                                reason = f"humid {humid:.1f}% > {target_humid}%"
-                            
-                            self.control_service.set_fan(fan_on)
-                            print(f"[GPIO] Fan {'ON' if fan_on else 'OFF'} (auto): {reason}")
+                            fan_on = self.control_service.control_fan_auto(humid)
+                            print(f"[GPIO] Fan {'ON' if fan_on else 'OFF'} (auto): humidity control")
                         
                         except Exception as e:
                             print(f"[GPIO] Fan auto-mode error: {e}")

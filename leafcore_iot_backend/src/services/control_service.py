@@ -47,7 +47,7 @@ class ControlService:
     def control_fan_auto(self, current_humidity: Optional[float]) -> bool:
         """
         Auto control fan with hysteresis
-        Turns on at target_hum + 5%, turns off at target_hum
+        Turns on when humidity exceeds target, turns off at target
         """
         if current_humidity is None:
             return self._fan_hysteresis_on
@@ -55,13 +55,13 @@ class ControlService:
         target_hum = self.settings_service.get_setting("target_hum", 60)
         
         if self._fan_hysteresis_on:
-            # Fan is ON - turn off at target humidity
+            # Fan is ON - turn off at or below target humidity
             if current_humidity <= target_hum:
                 self._fan_hysteresis_on = False
                 self.device_manager.set_fan(False)
         else:
-            # Fan is OFF - turn on if humidity exceeds target + 5%
-            if current_humidity > (target_hum + 5):
+            # Fan is OFF - turn on if humidity exceeds target
+            if current_humidity > target_hum:
                 self._fan_hysteresis_on = True
                 self.device_manager.set_fan(True)
         
@@ -338,6 +338,32 @@ class ControlService:
         """
         settings = self.settings_service.get_settings()
         modes = self.settings_service.get_manual_settings().get("modes", {})
+        
+        updated_states = {}
+        
+        # Heater control (based on temperature)
+        if modes.get("heat_mat", {}).get("mode") == "auto" and temperature is not None:
+            target_temp = settings.get("target_temp", 25)
+            heater_on = temperature < target_temp
+            self.device_manager.set_heater(heater_on)
+            updated_states["heater"] = heater_on
+        
+        # Sprinkler control (based on humidity)
+        if modes.get("sprinkler", {}).get("mode") == "auto" and humidity is not None:
+            target_hum = settings.get("target_hum", 60)
+            sprinkler_on = humidity < target_hum
+            self.device_manager.set_sprinkler(sprinkler_on)
+            updated_states["sprinkler"] = sprinkler_on
+        
+        # Light control (schedule + sensor feedback)
+        if modes.get("light", {}).get("mode") == "auto":
+            self.control_light_auto(brightness)
+            updated_states["light"] = {
+                "intensity": self._light_intensity,
+                "on": self._light_intensity > 0
+            }
+        
+        return updated_states
         
         updated_states = {}
         
