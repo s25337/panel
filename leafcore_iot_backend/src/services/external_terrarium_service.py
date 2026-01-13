@@ -114,26 +114,24 @@ class ExternalTerriumService:
         CreateModuleDto fields:
         - deviceName: str
         - type: str
-        - userId: int (optional)
-        - groupId: str (optional)
+        - userId: int (required - defaults to 1)
+        - groupId: str (required - defaults to "group-A1")
         - status: str
         - mode: str
-        - lastEditDate: str (optional)
+        - lastEditDate: str (format: YYYY-MM-DD HH:MM:SS)
         - isRegistered: bool
         """
         try:
             module_data = {
                 "deviceName": device_name,
                 "type": device_type,
+                "userId": user_id if user_id is not None else 1,  # Default to 1
+                "groupId": group_id if group_id is not None else "group-A1",  # Default to group-A1
                 "status": status,
                 "mode": mode,
-                "isRegistered": False
+                "lastEditDate": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "isRegistered": True
             }
-            
-            if user_id is not None:
-                module_data["userId"] = user_id
-            if group_id is not None:
-                module_data["groupId"] = group_id
             
             response = requests.post(
                 self.ENDPOINT_ADD_MODULE,
