@@ -1,5 +1,11 @@
 [
   {
+    "timestamp": "2026-01-13T15:44:56.340401",
+    "temperature": 21.9,
+    "humidity": 60.4,
+    "brightness": 44.8
+  },
+  {
     "timestamp": "2026-01-13T15:44:33.324829",
     "temperature": 21.9,
     "humidity": 60.3,
@@ -82,11 +88,5 @@
     "temperature": 21.2,
     "humidity": 62.6,
     "brightness": 43.7
-  },
-  {
-    "timestamp": "2026-01-13T15:39:38.736558",
-    "temperature": 21.2,
-    "humidity": 62.5,
-    "brightness": 43.8
   }
 ]
