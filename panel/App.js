@@ -70,18 +70,21 @@ export default function App() {
     const data = await apiService.getSensors();
     if (data.temperature !== null) setTemperature(data.temperature);
     if (data.humidity !== null) setHumidity(data.humidity);
-    // Nie ustawiaj lightIntensity z czujnika - to jest PWM, nie czytanie sensora!
   };
 
   const fetchStatus = async () => {
     const data = await apiService.getStatus();
     setLightStatus(data.light || false);
-    if (typeof data.light === 'number') {
-      setLightIntensity(data.light);  // Light intensity (0-100) z backendu
-    }
-    // Nie pobieramy pump/sprinkler - są obsługiwane w ControlPanel
-    // Fan jest teraz w ControlPanel
     setManualMode(data.manual_mode || false);
+  };
+
+  const fetchLightIntensity = async () => {
+    try {
+      const settings = await apiService.getSettings();
+      setLightIntensity(settings.light_intensity || 50);
+    } catch (error) {
+      console.error('Error fetching light intensity:', error);
+    }
   };
 
   const fetchSettings = async () => {
@@ -112,6 +115,7 @@ export default function App() {
     fetchSensors();
     fetchStatus();
     fetchSettings();
+    fetchLightIntensity();
     fetchWateringTimer();
     fetchLightSchedule();
 
@@ -119,6 +123,7 @@ export default function App() {
     sensorPollInterval.current = setInterval(() => {
       fetchSensors();
       fetchStatus();
+      fetchLightIntensity();
     }, 2000);
 
     // Polling dla watering timera co 5 sekund (rzadsze)
@@ -339,16 +344,8 @@ export default function App() {
                 <View style={styles.rowWrapperShort}>
                   {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
-                    {!manualMode && (
-                      <Text style={styles.lightScheduleText}>
-                        {lightSchedule 
-                          ? `${String(lightSchedule.start_hour).padStart(2, '0')}:${String(lightSchedule.start_minute).padStart(2, '0')} - ${String(lightSchedule.end_hour).padStart(2, '0')}:${String(lightSchedule.end_minute).padStart(2, '0')}`
-                          : '--:-- - --:--'
-                        }
-                      </Text>
-                    )}
                     <ValueSlider
-                      name1="Light"
+                      name1="Intensity"
                       value={lightIntensity}
                       min={0}
                       max={100}

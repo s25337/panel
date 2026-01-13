@@ -61,16 +61,17 @@ const LightPanel = ({ status = false, onToggle = () => {} }) => {
         </View>
 
         <View style={styles.info}>
-          <Text style={styles.status}>{intensityPercent}%</Text>
+          <Text style={styles.status}>{isLightOn ? 'ON' : 'OFF'}</Text>
           <Text style={styles.schedule}>{isLightOn ? 'LED Active' : 'LED Off'}</Text>
         </View>
       </View>
 
-      {/* Light Intensity Display */}
-      <View style={styles.intensityDisplay}>
-        <Text style={styles.intensityLabel}>Intensity</Text>
-        <Text style={styles.intensityNumber}>{intensityPercent}</Text>
-      </View>
+      {/* Light Intensity Display - Only show if light is on */}
+      {isLightOn && (
+        <View style={styles.intensityDisplay}>
+          <Text style={styles.intensityNumber}>{intensityPercent}</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 };

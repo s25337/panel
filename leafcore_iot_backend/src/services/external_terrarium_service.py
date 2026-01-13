@@ -40,6 +40,72 @@ class ExternalTerriumService:
         self._sync_thread: Optional[threading.Thread] = None
         self._group_id: Optional[str] = None
     
+    def _map_terrarium_to_local_settings(self, terrarium_settings: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Map Terrarium server settings format to local settings format
+        
+        Terrarium format:
+        - setting_id
+        - plant_name
+        - optimal_temperature → target_temp
+        - optimal_humidity → target_hum
+        - optimal_brightness (ignored, we use light_intensity)
+        - light_schedule_start_time → start_hour (extract hour)
+        - light_schedule_end_time → end_hour (extract hour)
+        - watering_mode
+        - water_amount → water_seconds
+        - light_intensity
+        - dayOfWeek → watering_days
+        """
+        local_settings = {}
+        
+        # Direct mappings
+        if "setting_id" in terrarium_settings:
+            local_settings["setting_id"] = str(terrarium_settings["setting_id"])
+        
+        if "plant_name" in terrarium_settings:
+            local_settings["plant_name"] = terrarium_settings["plant_name"]
+        
+        if "optimal_temperature" in terrarium_settings:
+            local_settings["target_temp"] = float(terrarium_settings["optimal_temperature"])
+        
+        if "optimal_humidity" in terrarium_settings:
+            local_settings["target_hum"] = float(terrarium_settings["optimal_humidity"])
+        
+        if "light_intensity" in terrarium_settings:
+            local_settings["light_intensity"] = float(terrarium_settings["light_intensity"])
+        
+        if "watering_mode" in terrarium_settings:
+            local_settings["watering_mode"] = terrarium_settings["watering_mode"]
+        
+        if "water_amount" in terrarium_settings:
+            local_settings["water_seconds"] = int(terrarium_settings["water_amount"])
+        
+        # Parse time strings (HH:MM format)
+        if "light_schedule_start_time" in terrarium_settings:
+            try:
+                start_time = str(terrarium_settings["light_schedule_start_time"])
+                start_hour = int(start_time.split(":")[0])
+                local_settings["start_hour"] = start_hour
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Could not parse start_time: {terrarium_settings['light_schedule_start_time']}: {e}")
+        
+        if "light_schedule_end_time" in terrarium_settings:
+            try:
+                end_time = str(terrarium_settings["light_schedule_end_time"])
+                end_hour = int(end_time.split(":")[0])
+                local_settings["end_hour"] = end_hour
+            except (ValueError, IndexError) as e:
+                logger.warning(f"Could not parse end_time: {terrarium_settings['light_schedule_end_time']}: {e}")
+        
+        # Map dayOfWeek array
+        if "dayOfWeek" in terrarium_settings:
+            days = terrarium_settings["dayOfWeek"]
+            if isinstance(days, list):
+                local_settings["watering_days"] = days
+        
+        return local_settings
+    
     def add_module(self, device_name: str, device_type: str, user_id: Optional[int] = None, 
                    group_id: Optional[str] = None, status: str = "active", mode: str = "auto") -> bool:
         """
@@ -173,6 +239,25 @@ class ExternalTerriumService:
             response.raise_for_status()
             
             logger.info(f"✅ [5-min Sync] Posted {len(formatted_data)} sensor readings to group '{group_id}'")
+            
+            # Extract ALL settings from response and update locally
+            try:
+                response_data = response.json()
+                if isinstance(response_data, dict):
+                    logger.debug(f"[5-min Sync] Server response received")
+                    
+                    # Map Terrarium format to local format
+                    mapped_settings = self._map_terrarium_to_local_settings(response_data)
+                    
+                    if mapped_settings and self.settings_service:
+                        # Update all settings at once
+                        self.settings_service.update_settings(mapped_settings)
+                        logger.info(f"[5-min Sync] ✅ Updated local settings: {list(mapped_settings.keys())}")
+                    else:
+                        logger.debug("[5-min Sync] No settings to update")
+            except (ValueError, KeyError) as e:
+                logger.debug(f"[5-min Sync] Could not extract settings from response: {e}")
+            
             return True
             
         except requests.exceptions.RequestException as e:
@@ -227,6 +312,26 @@ class ExternalTerriumService:
             
             logger.info(f"✅ [STARTUP] Successfully sent {len(formatted_data)} historical readings to group '{group_id}'")
             logger.info(f"[STARTUP] First reading: {formatted_data[0]['timestamp']} | Last reading: {formatted_data[-1]['timestamp']}")
+            
+            # Extract ALL settings from response and update locally
+            try:
+                response_data = response.json()
+                if isinstance(response_data, dict):
+                    logger.info(f"[STARTUP] Server response: {response_data}")
+                    
+                    # Map Terrarium format to local format
+                    mapped_settings = self._map_terrarium_to_local_settings(response_data)
+                    
+                    if mapped_settings and self.settings_service:
+                        # Update all settings at once
+                        self.settings_service.update_settings(mapped_settings)
+                        logger.info(f"[STARTUP] ✅ Updated local settings from server: {list(mapped_settings.keys())}")
+                        logger.info(f"[STARTUP] Setting_id: {mapped_settings.get('setting_id')}, Plant: {mapped_settings.get('plant_name')}")
+                    else:
+                        logger.warning("[STARTUP] settings_service not available, cannot update settings")
+            except (ValueError, KeyError) as e:
+                logger.debug(f"[STARTUP] Could not extract settings from response: {e}")
+            
             return True
             
         except requests.exceptions.RequestException as e:

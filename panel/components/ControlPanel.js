@@ -21,12 +21,15 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
   const [lightIntensity, setLightIntensity] = useState(50);
+  const [plantName, setPlantName] = useState('');
+  const [settingId, setSettingId] = useState('');
   const [loading, setLoading] = useState({});
 
   // Fetch initial status
   useEffect(() => {
     fetchStatus();
     fetchLightIntensity();
+    fetchCurrentSettings();
   }, []);
 
   const fetchLightIntensity = async () => {
@@ -35,6 +38,16 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       setLightIntensity(settings.light_intensity || 50);
     } catch (error) {
       console.error('Error fetching light intensity:', error);
+    }
+  };
+
+  const fetchCurrentSettings = async () => {
+    try {
+      const settings = await apiService.getSettings();
+      setSettingId(settings.setting_id || '');
+      setPlantName(settings.plant_name || '');
+    } catch (error) {
+      console.error('Error fetching current settings:', error);
     }
   };
 
@@ -111,50 +124,31 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-        {/* Row 1 */}
-        <ControlTile 
-          device="manual_mode" 
-          label="Manual Mode" 
-          isOn={manualMode}
-        />
-        <ControlTile 
-          device="light" 
-          label="Light" 
-          isOn={lightOn}
-        />
-
-        {/* Row 2 */}
+        {/* Row 1 - Settings Display + Intensity + Heater + Fan */}
+        <View style={styles.settingsDisplayTile}>
+          <Text style={styles.settingLabel}>setting_id</Text>
+          <Text style={styles.settingId}>{settingId}</Text>
+          <Text style={styles.settingLabel}>plant_name</Text>
+          <Text style={styles.plantName}>{plantName}</Text>
+        </View>
+        
+        {/* Current Light Intensity Display */}
+        <View style={styles.intensityDisplayTile}>
+          <Text style={styles.intensityDisplayLabel}>Intensity</Text>
+          <Text style={styles.intensityDisplayValue}>{Math.round(lightIntensity)}</Text>
+        </View>
+        
         <ControlTile 
           device="heater" 
           label="Heater" 
           isOn={heaterOn}
         />
+        
         <ControlTile 
           device="fan" 
           label="Fan" 
           isOn={fanOn}
         />
-      </View>
-
-      {/* Light Intensity Slider */}
-      <View style={styles.lightIntensityContainer}>
-        <View style={styles.intensityLabelWrapper}>
-          <Text style={styles.intensityLabel}>Target Light</Text>
-        </View>
-        <View style={styles.intensitySliderWrapper}>
-          <Text style={styles.intensityValue}>{Math.round(lightIntensity)}%</Text>
-          <ValueSlider
-            name1="Intensity"
-            value={lightIntensity}
-            min={0}
-            max={100}
-            step={1}
-            unit="%"
-            onValueChange={handleLightIntensityChange}
-            onSliderStart={onSliderStart}
-            onSliderEnd={onSliderEnd}
-          />
-        </View>
       </View>
 
       {/* Light Schedule Editor - Full Width Above Watering Days */}
@@ -170,7 +164,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: 'transparent',
     paddingTop: RESPONSIVE_SIZES.topMargin,
     paddingHorizontal: RESPONSIVE_SIZES.gridPaddingHorizontal,
@@ -188,13 +181,84 @@ const styles = StyleSheet.create({
   },
   tile: {
     width: '22%',
-    aspectRatio: 1,
+    height: 90,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 14,
     padding: 6,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 0,
+  },
+  settingsDisplayTile: {
+    width: '22%',
+    height: 90,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
+    borderRadius: 14,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+  },
+  intensityDisplayTile: {
+    width: '22%',
+    height: 90,
+    backgroundColor: 'rgba(30, 30, 30, 0.7)',
+    borderRadius: 14,
+    padding: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 0,
+  },
+  intensityDisplayLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    fontFamily: FontFamily.workSansRegular,
+    color: '#888',
+    marginBottom: 4,
+  },
+  intensityDisplayValue: {
+    fontSize: 24,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
+    color: '#FFD700',
+    letterSpacing: 0.5,
+  },
+  settingId: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
+    color: '#FFD700',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  plantName: {
+    fontSize: 13,
+    fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
+    color: '#FFD700',
+    textAlign: 'center',
+  },
+  settingsRow: {
+    flexDirection: 'row',
+    gap: 6,
+    justifyContent: 'center',
+    width: '100%',
+  },
+  settingItem: {
+    alignItems: 'center',
+  },
+  settingLabel: {
+    fontSize: 10,
+    fontWeight: '500',
+    fontFamily: FontFamily.workSansRegular,
+    color: '#888',
+    marginBottom: 2,
+  },
+  settingValue: {
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: FontFamily.workSansMedium,
+    color: '#fff',
   },
   tileActive: {
     backgroundColor: 'rgba(76, 175, 80, 0.8)',
@@ -248,44 +312,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     opacity: 0.7,
-  },
-  lightIntensityContainer: {
-    width: '100%',
-    height: 80,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: 16,
-    paddingLeft: 20,
-    paddingRight: 16,
-    paddingTop: 12,
-    paddingBottom: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 16,
-  },
-  intensityLabelWrapper: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: 90,
-  },
-  intensityLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
-    color: '#aaaaaa',
-    letterSpacing: 0.3,
-    textAlign: 'center',
-  },
-  intensitySliderWrapper: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  intensityValue: {
-    fontSize: 16,
-    fontWeight: '300',
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    marginBottom: 8,
-    letterSpacing: 0.3,
   },
 });
 
