@@ -19,16 +19,18 @@ class GPIOAutomationService:
     - Sprinkler: on/off based on humidity
     """
     
-    def __init__(self, device_manager, control_service, settings_service):
+    def __init__(self, device_manager, control_service, settings_service, sensor_reading_service=None):
         """
         Args:
             device_manager: DeviceManager instance with hardware backend
             control_service: ControlService for device state management
             settings_service: SettingsService for settings and sensor data
+            sensor_reading_service: SensorReadingService for latest sensor readings
         """
         self.device_manager = device_manager
         self.control_service = control_service
         self.settings_service = settings_service
+        self.sensor_reading_service = sensor_reading_service
         
         self._running = False
         self._automation_thread: Optional[threading.Thread] = None
@@ -65,17 +67,18 @@ class GPIOAutomationService:
         
         while self._running:
             try:
-                # Get latest sensor data
-                sensor_data = self.settings_service.get_sensor_data()
+                # Get latest sensor data from SensorReadingService
+                if not self.sensor_reading_service:
+                    time.sleep(5)
+                    continue
+                
+                sensor_data = self.sensor_reading_service.get_sensor_data()
                 print(f"[GPIO] Sensor data: {sensor_data}")
                 
                 if sensor_data:
-                    # Latest sensor reading (usually first in list)
-                    sensor = sensor_data[0] if isinstance(sensor_data, list) else sensor_data
-                    
-                    temp = sensor.get('temperature')
-                    humid = sensor.get('humidity')
-                    bright = sensor.get('brightness')
+                    temp = sensor_data.get('temperature')
+                    humid = sensor_data.get('humidity')
+                    bright = sensor_data.get('brightness')
                     
                     print(f"[GPIO] Got readings: temp={temp}, humid={humid}, bright={bright}")
                     

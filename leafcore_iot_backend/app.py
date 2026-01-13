@@ -57,7 +57,8 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Initialize GPIO automation service (for hardware backend auto-mode control)
     gpio_automation_service = None
     if use_hardware:
-        gpio_automation_service = GPIOAutomationService(device_manager, control_service, settings_service)
+        gpio_automation_service = GPIOAutomationService(device_manager, control_service, settings_service, 
+                                                        sensor_reading_service)
     
     # Initialize Bluetooth service for Wi-Fi configuration
     bluetooth_service = BluetoothService(
@@ -188,7 +189,7 @@ def create_app(use_hardware: bool = True) -> Flask:
 
 
 if __name__ == "__main__":
-    app = create_app(use_hardware=False)  # Use MockBackend for development
+    app = create_app(use_hardware=True)  # Use real hardware backend by default
     # Enable debug for better error messages, but disable auto-reload to keep background threads alive
     app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
 
