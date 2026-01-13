@@ -1,7 +1,7 @@
 {
   "setting_id": "8",
   "plant_name": "default plant",
-  "target_temp": 48,
+  "target_temp": 2,
   "target_hum": 6,
   "watering_days": [
     "THURSDAY",

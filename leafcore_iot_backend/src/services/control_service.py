@@ -348,47 +348,17 @@ class ControlService:
             self.device_manager.set_heater(heater_on)
             updated_states["heater"] = heater_on
         
-        # Sprinkler control (based on humidity)
-        if modes.get("sprinkler", {}).get("mode") == "auto" and humidity is not None:
+        # Fan control (based on humidity) - SAME LOGIC AS HEATER
+        if modes.get("fan", {}).get("mode") == "auto" and humidity is not None:
             target_hum = settings.get("target_hum", 60)
-            sprinkler_on = humidity < target_hum
-            self.device_manager.set_sprinkler(sprinkler_on)
-            updated_states["sprinkler"] = sprinkler_on
-        
-        # Light control (schedule + sensor feedback)
-        if modes.get("light", {}).get("mode") == "auto":
-            self.control_light_auto(brightness)
-            updated_states["light"] = {
-                "intensity": self._light_intensity,
-                "on": self._light_intensity > 0
-            }
-        
-        return updated_states
-        
-        updated_states = {}
-        
-        # Heater control (based on temperature)
-        if modes.get("heat_mat", {}).get("mode") == "auto" and temperature is not None:
-            target_temp = settings.get("target_temp", 25)
-            heater_on = temperature < target_temp
-            self.device_manager.set_heater(heater_on)
-            updated_states["heater"] = heater_on
-        
-        # Fan control (based on temperature + humidity)
-        if modes.get("fan", {}).get("mode") == "auto":
-            fan_on = self.control_fan_auto(humidity)
-            if temperature is not None:
-                target_temp = settings.get("target_temp", 25)
-                if temperature > target_temp:
-                    fan_on = True
-            if fan_on:
-                self.device_manager.set_fan(True)
+            fan_on = humidity > target_hum
+            self.device_manager.set_fan(fan_on)
             updated_states["fan"] = fan_on
         
         # Sprinkler control (based on humidity)
         if modes.get("sprinkler", {}).get("mode") == "auto" and humidity is not None:
             target_hum = settings.get("target_hum", 60)
-            sprinkler_on = humidity < (target_hum - 5)
+            sprinkler_on = humidity < target_hum
             self.device_manager.set_sprinkler(sprinkler_on)
             updated_states["sprinkler"] = sprinkler_on
         

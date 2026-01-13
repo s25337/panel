@@ -46,7 +46,7 @@ def create_app(use_hardware: bool = True) -> Flask:
     # Initialize SettingsService with ExternalTerriumService reference
     settings_service = SettingsService(
         settings_file="source_files/settings_config.json",
-        manual_settings_file="manual_settings.json",
+        manual_settings_file="source_files/manual_settings.json",
         external_terrarium_service=external_terrarium_service
     )
     
