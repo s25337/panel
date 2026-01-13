@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image } from 'react-native';
+import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { FontFamily, Color, scale } from './GlobalStyles';
@@ -42,6 +42,7 @@ export default function App() {
   const [wateringInterval, setWateringInterval] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isSliderActive, setIsSliderActive] = useState(false);
+  const [pairingStatus, setPairingStatus] = useState('idle'); // idle, loading, success, error
   const screenTimeoutRef = useRef(null);
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
@@ -119,12 +120,12 @@ export default function App() {
     fetchWateringTimer();
     fetchLightSchedule();
 
-    // Polling co 2 sekundy
+    // Polling co 5 sekund
     sensorPollInterval.current = setInterval(() => {
       fetchSensors();
       fetchStatus();
       fetchLightIntensity();
-    }, 2000);
+    }, 5000);
 
     // Polling dla watering timera co 5 sekund (rzadsze)
     wateringPollInterval.current = setInterval(() => {
@@ -215,6 +216,33 @@ export default function App() {
     return `${day}, ${month} ${date}`;
   };
 
+  const handlePairModules = async () => {
+    setPairingStatus('loading');
+    
+    try {
+      const result = await apiService.pairModules();
+      
+      if (result.status === 'OK') {
+        setPairingStatus('success');
+        // Reset to idle after 3 seconds
+        setTimeout(() => {
+          setPairingStatus('idle');
+        }, 3000);
+      } else {
+        setPairingStatus('error');
+        // Reset to idle after 3 seconds
+        setTimeout(() => {
+          setPairingStatus('idle');
+        }, 3000);
+      }
+    } catch (error) {
+      setPairingStatus('error');
+      setTimeout(() => {
+        setPairingStatus('idle');
+      }, 3000);
+    }
+  };
+
   const formatTime = () => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -240,28 +268,20 @@ export default function App() {
         <View style={styles.contentWrapper}>
         {/* Screensaver - Only show current temperature and humidity */}
         {!isScreenOn ? (
-          <ImageBackground
-            source={require('./assets/wallpaper.jpg')}
-            style={styles.fullBackground}
-            resizeMode="cover"
+          <View
+            style={styles.screensaverContainer}
+            onMouseMove={handleInteraction}
+            onTouchMove={handleInteraction}
+            onClick={handleInteraction}
           >
-            <View 
-              style={styles.screensaverContainer}
-              onMouseMove={handleInteraction}
-              onTouchMove={handleInteraction}
-              onClick={handleInteraction}
-            >
-              <View style={styles.screensaverContent}>
-                <View style={styles.screensaverSlider}>
-                  <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
-                </View>
-                
-                <View style={styles.screensaverSlider}>
-                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
-                </View>
-              </View>
+            <View style={styles.screensaverContent}>
+              <Text style={styles.screensaverLabel}>Temperature</Text>
+              <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
+              
+              <Text style={styles.screensaverLabel}>Humidity</Text>
+              <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
             </View>
-          </ImageBackground>
+          </View>
         ) : (
           <ImageBackground
             source={require('./assets/wallpaper.jpg')}
@@ -371,14 +391,39 @@ export default function App() {
                     <WateringPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
                   </View>
 
-                  {/* Col 3: Bluetooth Status */}
-                  <View style={[styles.gridItemShort, { flex: 0.6 }]}>
-                    <Image 
-                      source={require('./assets/bluetooth.png')} 
-                      style={styles.bluetoothImage}
-                    />
-                    <Text style={styles.bluetoothStatus}>Connected</Text>
-                  </View>
+                  {/* Col 3: Pair Modules Button */}
+                  <TouchableOpacity 
+                    style={[
+                      styles.gridItemShort, 
+                      { flex: 0.6 },
+                      pairingStatus === 'loading' && styles.pairingButtonLoading,
+                      pairingStatus === 'success' && styles.pairingButtonSuccess,
+                      pairingStatus === 'error' && styles.pairingButtonError,
+                    ]}
+                    onPress={handlePairModules}
+                    activeOpacity={0.7}
+                    disabled={pairingStatus === 'loading'}
+                  >
+                    {pairingStatus === 'loading' && (
+                      <ActivityIndicator size="small" color="#ffffff" />
+                    )}
+                    {pairingStatus !== 'loading' && (
+                      <Image 
+                        source={require('./assets/bluetooth.png')} 
+                        style={styles.bluetoothImage}
+                      />
+                    )}
+                    <Text style={[
+                      styles.pairModulesButtonText,
+                      (pairingStatus === 'idle' || pairingStatus === 'success') && { color: '#4CAF50' },
+                      pairingStatus === 'error' && styles.pairModulesButtonTextError,
+                    ]}>
+                      {pairingStatus === 'idle' && 'Pair'}
+                      {pairingStatus === 'loading' && 'Pairing...'}
+                      {pairingStatus === 'success' && '✓ OK'}
+                      {pairingStatus === 'error' && '✗ Error'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
                 </View>,
@@ -616,32 +661,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000000',
   },
   screensaverContent: {
     alignItems: 'center',
-    gap: 20,
+    gap: 40,
   },
   screensaverLabel: {
-    fontSize: 24,
+    fontSize: 32,
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 1,
   },
-  screensaverSlider: {
-    width: RESPONSIVE_SIZES.screensaverSliderWidth,
-    height: RESPONSIVE_SIZES.screensaverSliderHeight,
-    backgroundColor: '#252525',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#444444',
-  },
   screensaverValue: {
-    fontSize: 48,
+    fontSize: 72,
     fontFamily: FontFamily.workSansLight,
-    color: '#4ECDC4',
+    color: '#ffffff',
     letterSpacing: 2,
   },
   topLeftTimeContainer: {
@@ -682,11 +717,29 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     tintColor: '#ffffff',
   },
-  bluetoothStatus: {
-    fontSize: 13,
+  pairModulesButtonText: {
+    fontSize: 12,
     fontFamily: FontFamily.workSansRegular,
-    color: '#ffffff',
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
+  },
+  pairModulesButtonTextSuccess: {
+    color: '#4CAF50',
+  },
+  pairModulesButtonTextError: {
+    color: '#FF6B6B',
+  },
+  pairingButtonLoading: {
+    opacity: 0.7,
+  },
+  pairingButtonSuccess: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  pairingButtonError: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
   },
 });

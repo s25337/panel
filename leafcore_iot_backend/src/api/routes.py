@@ -15,7 +15,8 @@ def create_api_routes(device_manager: 'DeviceManager',
                       control_service: 'ControlService',
                       sensor_service: 'SensorService',
                       sensor_reading_service: 'SensorReadingService' = None,
-                      external_terrarium_service: 'ExternalTerriumService' = None) -> Blueprint:
+                      external_terrarium_service: 'ExternalTerriumService' = None,
+                      bluetooth_service: 'BluetoothService' = None) -> Blueprint:
     """Create API routes with dependency injection"""
     
     api = Blueprint('api', __name__, url_prefix='/api')
@@ -355,6 +356,86 @@ def create_api_routes(device_manager: 'DeviceManager',
                 "status": "ERROR",
                 "message": "Failed to send to Terrarium server"
             }), 503
+
+    # ========== MODULES - PAIRING ==========
+    
+    @api.route('/modules/pair', methods=['POST'])
+    def pair_modules():
+        """
+        Start Bluetooth pairing for Wi-Fi configuration.
+        Flow:
+        1. Start BLE advertising server to wait for Wi-Fi configuration from phone
+        2. Phone sends SSID + Password via Bluetooth
+        3. Orange Pi connects to Wi-Fi
+        4. After Wi-Fi connection → automatically sends devices_info to cloud
+        """
+        if not bluetooth_service:
+            return jsonify({
+                "status": "ERROR",
+                "message": "Bluetooth service not available"
+            }), 503
+        
+        try:
+            # Start Bluetooth pairing - will handle Wi-Fi connection and cloud registration
+            started = bluetooth_service.start()
+            
+            if not started:
+                return jsonify({
+                    "status": "ERROR",
+                    "message": "Failed to start Bluetooth service. Check if bluezero is installed."
+                }), 500
+            
+            return jsonify({
+                "status": "OK",
+                "message": "Bluetooth pairing started. Waiting for Wi-Fi configuration from phone...",
+                "waiting_for": "SSID + Password via BLE"
+            }), 200
+            
+        except Exception as e:
+            return jsonify({
+                "status": "ERROR",
+                "message": f"Failed to start Bluetooth pairing: {str(e)}"
+            }), 500
+    
+    @api.route('/modules', methods=['GET'])
+    def get_modules():
+        """
+        Get all paired/registered modules from devices_info.json
+        """
+        try:
+            import os
+            import json
+            
+            devices_info_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))),
+                'source_files',
+                'devices_info.json'
+            )
+            
+            if not os.path.exists(devices_info_path):
+                return jsonify({
+                    "status": "ERROR",
+                    "message": "devices_info.json not found"
+                }), 404
+            
+            with open(devices_info_path, 'r') as f:
+                devices_info = json.load(f)
+            
+            # Count registered modules
+            registered = sum(1 for d in devices_info.values() if d.get("is_registered") == 1)
+            total = len(devices_info)
+            
+            return jsonify({
+                "modules": devices_info,
+                "registered_count": registered,
+                "total_count": total
+            }), 200
+        
+        except Exception as e:
+            return jsonify({
+                "status": "ERROR",
+                "message": str(e)
+            }), 500
 
     # ========== HISTORY ==========
     

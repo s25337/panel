@@ -170,24 +170,34 @@ class BluetoothService:
         self.logger = logging.getLogger("BluetoothService")
         self.running = False
         self.ble_thread: Optional[threading.Thread] = None
+        self._ble_ready = threading.Event()  # Signal when BLE server is successfully started
         
         if not BLUEZERO_AVAILABLE:
             self.logger.warning("Bluetooth service disabled - bluezero not available")
 
-    def start(self) -> None:
-        """Start Bluetooth service in background thread"""
+    def start(self) -> bool:
+        """Start Bluetooth service in background thread. Returns True if successful, False otherwise."""
         if not BLUEZERO_AVAILABLE:
             self.logger.warning("Cannot start Bluetooth service - bluezero not installed")
-            return
+            return False
 
         if self.running:
             self.logger.warning("Bluetooth service already running")
-            return
+            return False
 
         self.running = True
+        self._ble_ready.clear()  # Reset ready flag
         self.ble_thread = threading.Thread(target=self._run_ble_server, daemon=True)
         self.ble_thread.start()
-        self.logger.info("Bluetooth service started")
+        
+        # Wait up to 5 seconds for BLE server to be ready
+        if self._ble_ready.wait(timeout=5):
+            self.logger.info("Bluetooth service started successfully")
+            return True
+        else:
+            self.logger.error("Bluetooth service failed to start within timeout")
+            self.running = False
+            return False
 
     def stop(self) -> None:
         """Stop Bluetooth service"""
@@ -265,11 +275,17 @@ class BluetoothService:
             my_server.publish()
             self.logger.info(f"BLE server published as '{DEVICE_NAME}'")
             self.logger.info("Waiting for Wi-Fi configuration via Bluetooth...")
+            
+            # Signal that BLE server is ready
+            self._ble_ready.set()
+            
             mainloop.run()
 
         except Exception as e:
             self.logger.error(f"BLE server error: {e}")
+            self._ble_ready.clear()  # Clear ready flag on error
         finally:
             if 'mainloop' in locals() and mainloop.is_running():
                 mainloop.quit()
             self.running = False
+            self._ble_ready.clear()

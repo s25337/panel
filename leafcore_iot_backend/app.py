@@ -153,7 +153,8 @@ def create_app(use_hardware: bool = True) -> Flask:
         control_service=control_service,
         sensor_service=sensor_service,
         sensor_reading_service=sensor_reading_service,
-        external_terrarium_service=external_terrarium_service
+        external_terrarium_service=external_terrarium_service,
+        bluetooth_service=bluetooth_service
     )
     app.register_blueprint(api_blueprint)
     

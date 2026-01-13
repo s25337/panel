@@ -188,6 +188,40 @@ const apiService = {
       return { status: 'error' };
     }
   },
+
+  /**
+   * Sparuje moduły i wysyła je do chmury
+   */
+  async pairModules() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/modules/pair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to pair modules');
+      return await response.json();
+    } catch (error) {
+      console.error('Error pairing modules:', error);
+      return { 
+        status: 'ERROR',
+        message: error.message
+      };
+    }
+  },
+
+  /**
+   * Pobiera listę wszystkich modułów
+   */
+  async getModules() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/modules`);
+      if (!response.ok) throw new Error('Failed to fetch modules');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      return { modules: {}, registered_count: 0, total_count: 0 };
+    }
+  },
 };
 
 export default apiService;

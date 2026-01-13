@@ -40,6 +40,7 @@ class SensorReadingService:
         self._last_temp: Optional[float] = None
         self._last_humidity: Optional[float] = None
         self._last_brightness: Optional[float] = None
+        self._last_post_time: float = time.time()
         
         # Load device info
         self._device_info = self._load_device_info()
@@ -76,8 +77,13 @@ class SensorReadingService:
                 self._last_humidity = humidity
                 self._last_brightness = brightness
                 
-                # Save to local JSON (current + history)
+                # Save to local JSON
                 self._save_sensor_data(temp, humidity, brightness)
+                
+                # POST to servers 10s)
+                if time.time() - self._last_post_time >= 10.0:
+                    self._post_sensor_data(temp, humidity, brightness)
+                    self._last_post_time = time.time()
                 
                 time.sleep(self.READ_INTERVAL)
             except Exception as e:
@@ -140,6 +146,28 @@ class SensorReadingService:
             # Save history
             with open(history_file, 'w') as f:
                 json.dump(history_list, f, indent=2)
+        except Exception as e:
+            pass
+    
+    def _post_sensor_data(self, temp: Optional[float], humidity: Optional[float], 
+                         brightness: Optional[float]):
+        """POST sensor data to cloud server"""
+        if temp is None or humidity is None or brightness is None:
+            return
+        
+        payload = {
+            "device_id": self._device_info.get("device_id", "unknown"),
+            "timestamp": datetime.now().isoformat(),
+            "temperature": float(temp),
+            "humidity": float(humidity),
+            "brightness": float(brightness),
+            "status": "ok"
+        }
+        
+        # Post to CLOUD server only
+        try:
+            endpoint = f"{self.CLOUD_URL}/sensor-data"
+            response = requests.post(endpoint, json=payload, timeout=3.0)
         except Exception as e:
             pass
     

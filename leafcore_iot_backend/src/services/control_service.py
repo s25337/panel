@@ -421,9 +421,39 @@ class ControlService:
         self.settings_service.update_manual_settings({"sprinkler": state})
     
     def set_light(self, intensity: float) -> None:
-        """Direct light intensity control (for GPIO automation)"""
-        self.device_manager.set_light(intensity)
-        self.settings_service.update_manual_settings({"light": intensity})
+        """
+        Adaptive light intensity control based on ambient light sensor
+        
+        Formula: effective_intensity = target_intensity - ambient_light_level
+        This ensures energy efficiency - if there's already natural light,
+        the lamp power is reduced accordingly.
+        
+        Args:
+            intensity: Target light intensity (0-100)
+        """
+        try:
+            # Get current ambient light level from sensor
+            ambient_light = self.sensor_service.get_light_intensity()
+            
+            # Calculate effective light power
+            # If ambient_light = 80 and target = 60, then effective = 60 - 80 = -20 (clamped to 0)
+            # If ambient_light = 20 and target = 60, then effective = 60 - 20 = 40
+            if ambient_light is not None:
+                effective_intensity = max(0, intensity - ambient_light)
+                logger.debug(f"Light control: target={intensity}, ambient={ambient_light}, effective={effective_intensity}")
+            else:
+                # If sensor not available, use target intensity directly
+                effective_intensity = intensity
+                logger.warning("Light sensor unavailable, using target intensity directly")
+            
+            self.device_manager.set_light(effective_intensity)
+            self.settings_service.update_manual_settings({"light": intensity})
+            
+        except Exception as e:
+            logger.error(f"Error in adaptive light control: {e}")
+            # Fallback to direct control if anything goes wrong
+            self.device_manager.set_light(intensity)
+            self.settings_service.update_manual_settings({"light": intensity})
     
     # ========== WATERING AUTOMATION (formerly AutomationService) ==========
     

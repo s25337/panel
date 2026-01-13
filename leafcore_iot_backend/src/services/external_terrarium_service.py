@@ -149,6 +149,69 @@ class ExternalTerriumService:
             logger.error(f"❌ Error registering module {device_name}: {e}")
             return False
     
+    def register_all_devices(self, devices_info_path: str, user_id: Optional[int] = None, 
+                            group_id: Optional[str] = None) -> bool:
+        """
+        Register all devices from devices_info.json on the external server
+        
+        Args:
+            devices_info_path: Path to devices_info.json file
+            user_id: User ID for registration
+            group_id: Group ID for registration
+            
+        Returns:
+            True if all devices registered successfully, False otherwise
+        """
+        import os
+        import json
+        import datetime
+        
+        try:
+            if not os.path.exists(devices_info_path):
+                logger.error(f"devices_info.json not found at {devices_info_path}")
+                return False
+            
+            # Load devices info
+            with open(devices_info_path, 'r') as f:
+                devices_info = json.load(f)
+            
+            # Update all devices as registered and send to cloud
+            all_success = True
+            for device_key, device in devices_info.items():
+                device_name = device.get("device_name", f"Device_{device_key}")
+                device_type = device.get("type", "unknown")
+                
+                success = self.add_module(
+                    device_name=device_name,
+                    device_type=device_type,
+                    user_id=user_id,
+                    group_id=group_id,
+                    status=device.get("state", "active"),
+                    mode=device.get("mode", "auto")
+                )
+                
+                if success:
+                    # Mark as registered locally
+                    device["is_registered"] = 1
+                    device["last_edit_date"] = datetime.datetime.now().isoformat()
+                else:
+                    all_success = False
+            
+            # Save updated devices info
+            with open(devices_info_path, 'w') as f:
+                json.dump(devices_info, f, indent=4)
+            
+            if all_success:
+                logger.info(f"✅ All {len(devices_info)} devices registered successfully")
+            else:
+                logger.warning(f"⚠️ Some devices failed to register")
+            
+            return all_success
+            
+        except Exception as e:
+            logger.error(f"❌ Error registering all devices: {e}")
+            return False
+    
     def send_sensor_data(self) -> bool:
         """
         Send current sensor readings to Terrarium server
