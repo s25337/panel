@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 class WifiConfigurator:
-    def __init__(self, devices_info_file):
+    def __init__(self, devices_info_file, connection_event=None):
         self.ssid_buffer = b"" 
         self.pass_buffer = b""
         self.ssid = None
@@ -37,6 +37,7 @@ class WifiConfigurator:
         self.userid = None
         self.devices_info_file = devices_info_file
         self.server_url = "http://33.11.238.45:8081/terrarium/"
+        self.connection_event = connection_event
 
     def on_ssid_write(self, value, options):
         self.ssid_buffer += bytes(value)
@@ -78,6 +79,8 @@ class WifiConfigurator:
             return
 
         logging.info(f"Attempting to connect to SSID: {self.ssid}")
+        if self.connection_event:
+            self.connection_event.set()
         try:
             cmd = ['nmcli', '-t', '-f', 'ACTIVE,SSID', 'dev', 'wifi']
             check_connection = subprocess.run(cmd, capture_output=True, text=True)
@@ -124,13 +127,13 @@ class WifiConfigurator:
 
 class BluetoothService(threading.Thread):
     """Bluetooth BLE service for WiFi configuration"""
-    
-    def __init__(self, devices_info_file):
+    def __init__(self, devices_info_file, connection_event=None):
         super().__init__()
         self.daemon = True
         self.devices_info_file = devices_info_file
         self.running = True
-        
+        self.connection_event = connection_event or threading.Event()
+
     def run(self):
         if not BLUEZERO_AVAILABLE:
             logging.warning("Bluezero not installed - Bluetooth service disabled")
@@ -138,7 +141,7 @@ class BluetoothService(threading.Thread):
         
         logging.basicConfig(level=logging.INFO)
         mainloop = async_tools.EventLoop()
-        config = WifiConfigurator(self.devices_info_file)
+        config = WifiConfigurator(self.devices_info_file, connection_event=self.connection_event)
 
         try:
             dongle = adapter.Adapter()

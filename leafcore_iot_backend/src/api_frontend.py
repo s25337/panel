@@ -7,18 +7,27 @@ import json
 import os
 
 api_frontend = Blueprint('frontend', __name__, url_prefix='/api')
+
 bluetooth_thread = None
+bluetooth_event = None
+
 
 @api_frontend.route('/bluetooth/start', methods=['POST'])
 def start_bluetooth():
-    global bluetooth_thread
+    global bluetooth_thread, bluetooth_event
     if bluetooth_thread and bluetooth_thread.is_alive():
         return jsonify({'status': 'ok', 'message': 'Bluetooth already running'})
     try:
         devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
-        bluetooth_thread = BluetoothService(devices_info_file)
+        bluetooth_event = threading.Event()
+        bluetooth_thread = BluetoothService(devices_info_file, connection_event=bluetooth_event)
         bluetooth_thread.start()
-        return jsonify({'status': 'ok', 'message': 'Bluetooth started'})
+        # Wait for connection event (client connects and sends credentials)
+        connected = bluetooth_event.wait(timeout=30)
+        if connected:
+            return jsonify({'status': 'ok', 'message': 'Bluetooth client connected'})
+        else:
+            return jsonify({'status': 'error', 'message': 'No client connected within timeout'}), 504
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
     
