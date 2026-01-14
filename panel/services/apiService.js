@@ -1,10 +1,9 @@
-
 // services/apiService.js
-// Usługa do komunikacji z backendem IoT
+// Usługa do komunikacji z backend'em IoT
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
-// Helper: fetch z timeoutem
+// Helper function to fetch with timeout
 const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -19,22 +18,9 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
 };
 
 const apiService = {
-  // Uruchamia BluetoothService na backendzie
-  async startBluetooth() {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) throw new Error('Failed to start Bluetooth');
-      return await response.json();
-    } catch (error) {
-      console.error('Error starting Bluetooth:', error);
-      return { status: 'error' };
-    }
-  },
-
-  // Pobiera aktualne wartości czujników
+  /**
+   * Pobiera aktualne wartości czujników
+   */
   async getSensors() {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/sensors`);
@@ -46,7 +32,9 @@ const apiService = {
     }
   },
 
-  // Pobiera status wszystkich urządzeń
+  /**
+   * Pobiera status wszystkich urządzeń
+   */
   async getStatus() {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/status`);
@@ -54,10 +42,10 @@ const apiService = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching status:', error);
-      return {
-        fan: false,
-        light: false,
-        pump: false,
+      return { 
+        fan: false, 
+        light: false, 
+        pump: false, 
         heater: false,
         sprinkler: false,
         manual_mode: false
@@ -65,7 +53,30 @@ const apiService = {
     }
   },
 
-  // Steruje konkretnym urządzeniem
+  /**
+   * Steruje urządzeniami
+   * @param {object} control - { fan?: boolean, light?: boolean, pump?: boolean }
+   */
+  async controlDevice(control) {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/control`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(control),
+      });
+      if (!response.ok) throw new Error('Failed to control device');
+      return await response.json();
+    } catch (error) {
+      console.error('Error controlling device:', error);
+      return { status: 'error' };
+    }
+  },
+
+  /**
+   * Steruje konkretnym urządzeniem
+   * @param {string} device - 'fan', 'light', 'pump', 'sprinkler', 'heater', 'manual_mode'
+   * @param {string} state - 'on' lub 'off'
+   */
   async toggleDevice(device, state) {
     try {
       const response = await fetchWithTimeout(
@@ -80,7 +91,9 @@ const apiService = {
     }
   },
 
-  // Pobiera aktualne ustawienia docelowe
+  /**
+   * Pobiera aktualne ustawienia docelowe
+   */
   async getSettings() {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`);
@@ -92,7 +105,10 @@ const apiService = {
     }
   },
 
-  // Aktualizuje ustawienia docelowe
+  /**
+   * Aktualizuje ustawienia docelowe
+   * @param {object} settings - { target_temp?: number, target_hum?: number }
+   */
   async updateSettings(settings) {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`, {
@@ -108,20 +124,37 @@ const apiService = {
     }
   },
 
-  // Pobiera harmonogram światła z settings
+  /**
+   * Pobiera czas do następnego podlewania
+   */
+  async getWateringTimer() {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/watering-timer`);
+      if (!response.ok) throw new Error('Failed to fetch watering timer');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching watering timer:', error);
+      return { 
+        days: 2, 
+        hours: 10, 
+        minutes: 0, 
+        seconds: 0,
+        interval_seconds: 0
+      };
+    }
+  },
+
+  /**
+   * Pobiera harmonogram światła
+   */
   async getLightSchedule() {
     try {
-      const settings = await this.getSettings();
-      return {
-        light_hours: settings.light_hours || 12,
-        start_hour: settings.start_hour || 6,
-        start_minute: settings.start_minute || 0,
-        end_hour: settings.end_hour || 18,
-        end_minute: settings.end_minute || 0
-      };
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/light-schedule`);
+      if (!response.ok) throw new Error('Failed to fetch light schedule');
+      return await response.json();
     } catch (error) {
       console.error('Error fetching light schedule:', error);
-      return {
+      return { 
         light_hours: 12,
         start_hour: 6,
         start_minute: 0,
@@ -131,41 +164,76 @@ const apiService = {
     }
   },
 
-  // Pobiera dni podlewania
-  async getWateringDays() {
+  /**
+   * Pobiera manualne ustawienia urządzeń
+   */
+  async getManualSettings() {
     try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`);
-      if (!response.ok) throw new Error('Failed to fetch settings');
-      const data = await response.json();
-      const DAY_NAMES = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-      const mappedDays = (data.watering_days || []).map(num => DAY_NAMES[num] || `DAY_${num}`);
-      return {
-        watering_days: mappedDays,
-        watering_time: data.watering_time || '09:00',
-        water_seconds: data.water_seconds || 30
-      };
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/manual-settings`);
+      if (!response.ok) throw new Error('Failed to fetch manual settings');
+      return await response.json();
     } catch (error) {
-      console.error('Error fetching watering days:', error);
+      console.error('Error fetching manual settings:', error);
       return {
-        watering_days: [],
-        watering_time: '09:00',
-        water_seconds: 30
+        is_manual: false,
+        light: false,
+        heater: false,
+        fan: false,
+        pump: false,
+        sprinkler: false
       };
     }
   },
 
-  // Włącza podlewanie (pompa na water_seconds, potem auto-wyłącza)
-  async watering() {
+  /**
+   * Przełącza tryb manual on/off
+   * @param {string} state - 'on' lub 'off'
+   */
+  async toggleManualMode(state) {
     try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/watering`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      if (!response.ok) throw new Error('Failed to trigger watering');
+      const response = await fetchWithTimeout(
+        `${API_BASE_URL}/api/manual-mode/${state}`,
+        { method: 'POST' }
+      );
+      if (!response.ok) throw new Error('Failed to toggle manual mode');
       return await response.json();
     } catch (error) {
-      console.error('Error triggering watering:', error);
+      console.error('Error toggling manual mode:', error);
       return { status: 'error' };
+    }
+  },
+
+  /**
+   * Sparuje moduły i wysyła je do chmury
+   */
+  async pairModules() {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/modules/pair`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to pair modules');
+      return await response.json();
+    } catch (error) {
+      console.error('Error pairing modules:', error);
+      return { 
+        status: 'ERROR',
+        message: error.message
+      };
+    }
+  },
+
+  /**
+   * Pobiera listę wszystkich modułów
+   */
+  async getModules() {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/modules`);
+      if (!response.ok) throw new Error('Failed to fetch modules');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      return { modules: {}, registered_count: 0, total_count: 0 };
     }
   },
 };

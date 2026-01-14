@@ -16,10 +16,11 @@ const RESPONSIVE_SIZES = {
 };
 
 const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
+  const [manualMode, setManualMode] = useState(false);
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
-  const [lightIntensity, setLightIntensity] = useState(0);
+  const [lightIntensity, setLightIntensity] = useState(50);
   const [plantName, setPlantName] = useState('');
   const [settingId, setSettingId] = useState('');
   const [loading, setLoading] = useState({});
@@ -34,7 +35,7 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const fetchLightIntensity = async () => {
     try {
       const settings = await apiService.getSettings();
-      setLightIntensity(settings.light_intensity);
+      setLightIntensity(settings.light_intensity || 50);
     } catch (error) {
       console.error('Error fetching light intensity:', error);
     }
@@ -43,8 +44,8 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const fetchCurrentSettings = async () => {
     try {
       const settings = await apiService.getSettings();
-      setSettingId(settings.setting_id);
-      setPlantName(settings.plant_name);
+      setSettingId(settings.setting_id || '');
+      setPlantName(settings.plant_name || '');
     } catch (error) {
       console.error('Error fetching current settings:', error);
     }
@@ -52,10 +53,12 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
 
   const fetchStatus = async () => {
     try {
-      const status = await apiService.getStatus();
-      setLightOn(status.devices?.light?.state === "on");
-      setHeaterOn(status.devices?.heat_mat?.state === "on");
-      setFanOn(status.devices?.fan?.state === "on");
+      const manualSettings = await apiService.getManualSettings();
+      setManualMode(manualSettings.is_manual === true);
+      setLightOn(manualSettings.light === true || manualSettings.light > 0);
+      setHeaterOn(manualSettings.heater === true);
+      setFanOn(manualSettings.fan === true);
+      // Nie pobieramy pump/sprinkler - są obsługiwane przez press/hold UI
     } catch (error) {
       console.error('Error fetching status:', error);
     }
@@ -66,9 +69,15 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     setLoading(prev => ({ ...prev, [device]: true }));
 
     try {
-      await apiService.toggleDevice(device, newState);
-      // Refetch status po zmianie aby być pewnym stanu
-      await fetchStatus();
+      if (device === 'manual_mode') {
+        // Special handling for manual mode toggle
+        await apiService.toggleManualMode(newState);
+        setManualMode(newState === 'on');
+      } else {
+        await apiService.toggleDevice(device, newState);
+        // Refetch status po zmianie aby być pewnym stanu
+        await fetchStatus();
+      }
     } catch (error) {
       Alert.alert('Błąd', `Nie udało się zmienić stanu ${device}`);
       console.error(`Error toggling ${device}:`, error);
@@ -93,9 +102,10 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
         isOn && styles.tileActive,
         isPressable && isOn && styles.tilePressableActive,
         isPressable && !isOn && styles.tilePressable,
+        !manualMode && device !== 'manual_mode' && styles.tileDisabled
       ]}
       onPress={isPressable ? onClick : () => handleDeviceToggle(device, isOn)}
-      disabled={loading[device]}
+      disabled={loading[device] || (!manualMode && device !== 'manual_mode')}
       activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
