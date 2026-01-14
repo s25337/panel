@@ -102,6 +102,15 @@ class WifiConfigurator:
                         device["is_registered"] = 1
                         device["user_id"] = self.userid
                         device["last_edit_date"] = datetime.datetime.now().isoformat()
+
+                    # Zapisz user_id do pliku user_id.txt
+                    user_id_path = os.path.join(os.path.dirname(__file__), "user_id.txt")
+                    try:
+                        with open(user_id_path, "w") as f:
+                            f.write(str(self.userid))
+                        logging.info(f"user_id saved to user_id.txt: {self.userid}")
+                    except Exception as e:
+                        logging.error(f"Failed to save user_id to user_id.txt: {e}")
                     
                     response = requests.post(url, json=devices_info)
                     

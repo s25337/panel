@@ -3,7 +3,15 @@
 
 from flask import Blueprint, jsonify, request, current_app
 
-user_id = "group-A1"  # Globalna zmienna user_id
+
+def get_user_id():
+    user_id_path = os.path.join(os.path.dirname(__file__), "user_id.txt")
+    try:
+        with open(user_id_path, "r") as f:
+            return f.read().strip()
+    except Exception:
+        return "group-A1"  # domyślna wartość
+    
 
 import json
 import os
@@ -54,7 +62,7 @@ def update_setting():
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to read local settings: {e}"}), 500
 
-    url = f"{BASE_URL}/updateSetting/{user_id}"
+    url = f"{BASE_URL}/updateSetting/{get_user_id()}"
 
     # Mapowanie pól na format Terrarium
     day_map = {
@@ -110,7 +118,7 @@ def send_data():
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     # Pobierz ustawienia z zewnętrznego API Terrarium
     try:
-        ext_url = f"{BASE_URL}/sendData/{user_id}"
+        ext_url = f"{BASE_URL}/sendData/{get_user_id()}"
         ext_resp = requests.post(ext_url, headers={"Content-Type": "application/json"}, json={})
         if ext_resp.status_code != 200:
             return jsonify({"status": "ERROR", "message": f"Terrarium API error: {ext_resp.text}"}), 500
@@ -133,7 +141,7 @@ def send_data():
         new_settings = {
             "setting_id": ext_settings.get("setting_id", "67"),
             "plant_name": ext_settings.get("plant_name", "Unknown"),
-            "target_temperature": ext_settings.get("optimal_temperature", 0),
+            "target_temp": ext_settings.get("optimal_temperature", 0),
             "target_hum": ext_settings.get("optimal_humidity", 0),
             "light_intensity": ext_settings.get("optimal_brightness", 0),
             "start_hour": int(ext_settings.get("light_schedule_start_time", "00:00").split(":")[0]),

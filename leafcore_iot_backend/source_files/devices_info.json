@@ -2,9 +2,9 @@
   "light": {
     "device_name": "LC_Greenhouse_Module_Light001",
     "type": "light",
-    "state": "on",
+    "state": "off",
     "mode": "auto",
-    "intensity": 0.44,
+    "intensity": 0.8,
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "2026-01-13 15:10:21",
     "is_registered": 0,

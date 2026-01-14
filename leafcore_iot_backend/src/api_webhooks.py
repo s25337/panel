@@ -5,7 +5,7 @@ import json
 from flask import Blueprint, request, jsonify
 
 
-user_id = "group-A1"  # Globalna zmienna user_id
+user_id = "?"  # Globalna zmienna user_id
 from flask import current_app
 
 # Blueprint
