@@ -3,12 +3,6 @@ import { View, StyleSheet, Text } from 'react-native';
 import { FontFamily, ResponsiveSizes } from '../GlobalStyles';
 import apiService from '../services/apiService';
 
-const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-
-const mapDayNumbersToDayNames = (dayNumbers) => {
-  return dayNumbers.map(num => DAY_NAMES[num] || `Day ${num}`);
-};
-
 const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   const [timeLeft, setTimeLeft] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -20,25 +14,20 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   useEffect(() => {
     const calculateTimeToNextWatering = async () => {
       try {
-        const settings = await apiService.getSettings();
-        const { watering_days, watering_time } = settings;
+        const wateringData = await apiService.getWateringDays();
+        const { watering_days, watering_time } = wateringData;
 
-        if (!watering_days || watering_days.length === 0 || !watering_time) {
+        if (!watering_days || watering_days.length === 0) {
           setIsLoading(false);
           return;
         }
 
         // Parse watering_time (format: "HH:MM")
-        const timeParts = watering_time.split(':');
-        const targetHour = parseInt(timeParts[0], 10);
-        const targetMinute = parseInt(timeParts[1], 10);
+        const [targetHour, targetMinute] = watering_time.split(':').map(Number);
 
-        // Obecny czas
+        // Oblicz czas do następnego podlewania
         const now = new Date();
         const currentDayOfWeek = now.getDay(); // 0 = niedziela, 6 = sobota
-        const currentHour = now.getHours();
-        const currentMinute = now.getMinutes();
-        const currentSecond = now.getSeconds();
         
         let daysUntil = null;
         
@@ -56,28 +45,14 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
           return;
         }
 
-        // Jeśli to dziś (daysUntil === 0), sprawdź czy godzina podlewania już minęła
+        // Jeśli to dziś i godzina już minęła, to będzie dopiero jutro
         if (daysUntil === 0) {
-          const isTimeAlreadyPassed = 
-            currentHour > targetHour || 
-            (currentHour === targetHour && currentMinute >= targetMinute);
+          const targetTime = new Date();
+          targetTime.setHours(targetHour, targetMinute, 0, 0);
           
-          if (isTimeAlreadyPassed) {
-            // Godzina minęła dzisiaj, następne podlewanie jutro
-            // Szukaj następnego dnia w harmonogramie
-            daysUntil = null;
-            for (let i = 1; i < 7; i++) {
-              const checkDay = (currentDayOfWeek + i) % 7;
-              if (watering_days.includes(checkDay)) {
-                daysUntil = i;
-                break;
-              }
-            }
-            
-            // Jeśli nie ma następnego dnia w tym tygodniu, czekamy do przyszłego tygodnia
-            if (daysUntil === null) {
-              daysUntil = 7 - currentDayOfWeek + watering_days[0];
-            }
+          if (now > targetTime) {
+            // Godzina minęła, następne podlewanie za 7 dni
+            daysUntil = 7;
           }
         }
 
@@ -96,9 +71,6 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
           const seconds = secondsLeft % 60;
 
           setTimeLeft({ days, hours, minutes, seconds });
-        } else {
-          // Jeśli już minęło, ustaw na 0
-          setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
         }
 
         setIsLoading(false);
@@ -144,26 +116,24 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   useEffect(() => {
     if (sliderValue > 80 && !hasTriggeredWater) {
       handleWaterTrigger();
-    } else if (sliderValue < 60 && hasTriggeredWater) {
+    } else if (sliderValue < 60) {
       setHasTriggeredWater(false);
     }
   }, [sliderValue, hasTriggeredWater]);
 
   const handleSliderMove = (e) => {
-    if (!trackWidth || hasTriggeredWater) return;
+    if (!trackWidth) return;
     const x = e.nativeEvent.locationX;
     const percentage = Math.max(0, Math.min(100, (x / trackWidth) * 100));
     setSliderValue(percentage);
   };
 
   const handleResponderGrant = (e) => {
-    if (hasTriggeredWater) return;
     onSliderStart?.();
     handleSliderMove(e);
   };
 
   const handleResponderRelease = () => {
-    if (hasTriggeredWater) return;
     onSliderEnd?.();
   };
 
@@ -192,13 +162,14 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.timeDisplay}>{timeString}</Text>
+      
       {/* Slider - taki sam jak Light */}
       <View style={styles.sliderWrapper}>
         <View
           style={styles.sliderTrack}
           onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
-          onStartShouldSetResponder={() => !hasTriggeredWater}
-          onMoveShouldSetResponder={() => !hasTriggeredWater}
+          onStartShouldSetResponder={() => true}
+          onMoveShouldSetResponder={() => true}
           onResponderGrant={handleResponderGrant}
           onResponderMove={handleSliderMove}
           onResponderRelease={handleResponderRelease}
@@ -209,15 +180,14 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
               styles.sliderFill,
               {
                 width: `${sliderValue}%`,
-                backgroundColor: hasTriggeredWater ? '#2196F3' : '#4ECDC4',
-                opacity: hasTriggeredWater ? 0.85 : 1,
+                backgroundColor: '#4ECDC4',
               }
             ]}
             pointerEvents="none"
           />
           {/* Label na środku slidera */}
-          <Text style={[styles.sliderLabel, hasTriggeredWater && styles.sliderLabelActive]} pointerEvents="none">
-            {hasTriggeredWater ? 'Watering' : 'Slide to water'}
+          <Text style={styles.sliderLabel} pointerEvents="none">
+            {sliderValue > 80 ? 'Watering' : 'Slide to water'}
           </Text>
         </View>
       </View>
@@ -270,17 +240,6 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
     position: 'absolute',
     zIndex: 10,
-    width: '100%',
-    textAlign: 'center',
-    top: '50%',
-    transform: [{ translateY: -ResponsiveSizes.sliderFontSize / 2 }],
-  },
-  sliderLabelActive: {
-    color: '#2196F3',
-    fontWeight: 'bold',
-    textShadowColor: '#fff',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
   },
 });
 

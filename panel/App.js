@@ -94,13 +94,6 @@ export default function App() {
     setTargetHumidity(data.target_hum || 60);
   };
 
-  const fetchWateringTimer = async () => {
-    const data = await apiService.getWateringTimer();
-    if (data && data.interval_seconds) {
-      setWateringInterval(data.interval_seconds);
-    }
-  };
-
   const fetchLightSchedule = async () => {
     try {
       const data = await apiService.getLightSchedule();
@@ -117,7 +110,6 @@ export default function App() {
     fetchStatus();
     fetchSettings();
     fetchLightIntensity();
-    fetchWateringTimer();
     fetchLightSchedule();
 
     // Polling co 5 sekund
@@ -127,9 +119,8 @@ export default function App() {
       fetchLightIntensity();
     }, 5000);
 
-    // Polling dla watering timera co 5 sekund (rzadsze)
+    // Polling dla light schedule co 5 sekund
     wateringPollInterval.current = setInterval(() => {
-      fetchWateringTimer();
       fetchLightSchedule();
     }, 5000);
 
@@ -257,145 +248,81 @@ export default function App() {
   }
 
   return (
-    <ImageBackground
-      source={require('./assets/wallpaper.jpg')}
-      style={styles.fullBackground}
-      resizeMode="cover"
-    >
-      <SafeAreaView style={styles.container}>
-        <StatusBar barStyle="light-content" />
-        
-        <View style={styles.contentWrapper}>
-        {/* Screensaver - Only show current temperature and humidity */}
-        {!isScreenOn ? (
-          <View
-            style={styles.screensaverContainer}
-            onMouseMove={handleInteraction}
-            onTouchMove={handleInteraction}
-            onClick={handleInteraction}
-          >
-            <View style={styles.screensaverContent}>
-              <Text style={styles.screensaverLabel}>Temperature</Text>
-              <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
-              
-              <Text style={styles.screensaverLabel}>Humidity</Text>
-              <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
-            </View>
-          </View>
-        ) : (
-          <ImageBackground
-            source={require('./assets/wallpaper.jpg')}
-            style={styles.fullBackground}
-            resizeMode="cover"
-          >
-            <ScreenNavigator
-              currentScreen={currentScreen}
-              onScreenChange={setCurrentScreen}
-              isSliderActive={isSliderActive}
-              screens={[
-                // Screen 0: Main Panel - 3x2 Grid
-                <View
-                  key="main"
-                  style={styles.screenContainer}
-                >
-                  {/* Top Left Time and Date + Manual Mode */}
-                  <View style={styles.topLeftTimeContainer}>
-                    <View>
-                      <Text style={styles.topLeftTime}>{formatTime()}</Text>
-                      <Text style={styles.topLeftDate}>{formatDate()}</Text>
-                    </View>
-                    <Text style={[
-                      styles.manualModeIndicator,
-                      { color: manualMode ? '#FF9800' : '#666666' }
-                    ]}>
-                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
-                    </Text>
+    <ImageBackground source={require('./assets/wallpaper.jpg')} style={styles.fullBackground}>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ flex: 1 }}>
+          {/* Main screen content */}
+          {currentScreen === 0 && (
+            <View style={styles.screenContainer}>
+              {/* ROW 1 - Tall */}
+              <View style={styles.rowWrapperTall}>
+                {/* Col 1: Humidity Gauge */}
+                <View style={styles.gridItemTall}>
+                  <CircularGauge
+                    mode="humidity"
+                    value={targetHumidity}
+                    onChange={(newHum) => {
+                      setTargetHumidity(newHum);
+                      apiService.updateSettings({ target_hum: newHum });
+                    }}
+                    size={RESPONSIVE_SIZES.circularGaugeSize}
+                  />
+                </View>
+                {/* Col 2: Temperature Gauge */}
+                <View style={styles.gridItemTall}>
+                  <CircularGauge
+                    mode="temperature"
+                    value={targetTemp}
+                    onChange={(newTemp) => {
+                      setTargetTemp(newTemp);
+                      apiService.updateSettings({ target_temp: newTemp });
+                    }}
+                    size={RESPONSIVE_SIZES.circularGaugeSize}
+                  />
+                </View>
+                {/* Col 3: Current Temperature & Humidity */}
+                <View style={[styles.gridItemTall, { flex: 0.6, justifyContent: 'center', gap: 20 }]}>
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={styles.sensorLabel}>Temperature</Text>
+                    <Text style={styles.sensorValue}>{temperature.toFixed(1)}°C</Text>
                   </View>
-
-                  <View 
-                    style={styles.mainGrid}
-                  >
-                {/* ROW 1 - TALL */}
-                <View style={styles.rowWrapperTall}>
-                  {/* Col 1: Humidity Slider */}
-                  <View style={styles.gridItemTall}>
-                    <CircularGauge
-                      mode="humidity"
-                      value={targetHumidity}
-                      onChange={(newHum) => {
-                        setTargetHumidity(newHum);
-                        apiService.updateSettings({ target_hum: newHum });
-                      }}
-                      size={RESPONSIVE_SIZES.circularGaugeSize}
-                    />
-                  </View>
-
-                  {/* Col 2: Temperature Slider */}
-                  <View style={styles.gridItemTall}>
-                    <CircularGauge
-                      mode="temperature"
-                      value={targetTemp}
-                      onChange={(newTemp) => {
-                        setTargetTemp(newTemp);
-                        apiService.updateSettings({ target_temp: newTemp });
-                      }}
-                      size={RESPONSIVE_SIZES.circularGaugeSize}
-                    />
-                  </View>
-
-                  {/* Col 3: Current Temperature & Humidity */}
-                  <View style={[styles.gridItemTall, { flex: 0.6, justifyContent: 'center', gap: 20 }]}>
-                    <View style={{ alignItems: 'center' }}>
-                      <Text style={styles.sensorLabel}>Temperature</Text>
-                      <Text style={styles.sensorValue}>
-                        {temperature.toFixed(1)}°C
-                      </Text>
-                    </View>
-                    <View style={{ alignItems: 'center' }}>
-                      <Text style={styles.sensorLabel}>Humidity</Text>
-                      <Text style={styles.sensorValue}>
-                        {humidity.toFixed(0)}%
-                      </Text>
-                    </View>
+                  <View style={{ alignItems: 'center' }}>
+                    <Text style={styles.sensorLabel}>Humidity</Text>
+                    <Text style={styles.sensorValue}>{humidity.toFixed(0)}%</Text>
                   </View>
                 </View>
-
-                {/* ROW 2 - SHORT */}
-                <View style={styles.rowWrapperShort}>
-                  {/* Col 1: Light Intensity */}
-                  <View style={styles.gridItemShort}>
-                    <ValueSlider
-                      name1="Intensity"
-                      value={lightIntensity}
-                      min={0}
-                      max={100}
-                      step={1}
-                      unit="%"
-                      onSliderStart={handleSliderStart}
-                      onSliderEnd={handleSliderEnd}
-                      onValueChange={(newIntensity) => {
-                        setLightIntensity(newIntensity);
-                        if (manualMode) {
-                          // W manual mode wysyłaj bezpośrednio do control endpoint
-                          apiService.toggleDevice('light', newIntensity);
-                        } else {
-                          // W auto mode ustawiaj settings
-                          apiService.updateSettings({ light_intensity: newIntensity });
-                        }
-                      }}
-                    />
-                  </View>
-
-                  {/* Col 2: Watering Info */}
-                  <View style={styles.gridItemShort}>
-                    <WateringPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
-                  </View>
-
-                  {/* Col 3: Pair Modules Button */}
-                  <TouchableOpacity 
+              </View>
+              {/* ROW 2 - Short */}
+              <View style={styles.rowWrapperShort}>
+                {/* Col 1: Light Intensity */}
+                <View style={styles.gridItemShort}>
+                  <ValueSlider
+                    name1="Intensity"
+                    value={lightIntensity}
+                    min={0}
+                    max={100}
+                    step={1}
+                    unit="%"
+                    onSliderStart={handleSliderStart}
+                    onSliderEnd={handleSliderEnd}
+                    onValueChange={(newIntensity) => {
+                      setLightIntensity(newIntensity);
+                      if (manualMode) {
+                        apiService.toggleDevice('light', newIntensity);
+                      } else {
+                        apiService.updateSettings({ light_intensity: newIntensity });
+                      }
+                    }}
+                  />
+                </View>
+                {/* Col 2: Watering Info */}
+                <View style={styles.gridItemShort}>
+                  <WateringPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
+                </View>
+                {/* Col 3: Pair Modules + Bluetooth */}
+                <View style={styles.gridItemShort}>
+                  <TouchableOpacity
                     style={[
-                      styles.gridItemShort, 
-                      { flex: 0.6 },
                       pairingStatus === 'loading' && styles.pairingButtonLoading,
                       pairingStatus === 'success' && styles.pairingButtonSuccess,
                       pairingStatus === 'error' && styles.pairingButtonError,
@@ -407,56 +334,35 @@ export default function App() {
                     {pairingStatus === 'loading' && (
                       <ActivityIndicator size="small" color="#ffffff" />
                     )}
-                    {pairingStatus !== 'loading' && (
-                      <Image 
-                        source={require('./assets/bluetooth.png')} 
-                        style={styles.bluetoothImage}
-                      />
-                    )}
-                    <Text style={[
-                      styles.pairModulesButtonText,
-                      (pairingStatus === 'idle' || pairingStatus === 'success') && { color: '#4CAF50' },
-                      pairingStatus === 'error' && styles.pairModulesButtonTextError,
-                    ]}>
-                      {pairingStatus === 'idle' && 'Pair'}
-                      {pairingStatus === 'loading' && 'Pairing...'}
-                      {pairingStatus === 'success' && '✓ OK'}
-                      {pairingStatus === 'error' && '✗ Error'}
-                    </Text>
+                    <Text style={styles.pairingButtonText}>Pair Modules</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ marginTop: 10, alignItems: 'center' }}
+                    onPress={async () => {
+                      await apiService.startBluetooth();
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Image
+                      source={require('./assets/bluetooth.png')}
+                      style={styles.bluetoothImage}
+                    />
+                    <Text style={styles.pairModulesButtonText}>Bluetooth</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-                </View>,
-              // Screen 1: Control Panel
-              <View
-                key="control"
-                style={styles.screenContainer}
-                pointerEvents="box-none"
-              >
-                <View
-                  style={styles.container}
-                  pointerEvents="auto"
-                >
-                  <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
-                </View>
-              </View>,
-              // Screen 2: History
-              <View
-                key="history"
-                style={styles.screenContainer}
-                pointerEvents="box-none"
-              >
-                <View
-                  style={styles.container}
-                  pointerEvents="auto"
-                >
-                  <HistoryPanel />
-                </View>
-              </View>,
-            ]}
-            />
-          </ImageBackground>
-        )}
+            </View>
+          )}
+          {currentScreen === 1 && (
+            <View style={styles.screenContainer}>
+              <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
+            </View>
+          )}
+          {currentScreen === 2 && (
+            <View style={styles.screenContainer}>
+              <HistoryPanel />
+            </View>
+          )}
         </View>
       </SafeAreaView>
     </ImageBackground>

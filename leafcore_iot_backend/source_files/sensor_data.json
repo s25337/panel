@@ -1,7 +1,6 @@
 {
-  "timestamp": "2026-01-13T19:05:55.359012",
-  "temperature": 21.3,
-  "humidity": 55.9,
-  "brightness": 43.9,
-  "device_id": "unknown"
+    "temperature": 18.1,
+    "humidity": 65.04,
+    "brightness": 0.66,
+    "timestamp": "2026-01-14T01:14:01.503206"
 }

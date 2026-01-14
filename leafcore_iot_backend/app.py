@@ -1,195 +1,301 @@
-# app.py - Refactored main application
+# app.py - Leafcore IoT Backend
 """
-Leafcore IoT Backend - Flask application
+Leafcore IoT Backend - Full integration of iot-ref with API endpoints
+Includes GPIO control, sensor reading, Bluetooth WiFi config
 """
+import time
+import threading
+import json
+import os
+import datetime
 import logging
-from flask import Flask, render_template
+import sys
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 
-from src.devices import DeviceManager
-from src.services import SettingsService, ControlService, SensorService, BluetoothService, SensorReadingService, ExternalTerriumService, GPIOAutomationService
-from src.api import create_api_routes
+# Gpiod for GPIO control
+try:
+    import gpiod
+    from gpiod.line import Direction, Value
+    GPIOD_AVAILABLE = True
+except ImportError:
+    GPIOD_AVAILABLE = False
+
+# Local modules
+sys_path = os.path.dirname(__file__)
+if sys_path not in sys.path:
+    sys.path.insert(0, sys_path)
+
+from src.bluetooth_service import BluetoothService
+from src.sensor_service import SensorService
+from src.gpio_manager import apply_automation_rules
+from src.api_frontend import api_frontend
+from src.api_external import api_external
+
+# Load config
+try:
+    import config
+except ImportError:
+    # Fallback config
+    class config:
+        CHIP_PATH = "/dev/gpiochip0"
+        FAN_PIN = 271
+        PUMP_PIN = 268
+        SPRINKLER_PIN = 258
+        HEATING_MAT_PIN = 272
+        LIGHT_PIN = 269
+        SCL_PIN = 263
+        SDA_PIN = 264
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
+
+PWM_FREQUENCY = 100
+PWM_PERIOD = 1.0 / PWM_FREQUENCY
+
+# File paths
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sensor_data_file = os.path.join(current_dir, "source_files", "sensor_data.json")
+settings_file = os.path.join(current_dir, "source_files", "settings_config.json")
+devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json")
 
 
-def create_app(use_hardware: bool = True) -> Flask:
-    """Application factory"""
-    app = Flask(__name__)
-    app.config['ENV'] = 'production'  # Disable Flask debug mode and auto-reloading
+with open(devices_info_file, 'r') as f:
+    devices_info = json.load(f)
+
+
+
+class GPIOController(threading.Thread):
     
-    # Configure CORS
-    CORS(app, resources={
-        r"/api/*": {
-            "origins": ["*"],
-            "methods": ["GET", "POST", "OPTIONS"],
-            "allow_headers": ["Content-Type"]
-        }
-    })
-    
-    # Initialize services
-    device_manager = DeviceManager(use_hardware=use_hardware)
-    
-    # Initialize SensorReadingService FIRST (it's the single source of truth)
-    sensor_reading_service = SensorReadingService(device_manager, app_dir=".")
-    
-    # SensorService reads from SensorReadingService cache
-    sensor_service = SensorService(device_manager, sensor_reading_service=sensor_reading_service)
-    
-    control_service = ControlService(device_manager, None)  # Temporarily None
-    external_terrarium_service = ExternalTerriumService(
-        None,  # Will be set later
-        sensor_service=sensor_service,
-        sensor_reading_service=sensor_reading_service
-    )
-    
-    # Initialize SettingsService with ExternalTerriumService reference
-    settings_service = SettingsService(
-        settings_file="source_files/settings_config.json",
-        manual_settings_file="source_files/manual_settings.json",
-        external_terrarium_service=external_terrarium_service
-    )
-    
-    # NOW set the settings_service references (after SettingsService is created)
-    control_service.settings_service = settings_service
-    external_terrarium_service.settings_service = settings_service
-    
-    # Initialize GPIO automation service (for hardware backend auto-mode control)
-    gpio_automation_service = None
-    if use_hardware:
-        gpio_automation_service = GPIOAutomationService(device_manager, control_service, settings_service, 
-                                                        sensor_reading_service)
-    
-    # Initialize Bluetooth service for Wi-Fi configuration
-    bluetooth_service = BluetoothService(
-        devices_info_file="source_files/devices_info.json",
-        settings_service=settings_service
-    )
-    if use_hardware:
-        bluetooth_service.start()
-    
-    # Start sensor reading service (for continuous sensor monitoring and cloud posting)
-    sensor_reading_service.start()
-    
-    # Start watering automation (checks at 12:00 daily)
-    control_service.start_watering_automation()
-    
-    # Start GPIO automation service (hardware-specific auto-mode control)
-    if gpio_automation_service:
-        gpio_automation_service.start()
-    
-    logger.info("✅ All automation services started")
-    
-    # Start external terrarium server sync (every 5 minutes)
-    logger.info("🚀 Starting background sync service...")
-    print("[DEBUG] About to call start_background_sync()")
-    external_terrarium_service.start_background_sync(group_id="group-A1")
-    print("[DEBUG] start_background_sync() called")
-    logger.info("🚀 Background sync service started")
-    
-    # Send initial history file and sensor data on startup
-    import threading
-    def send_startup_data():
-        """
-        Send settings and sensor data on startup
-        """
-        import time
-        print("[STARTUP] Thread started - Waiting 25 seconds for initial sensor readings...")
-        logger.info("[STARTUP] Thread started - Waiting 25 seconds for initial sensor readings...")
-        time.sleep(25)  # Wait 25s for at least one sensor read (interval=20s)
+    def __init__(self):
+        super().__init__()
+        self.running = True
+        self.daemon = True
+        self.gpio_available = GPIOD_AVAILABLE
+
+    def run(self):
+        print("GPIO Started")
         
-        print("[STARTUP] 25 seconds passed - Sending current settings...")
-        logger.info("[STARTUP] 25 seconds passed - Sending current settings...")
+        # Mock mode if gpiod not available
+        if not self.gpio_available:
+            print("⚠️  Running in MOCK MODE (gpiod not available)")
+            self._run_mock()
+            return
+        
         try:
-            # Send current settings configuration to /updateSetting endpoint
-            current_settings = settings_service.get_settings()
-            print(f"[STARTUP] Current settings before send: {current_settings}")
-            logger.info(f"[STARTUP] Current settings before send: {current_settings}")
-            result = external_terrarium_service.send_settings(current_settings, group_id="group-A1")
-            print(f"[STARTUP] Settings send result: {result}")
-            logger.info(f"[STARTUP] Settings send result: {result}")
+            with gpiod.request_lines(
+                path=config.CHIP_PATH,
+                consumer="gpio_service",
+                config={
+                    config.FAN_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    config.PUMP_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    config.LIGHT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                },
+            ) as request:
+                self._run_gpio(request)
+
         except Exception as e:
-            print(f"[STARTUP] Error sending settings: {e}")
-            logger.error(f"[STARTUP] Error sending settings: {e}")
-        
-        print("[STARTUP] Sending sensor data (last 5 minutes)...")
-        logger.info("[STARTUP] Sending sensor data (last 5 minutes)...")
-        try:
-            # Send last 5 minutes of sensor data
-            result = external_terrarium_service.send_sensor_data_by_group(group_id="group-A1")
-            print(f"[STARTUP] Sensor data send result: {result}")
-            logger.info(f"[STARTUP] Sensor data send result: {result}")
-        except Exception as e:
-            print(f"[STARTUP] Error sending sensor data: {e}")
-            logger.error(f"[STARTUP] Error sending sensor data: {e}")
-        
-        print("[STARTUP] All startup tasks completed!")
-        logger.info("[STARTUP] All startup tasks completed!")
+            print(f"GPIO Thread Crashed: {e}")
+            logger.error(f"GPIO Thread Crashed: {e}")
+            self._run_mock()
+
+    def _run_gpio(self, request):
+        """GPIO loop with actual hardware"""
+        while self.running:
+            try:
+                # Czytaj devices_info z pliku co pętlę
+                with open(devices_info_file, 'r') as f:
+                    devices_info = json.load(f)
+                
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                
+                with open(sensor_data_file, 'r') as f:
+                    sensor_list = json.load(f)
+                
+                if sensor_list:
+                    newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
+                    
+                    # Apply automation rules
+                    apply_automation_rules(devices_info, newest, settings)
+                    
+                    # Jeśli pompa ON, zapisz czas włączenia
+                    if devices_info.get("pump", {}).get("state") == "on":
+                        if not devices_info.get("pump", {}).get("turned_on_at"):
+                            devices_info["pump"]["turned_on_at"] = time.time()
+                    else:
+                        # Pompa OFF, usuń timestamp
+                        if "turned_on_at" in devices_info.get("pump", {}):
+                            del devices_info["pump"]["turned_on_at"]
+                    
+                    # Sprawdź czy pompa ma być wyłączona po water_seconds
+                    if devices_info.get("pump", {}).get("turned_on_at"):
+                        water_seconds = settings.get('water_seconds', 30)
+                        elapsed = time.time() - devices_info["pump"]["turned_on_at"]
+                        if elapsed > water_seconds:
+                            devices_info["pump"]["state"] = "off"
+                            del devices_info["pump"]["turned_on_at"]
+                    
+                    # Save updated device states
+                    with open(devices_info_file, 'w') as f:
+                        json.dump(devices_info, f, indent=2)
+            
+            except Exception as e:
+                print(f"Automation error: {e}")
+                logger.error(f"Automation error: {e}")
+            
+            # Apply GPIO states
+            try:
+                fan_val = Value.ACTIVE if devices_info.get("fan", {}).get("state") == "on" else Value.INACTIVE
+                request.set_value(config.FAN_PIN, fan_val)
+
+                pump_val = Value.ACTIVE if devices_info.get("pump", {}).get("state") == "on" else Value.INACTIVE
+                request.set_value(config.PUMP_PIN, pump_val)
+
+                sprinkler_val = Value.ACTIVE if devices_info.get("sprinkler", {}).get("state") == "on" else Value.INACTIVE
+                request.set_value(config.SPRINKLER_PIN, sprinkler_val)
+
+                heat_val = Value.ACTIVE if devices_info.get("heat_mat", {}).get("state") == "on" else Value.INACTIVE
+                request.set_value(config.HEATING_MAT_PIN, heat_val)
+
+                light_conf = devices_info.get("light", {})
+                if light_conf.get("state") == "on":
+                    intensity = light_conf.get("intensity", 1.0)
+                    if intensity >= 1.0:
+                        request.set_value(config.LIGHT_PIN, Value.ACTIVE)
+                        time.sleep(PWM_PERIOD)
+                    elif intensity <= 0.0:
+                        request.set_value(config.LIGHT_PIN, Value.INACTIVE)
+                        time.sleep(PWM_PERIOD)
+                    else:
+                        on_time = PWM_PERIOD * intensity
+                        off_time = PWM_PERIOD * (1.0 - intensity)
+                        request.set_value(config.LIGHT_PIN, Value.ACTIVE)
+                        time.sleep(on_time)
+                        request.set_value(config.LIGHT_PIN, Value.INACTIVE)
+                        time.sleep(off_time)
+                else:
+                    request.set_value(config.LIGHT_PIN, Value.INACTIVE)
+                    time.sleep(0.01)
+            except Exception as e:
+                logger.error(f"GPIO error: {e}")
+                time.sleep(0.1)
+
+    def _run_mock(self):
+        """Mock loop without gpiod"""
+        while self.running:
+            try:
+                # Czytaj devices_info z pliku co pętlę
+                with open(devices_info_file, 'r') as f:
+                    devices_info = json.load(f)
+                
+                with open(settings_file, 'r') as f:
+                    settings = json.load(f)
+                
+                with open(sensor_data_file, 'r') as f:
+                    sensor_list = json.load(f)
+                
+                if sensor_list:
+                    newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
+                    
+                    # Apply automation rules
+                    apply_automation_rules(devices_info, newest, settings)
+                    
+                    # Jeśli pompa ON, zapisz czas włączenia
+                    if devices_info.get("pump", {}).get("state") == "on":
+                        if not devices_info.get("pump", {}).get("turned_on_at"):
+                            devices_info["pump"]["turned_on_at"] = time.time()
+                    else:
+                        # Pompa OFF, usuń timestamp
+                        if "turned_on_at" in devices_info.get("pump", {}):
+                            del devices_info["pump"]["turned_on_at"]
+                    
+                    # Sprawdź czy pompa ma być wyłączona po water_seconds
+                    if devices_info.get("pump", {}).get("turned_on_at"):
+                        water_seconds = settings.get('water_seconds', 30)
+                        elapsed = time.time() - devices_info["pump"]["turned_on_at"]
+                        if elapsed > water_seconds:
+                            devices_info["pump"]["state"] = "off"
+                            del devices_info["pump"]["turned_on_at"]
+                    
+                    # Save updated device states
+                    with open(devices_info_file, 'w') as f:
+                        json.dump(devices_info, f, indent=2)
+            
+            except Exception as e:
+                logger.error(f"Mock automation error: {e}")
+            
+            time.sleep(1)  # Mock loop slower than GPIO loop
+
+
+# ========== FLASK APP ==========
+
+app = Flask(__name__)
+app.config['CURRENT_DIR'] = current_dir
+app.config['DEVICES_INFO'] = devices_info
+
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["*"],
+        "methods": ["GET", "POST", "OPTIONS"],
+        "allow_headers": ["Content-Type"]
+    }
+})
+
+# Register blueprints
+app.register_blueprint(api_frontend)
+app.register_blueprint(api_external)
+
+# Start GPIO thread
+gpio_thread = GPIOController()
+gpio_thread.start()
+print("✓ GPIO Controller thread started")
+
+# Start Sensor Service thread
+sensor_thread = SensorService(
+    chip_path=config.CHIP_PATH,
+    scl_pin=config.SCL_PIN,
+    sda_pin=config.SDA_PIN,
+    output_file=sensor_data_file,
+    poll_interval=2.0
+)
+sensor_thread.start()
+print("✓ Sensor Service thread started")
+
+# Start Bluetooth Service thread (optional, can be disabled)
+try:
+    bluetooth_thread = BluetoothService(devices_info_file)
+    bluetooth_thread.start()
+    print("✓ Bluetooth Service thread started")
+except Exception as e:
+    print(f"⚠️  Bluetooth Service failed to start: {e}")
+    bluetooth_thread = None
+
+# ========== SHUTDOWN ==========
+
+def shutdown():
+    logger.info("Shutting down services...")
     
-    threading.Thread(target=send_startup_data, daemon=False).start()
+    # Stop GPIO thread
+    gpio_thread.running = False
+    gpio_thread.join(timeout=2)
     
-    # Initialize devices from saved manual settings on startup
-    manual_settings = settings_service.get_manual_settings()
-    if manual_settings.get('is_manual', False):
-        # Restore device states from manual settings
-        if manual_settings.get('fan'):
-            device_manager.set_fan(True)
-        if manual_settings.get('light'):
-            light_state = manual_settings.get('light')
-            if isinstance(light_state, bool):
-                device_manager.set_light(100.0 if light_state else 0.0)
-            else:
-                device_manager.set_light(float(light_state))
-        if manual_settings.get('pump'):
-            device_manager.set_pump(True)
-        if manual_settings.get('heater'):
-            device_manager.set_heater(True)
-        if manual_settings.get('sprinkler'):
-            device_manager.set_sprinkler(True)
+    # Stop Sensor thread
+    sensor_thread.running = False
+    sensor_thread.join(timeout=2)
     
-    # Register API routes
-    api_blueprint = create_api_routes(
-        device_manager=device_manager,
-        settings_service=settings_service,
-        control_service=control_service,
-        sensor_service=sensor_service,
-        sensor_reading_service=sensor_reading_service,
-        external_terrarium_service=external_terrarium_service,
-        bluetooth_service=bluetooth_service
-    )
-    app.register_blueprint(api_blueprint)
+    # Stop Bluetooth thread if running
+    if bluetooth_thread:
+        bluetooth_thread.stop()
+        bluetooth_thread.join(timeout=2)
     
-    # Web routes
-    @app.route("/")
-    def index():
-        """Serve index.html"""
-        temp, hum = device_manager.read_sensor()
-        return render_template("index.html", temperature=temp, humidity=hum)
-    
-    # Health check
-    @app.route("/health", methods=["GET"])
-    def health():
-        """Health check endpoint"""
-        return {"status": "OK"}, 200
-    
-    # Shutdown handler
-    def shutdown_handler():
-        """Stop background services on shutdown"""
-        logger.info("🛑 Shutting down...")
-        sensor_reading_service.stop()
-        control_service.stop_watering_automation()
-        if gpio_automation_service:
-            gpio_automation_service.stop()
-        external_terrarium_service.stop_background_sync()
-    
-    import atexit
-    atexit.register(shutdown_handler)
-    
-    return app
+    logger.info("All services stopped")
 
 
 if __name__ == "__main__":
-    app = create_app(use_hardware=True)  # Use real hardware backend by default
-    # Enable debug for better error messages, but disable auto-reload to keep background threads alive
-    app.run(host="0.0.0.0", port=5000, debug=True, use_reloader=False)
+    import atexit
+    atexit.register(shutdown)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
 
