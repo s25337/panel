@@ -8,6 +8,8 @@ import { FontFamily, scale } from '../GlobalStyles';
 
 const { width, height } = Dimensions.get('window');
 
+const cachedSettings = { target_temp: 25, target_hum: 60, light_intensity: 50, light_on: "off", heat_mat_on: "off", fan_on: "off" };
+
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
   gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
@@ -20,10 +22,29 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
-  const [lightIntensity, setLightIntensity] = useState(50);
+  const [lightIntensity, setLightIntensity] = useState(null);;
   const [plantName, setPlantName] = useState('');
   const [settingId, setSettingId] = useState('');
   const [loading, setLoading] = useState({});
+<<<<<<< Updated upstream
+=======
+  const [bluetoothLoading, setBluetoothLoading] = useState(false);
+  const [bluetoothConnected, setBluetoothConnected] = useState(false);
+  const handleBluetoothConnect = async () => {
+    setBluetoothLoading(true);
+    try {
+      const response = await apiService.startBluetooth();
+      if (response.status === 'ok') {
+        setBluetoothConnected(true);
+        setBluetoothLoading(false);
+      } else {
+        setBluetoothLoading(false);
+      }
+    } catch (error) {
+      setBluetoothLoading(false);
+    }
+  };
+>>>>>>> Stashed changes
 
   // Fetch initial status
   useEffect(() => {
@@ -32,20 +53,51 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     fetchCurrentSettings();
   }, []);
 
+   useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const response = await fetch('/settings_config.json');
+        if (!response.ok) {
+          throw new Error('Failed to fetch settings');
+        }
+        const data = await response.json();
+        cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
+        console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
+        cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
+        console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
+        cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
+        console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
+        
+        setTargetTemp(cachedSettings.target_temp);
+        setTargetHumidity(cachedSettings.target_hum);
+        setLightIntensity(cachedSettings.light_intensity);
+      } catch (error) {
+        console.error('Error loading settings:', error);
+      }
+    };  loadSettings();
+}, []);
+
   const fetchLightIntensity = async () => {
     try {
       const settings = await apiService.getSettings();
-      setLightIntensity(settings.light_intensity || 50);
+      if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
+      setLightIntensity(settings.light_intensity);
+    }
+    else {
+      console.warn('Light intensity not found in settings, using cached value.');
+      setLightIntensity((prev) => prev || cachedSettings.light_intensity);
+    }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
+      setLightIntensity((prev) => prev || cachedSettings.light_intensity);
     }
   };
 
   const fetchCurrentSettings = async () => {
     try {
       const settings = await apiService.getSettings();
-      setSettingId(settings.setting_id || '');
-      setPlantName(settings.plant_name || '');
+      setSettingId(settings.setting_id || 'No plant set');
+      setPlantName(settings.plant_name || '-');
     } catch (error) {
       console.error('Error fetching current settings:', error);
     }
@@ -56,9 +108,27 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       const status = await apiService.getStatus();
       const devices = status.devices || {};
       setManualMode(devices.manual_mode === true);
+<<<<<<< Updated upstream
       setLightOn(devices.light === true || devices.light === 1 || devices.light?.state === 'on');
       setHeaterOn(devices.heater === true || devices.heater === 1 || devices.heater?.state === 'on');
       setFanOn(devices.fan === true || devices.fan === 1 || devices.fan?.state === 'on');
+=======
+      if(devices.light?.state == "on"){
+        setLightOn(true);}
+        else{
+          setLightOn((prev) => prev || cachedSettings.light_on);
+        }
+         if(devices.heat_mat?.state == "on"){
+        setHeaterOn(true);}
+        else{
+          setHeaterOn((prev) => prev || cachedSettings.heater_on);
+        }
+       if(devices.fan?.state == "on"){
+        setFanOn(true);}
+        else{
+          setFanOn((prev) => prev || cachedSettings.fan_on);
+        }
+>>>>>>> Stashed changes
       // Pompa i sprinkler obsługiwane przez UI
     } catch (error) {
       console.error('Error fetching status:', error);
@@ -249,7 +319,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingLabel: {
+<<<<<<< Updated upstream
     fontSize: 10,
+=======
+    fontSize: 14,
+>>>>>>> Stashed changes
     fontWeight: '500',
     fontFamily: FontFamily.workSansRegular,
     color: '#888',

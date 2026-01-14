@@ -7,21 +7,30 @@ const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'
 const DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
-  const [selectedDays, setSelectedDays] = useState(['MONDAY', 'WEDNESDAY', 'FRIDAY']);
+  const [selectedDays, setSelectedDays] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const cachedDays = { watering_days: ['MONDAY', 'WEDNESDAY', 'FRIDAY'] };
 
   // Pobierz aktualne dni podlewania
   useEffect(() => {
     const fetchWateringDays = async () => {
       try {
-        const settings = await apiService.getSettings();
+        const response = await fetch('/settings_config.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      const data = await response.json();
         // Zamień numery dni na nazwy (jeśli trzeba)
         const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
-        let selected = settings.watering_days;
+        let selected = data.watering_days || [];
         if (selected && typeof selected[0] === 'number') {
           selected = selected.map(d => DAYS[(d-1)%7]);
         }
-        setSelectedDays(selected || ['MONDAY', 'WEDNESDAY', 'FRIDAY']);
+        cachedDays.watering_days = selected || cachedDays.watering_days;
+      console.log('cachedDays.watering_days updated:', cachedDays.watering_days);
+      console.log('Fetched watering days:', selected);
+      setSelectedDays(selected || cachedDays.watering_days);
+       
       } catch (error) {
         console.error('Error fetching watering days:', error);
       } finally {
@@ -31,6 +40,7 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
 
     fetchWateringDays();
   }, []);
+
 
   const toggleDay = async (day) => {
     let newDays;

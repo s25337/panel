@@ -26,6 +26,7 @@ const RESPONSIVE_SIZES = {
   screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
   topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
 };
+const cachedSettings = { target_temp: 25, target_hum: 60, light_intensity: 50 };
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -67,7 +68,30 @@ export default function App() {
 
     loadFonts();
   }, []);
+useEffect(() => {
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/settings_config.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      const data = await response.json();
+      cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
+      console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
+      cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
+      console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
+      cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
+      console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
+      
+      setTargetTemp(cachedSettings.target_temp);
+      setTargetHumidity(cachedSettings.target_hum);
+      setLightIntensity(cachedSettings.light_intensity);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
 
+<<<<<<< Updated upstream
  useEffect(() => {
   const loadSettings = async () => {
     try {
@@ -87,6 +111,8 @@ export default function App() {
     }
   };
 
+=======
+>>>>>>> Stashed changes
   loadSettings();
 }, []);
   const fetchSensors = async () => {
@@ -104,13 +130,20 @@ export default function App() {
   const fetchLightIntensity = async () => {
     try {
       const settings = await apiService.getSettings();
-      setLightIntensity(settings.light_intensity || 50);
+      if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
+      setLightIntensity(settings.light_intensity);
+    }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
+      setLightIntensity((prev) => prev || cachedSettings.light_intensity);
     }
   };
 
+<<<<<<< Updated upstream
    const fetchSettings = async () => {
+=======
+ const fetchSettings = async () => {
+>>>>>>> Stashed changes
   try {
     const data = await apiService.getSettings();
     if (data.target_temp !== undefined && data.target_temp !== null) {
@@ -119,14 +152,24 @@ export default function App() {
     if (data.target_hum !== undefined && data.target_hum !== null) {
       setTargetHumidity(data.target_hum);
     }
+<<<<<<< Updated upstream
   } catch (error) {
     console.error('Error fetching settings from API:', error);
     // Fallback to cached settings only if the state is not already set
+=======
+    
+  } catch (error) {
+    console.error('Error fetching settings from API:', error);
+>>>>>>> Stashed changes
     setTargetTemp((prev) => prev || cachedSettings.target_temp);
     setTargetHumidity((prev) => prev || cachedSettings.target_hum);
   }
 };
+<<<<<<< Updated upstream
      
+=======
+
+>>>>>>> Stashed changes
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
     if (data && data.interval_seconds) {
@@ -187,7 +230,11 @@ export default function App() {
   // Refetchuj settings gdy wrócisz na main screen (screen 0)
   useEffect(() => {
     if (currentScreen === 0) {
+<<<<<<< Updated upstream
      // fetchSettings();
+=======
+  //    fetchSettings();
+>>>>>>> Stashed changes
     }
   }, [currentScreen]);
 
