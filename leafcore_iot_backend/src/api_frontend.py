@@ -96,7 +96,7 @@ def update_settings():
     # Automatycznie wywołaj endpoint od aktualizacji ustawień w backendzie zuzi
     try:
         from requests import post
-        backend_url = "http://localhost:5000/updateSetting"
+        backend_url = "http://localhost:5000/api/updateSetting"
         terrarium_response = post(backend_url, headers={"Content-Type": "application/json"}, timeout=5)
         print(f"Wywołano /updateSetting, status: {terrarium_response.status_code}, body: {terrarium_response.text}")
     except Exception as e:
