@@ -47,16 +47,12 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
     newDays = DAYS.filter(d => newDays.includes(d));
 
     try {
-      const response = await fetch('http://localhost:5000/api/watering-days', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ watering_days: newDays })
-      });
-
-      if (response.ok) {
-        setSelectedDays(newDays);
-        onDaysChange(newDays);
-      }
+      // Zamień nazwy dni na numery (1=MONDAY, 7=SUNDAY)
+      const DAY_NUMS = { MONDAY: 1, TUESDAY: 2, WEDNESDAY: 3, THURSDAY: 4, FRIDAY: 5, SATURDAY: 6, SUNDAY: 7 };
+      const daysAsNums = newDays.map(d => DAY_NUMS[d]);
+      await apiService.updateSettings({ watering_days: daysAsNums });
+      setSelectedDays(newDays);
+      onDaysChange(newDays);
     } catch (error) {
       console.error('Error updating watering days:', error);
     }

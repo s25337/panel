@@ -1,3 +1,7 @@
+  /**
+   * Wywołuje podlewanie (uruchamia pompę na water_seconds)
+   */
+
 // services/apiService.js
 // Usługa do komunikacji z backend'em IoT
 
@@ -31,7 +35,19 @@ const apiService = {
       return { temperature: null, humidity: null };
     }
   },
-
+  async watering() {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/watering`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to trigger watering');
+      return await response.json();
+    } catch (error) {
+      console.error('Error triggering watering:', error);
+      return { status: 'error' };
+    }
+  },
   /**
    * Pobiera status wszystkich urządzeń
    */
@@ -71,6 +87,8 @@ const apiService = {
       return { status: 'error' };
     }
   },
+
+  
 
   /**
    * Steruje konkretnym urządzeniem

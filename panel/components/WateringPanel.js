@@ -92,22 +92,15 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
       const settings = await apiService.getSettings();
       const waterSeconds = settings.water_seconds || 1;
       
-      // Włącz pompę
+      // Włącz podlewanie przez /api/watering
       try {
-        await apiService.toggleDevice('pump', 'on');
+        await apiService.watering();
       } catch (err) {
-        console.error('Error turning on pump:', err);
+        console.error('Error triggering watering:', err);
       }
       
       // Czekaj określony czas
       await new Promise(resolve => setTimeout(resolve, waterSeconds * 1000));
-      
-      // Wyłącz pompę
-      try {
-        await apiService.toggleDevice('pump', 'off');
-      } catch (err) {
-        console.error('Error turning off pump:', err);
-      }
       
       // Odśwież timer
       try {
@@ -127,12 +120,6 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
       setHasTriggeredWater(false);
     } catch (error) {
       console.error('Failed to water:', error);
-      // Upewnij się że pompa jest wyłączona nawet jeśli coś poszło nie tak
-      try {
-        await apiService.toggleDevice('pump', 'off');
-      } catch (err) {
-        console.error('Error turning off pump in catch block:', err);
-      }
       setSliderValue(0);
       setHasTriggeredWater(false);
     }
