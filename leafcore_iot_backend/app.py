@@ -29,8 +29,10 @@ if sys_path not in sys.path:
 from src.bluetooth_service import BluetoothService
 from src.sensor_service import SensorService
 from src.gpio_manager import apply_automation_rules
+
 from src.api_frontend import api_frontend
 from src.api_external import api_external
+from src.api_webhooks import api_webhooks
 
 # Load config
 try:
@@ -247,6 +249,7 @@ CORS(app, resources={
 # Register blueprints
 app.register_blueprint(api_frontend)
 app.register_blueprint(api_external)
+app.register_blueprint(api_webhooks)
 
 # Start GPIO thread
 gpio_thread = GPIOController()

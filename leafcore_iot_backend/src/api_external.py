@@ -1,4 +1,11 @@
 
+# Importuj i uruchom wątek z osobnego pliku
+try:
+    from src.periodic_data_sender import start_periodic_sender
+    start_periodic_sender()
+except Exception as e:
+    print(f"[dataTerrarium] Nie udało się uruchomić wątku wysyłki: {e}")
+
 from flask import Blueprint, jsonify, request, current_app
 import json
 import os
