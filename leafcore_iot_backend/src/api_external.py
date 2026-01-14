@@ -11,7 +11,7 @@ ENDPOINT_ADD_MODULE = f"{BASE_URL}/module"
 ENDPOINT_SEND_DATA = f"{BASE_URL}/dataTerrarium"
 ENDPOINT_UPDATE_SETTING = f"{BASE_URL}/updateSetting"
 
-api_external = Blueprint('api_external', __name__)
+api_external = Blueprint('api_external', __name__, url_prefix='/api')
 
 @api_external.route('/module', methods=['POST'])
 def add_module():

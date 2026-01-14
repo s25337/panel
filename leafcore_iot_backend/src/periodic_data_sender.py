@@ -3,9 +3,6 @@ import threading
 import time
 import os
 import json
-import requests
-from flask import current_app
-from flask import Flask
 
 BASE_URL = "http://31.11.238.45:8081/terrarium"
 
