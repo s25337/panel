@@ -73,7 +73,7 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       const devices = status.devices || {};
       setManualMode(devices.manual_mode === true);
       setLightOn(devices.light === true || devices.light === 1 || devices.light?.state === 'on');
-      setHeaterOn(devices.heater === true || devices.heater === 1 || devices.heater?.state === 'on');
+      setHeaterOn(devices.heat_mat === true || devices.heat_mat === 1 || devices.heat_mat?.state === 'on');
       setFanOn(devices.fan === true || devices.fan === 1 || devices.fan?.state === 'on');
       // Pompa i sprinkler obsługiwane przez UI
     } catch (error) {
