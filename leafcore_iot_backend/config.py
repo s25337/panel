@@ -7,7 +7,7 @@ GPIO pins and constants for Leafcore IoT Backend
 FAN_PIN = 271
 LIGHT_PIN = 269
 PUMP_PIN = 268
-HEATER_PIN = 272
+HEAT_MAT_PIN = 272
 SPRINKLER_PIN = 258
 
 # I2C pins for Software I2C Bridge (AHT10 + VEML7700)
@@ -21,7 +21,7 @@ COMPONENT_MAP = {
     "fan": FAN_PIN,
     "pump": PUMP_PIN,
     "sprinkler": SPRINKLER_PIN,
-    "heater": HEATER_PIN,
+    "heat_mat": HEAT_MAT_PIN,
     "light": LIGHT_PIN
 }
 

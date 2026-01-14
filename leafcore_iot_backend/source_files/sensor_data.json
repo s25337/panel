@@ -1,13 +1,6 @@
 {
-<<<<<<< Updated upstream
-    "temperature": 19.57,
-    "humidity": 52.53,
-    "brightness": 0.44,
-    "timestamp": "2026-01-14T18:54:49.579169"
-=======
-    "temperature": 20.32,
-    "humidity": 61.79,
-    "brightness": 0.81,
-    "timestamp": "2026-01-14T20:33:04.009705"
->>>>>>> Stashed changes
+    "temperature": 19.87,
+    "humidity": 50.44,
+    "brightness": 0.93,
+    "timestamp": "2026-01-14T21:39:43.815180"
 }

@@ -1,33 +1,17 @@
 {
   "setting_id": "group-A1",
   "plant_name": "six seven",
-<<<<<<< Updated upstream
-  "target_temp": 28,
-  "target_hum": 48,
-  "light_intensity": 43,
-  "start_hour": 7,
-  "end_hour": 18,
-=======
   "target_temp": 34,
   "target_hum": 67,
   "light_intensity": 66,
   "start_hour": 12,
   "end_hour": 13,
->>>>>>> Stashed changes
   "watering_mode": "standard",
   "water_seconds": 1,
   "watering_days": [
     1,
-<<<<<<< Updated upstream
-    3,
-    5,
-    6,
-    7
-=======
     2,
     3,
     4,
-    5
->>>>>>> Stashed changes
-  ]
+    5  ]
 }

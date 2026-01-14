@@ -1,9 +1,11 @@
 [
     {
-<<<<<<< Updated upstream
-        "temperature": 18.48,
-        "humidity": 62.26,
-=======
+        "temperature": 20.5,
+        "humidity": 52.07,
+        "brightness": 0.87,
+        "timestamp": "2026-01-14T21:39:39.808108"
+    },
+    {
         "temperature": 19.34,
         "humidity": 59.96,
         "brightness": 0.72,
@@ -216,7 +218,6 @@
     {
         "temperature": 21.24,
         "humidity": 52.88,
->>>>>>> Stashed changes
         "brightness": 0.69,
         "timestamp": "2026-01-14T18:54:37.566841"
     },
@@ -275,7 +276,6 @@
         "timestamp": "2026-01-14T18:51:37.393857"
     },
     {
-<<<<<<< Updated upstream
         "temperature": 20.63,
         "humidity": 62.74,
         "brightness": 0.92,
@@ -298,245 +298,5 @@
         "humidity": 59.27,
         "brightness": 0.33,
         "timestamp": "2026-01-14T18:05:06.702508"
-    },
-    {
-        "temperature": 21.52,
-        "humidity": 67.0,
-        "brightness": 0.58,
-        "timestamp": "2026-01-14T18:04:46.685805"
-    },
-    {
-        "temperature": 21.55,
-        "humidity": 51.44,
-        "brightness": 0.83,
-        "timestamp": "2026-01-14T18:04:26.668319"
-    },
-    {
-        "temperature": 20.46,
-        "humidity": 58.71,
-        "brightness": 0.5,
-        "timestamp": "2026-01-14T18:04:06.652091"
-    },
-    {
-        "temperature": 20.81,
-        "humidity": 63.34,
-        "brightness": 0.58,
-        "timestamp": "2026-01-14T18:03:46.634413"
-    },
-    {
-        "temperature": 18.78,
-        "humidity": 68.78,
-        "brightness": 0.91,
-        "timestamp": "2026-01-14T18:03:26.616713"
-    },
-    {
-        "temperature": 20.37,
-        "humidity": 55.43,
-        "brightness": 0.98,
-        "timestamp": "2026-01-14T18:03:06.598155"
-    },
-    {
-        "temperature": 20.89,
-        "humidity": 69.45,
-        "brightness": 0.44,
-        "timestamp": "2026-01-14T18:02:46.579556"
-    },
-    {
-        "temperature": 20.23,
-        "humidity": 62.01,
-        "brightness": 0.3,
-        "timestamp": "2026-01-14T18:02:26.561927"
-    },
-    {
-        "temperature": 21.68,
-        "humidity": 55.37,
-        "brightness": 0.56,
-        "timestamp": "2026-01-14T18:02:06.543604"
-    },
-    {
-        "temperature": 18.48,
-        "humidity": 58.12,
-        "brightness": 0.8,
-        "timestamp": "2026-01-14T18:01:46.525852"
-    },
-    {
-        "temperature": 21.77,
-        "humidity": 66.83,
-        "brightness": 0.89,
-        "timestamp": "2026-01-14T18:01:26.505600"
-    },
-    {
-        "temperature": 21.31,
-        "humidity": 63.02,
-        "brightness": 0.72,
-        "timestamp": "2026-01-14T18:01:06.487435"
-    },
-    {
-        "temperature": 18.46,
-        "humidity": 62.99,
-        "brightness": 0.57,
-        "timestamp": "2026-01-14T18:00:46.469033"
-    },
-    {
-        "temperature": 22.0,
-        "humidity": 66.78,
-        "brightness": 0.39,
-        "timestamp": "2026-01-14T18:00:26.450845"
-    },
-    {
-        "temperature": 18.85,
-        "humidity": 56.73,
-        "brightness": 0.44,
-        "timestamp": "2026-01-14T18:00:06.433545"
-    },
-    {
-        "temperature": 20.92,
-        "humidity": 55.93,
-        "brightness": 0.43,
-        "timestamp": "2026-01-14T17:59:46.415937"
-    },
-    {
-        "temperature": 18.37,
-        "humidity": 56.52,
-        "brightness": 0.65,
-        "timestamp": "2026-01-14T17:59:26.397136"
-    },
-    {
-        "temperature": 18.42,
-        "humidity": 53.38,
-        "brightness": 0.58,
-        "timestamp": "2026-01-14T17:59:06.378120"
-    },
-    {
-        "temperature": 20.66,
-        "humidity": 53.35,
-        "brightness": 0.61,
-        "timestamp": "2026-01-14T17:58:46.352481"
-    },
-    {
-        "temperature": 19.4,
-        "humidity": 57.95,
-        "brightness": 0.76,
-        "timestamp": "2026-01-14T17:58:26.335794"
-    },
-    {
-        "temperature": 19.35,
-        "humidity": 67.46,
-        "brightness": 0.72,
-        "timestamp": "2026-01-14T17:20:36.039660"
-    },
-    {
-        "temperature": 18.33,
-        "humidity": 52.15,
-        "brightness": 0.84,
-        "timestamp": "2026-01-14T17:20:16.019423"
-    },
-    {
-        "temperature": 19.93,
-        "humidity": 55.07,
-        "brightness": 0.8,
-        "timestamp": "2026-01-14T17:19:56.004640"
-    },
-    {
-        "temperature": 18.65,
-        "humidity": 60.64,
-        "brightness": 0.95,
-        "timestamp": "2026-01-14T16:43:45.340748"
-    },
-    {
-        "temperature": 21.64,
-        "humidity": 60.69,
-        "brightness": 0.75,
-        "timestamp": "2026-01-14T16:41:23.126265"
-    },
-    {
-        "temperature": 21.47,
-        "humidity": 63.12,
-        "brightness": 0.69,
-        "timestamp": "2026-01-14T16:39:16.349759"
-    },
-    {
-        "temperature": 19.46,
-        "humidity": 67.45,
-        "brightness": 0.51,
-        "timestamp": "2026-01-14T16:38:56.329713"
-    },
-    {
-        "temperature": 20.44,
-        "humidity": 55.25,
-        "brightness": 0.52,
-        "timestamp": "2026-01-14T16:37:53.445572"
-    },
-    {
-        "temperature": 20.47,
-        "humidity": 67.24,
-        "brightness": 0.59,
-        "timestamp": "2026-01-14T16:37:33.416908"
-    },
-    {
-        "temperature": 19.44,
-        "humidity": 57.55,
-        "brightness": 0.53,
-        "timestamp": "2026-01-14T16:37:13.381752"
-    },
-    {
-        "temperature": 21.49,
-        "humidity": 61.25,
-        "brightness": 0.61,
-        "timestamp": "2026-01-14T16:36:53.363474"
-    },
-    {
-        "temperature": 20.81,
-        "humidity": 67.14,
-        "brightness": 0.32,
-        "timestamp": "2026-01-14T16:36:33.339652"
-    },
-    {
-        "temperature": 21.94,
-        "humidity": 67.51,
-        "brightness": 0.69,
-        "timestamp": "2026-01-14T16:36:13.317650"
-    },
-    {
-        "temperature": 19.23,
-        "humidity": 52.14,
-        "brightness": 0.62,
-        "timestamp": "2026-01-14T16:35:53.300293"
-    },
-    {
-        "temperature": 18.27,
-        "humidity": 65.62,
-        "brightness": 0.71,
-        "timestamp": "2026-01-14T16:35:33.276300"
-    },
-    {
-        "temperature": 21.61,
-        "humidity": 53.3,
-        "brightness": 0.7,
-        "timestamp": "2026-01-14T16:35:13.252267"
-=======
-        "temperature": 19.35,
-        "humidity": 65.84,
-        "brightness": 0.77,
-        "timestamp": "2026-01-14T19:15:01.196267"
-    },
-    {
-        "temperature": 20.77,
-        "humidity": 61.44,
-        "brightness": 0.99,
-        "timestamp": "2026-01-14T19:14:41.150138"
-    },
-    {
-        "temperature": 20.88,
-        "humidity": 52.2,
-        "brightness": 0.72,
-        "timestamp": "2026-01-14T19:14:21.098825"
-    },
-    {
-        "temperature": 21.4,
-        "humidity": 59.6,
-        "brightness": 0.6,
-        "timestamp": "2026-01-14T19:14:01.058805"
->>>>>>> Stashed changes
     }
 ]
