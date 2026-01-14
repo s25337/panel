@@ -2,6 +2,9 @@
 
 
 from flask import Blueprint, jsonify, request, current_app
+
+user_id = "group-A1"  # Globalna zmienna user_id
+
 import json
 import os
 import requests
@@ -13,10 +16,11 @@ ENDPOINT_UPDATE_SETTING = f"{BASE_URL}/updateSetting"
 
 api_external = Blueprint('api_external', __name__, url_prefix='/api')
 
-@api_external.route('/module', methods=['POST'])
 def add_module():
     # TODO: implement payload logic
     return jsonify({"status": "success", "message": "Module added"}), 200
+
+
 
 @api_external.route('/dataTerrarium', methods=['POST'])
 def send_data_terrarium():
@@ -43,8 +47,6 @@ def send_data_terrarium():
 @api_external.route('/updateSetting', methods=['POST'])
 def update_setting():
 
-    # Pobierz aktualne lokalne ustawienia z pliku
-    group_id = "group-A1"
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     try:
         with open(settings_file, 'r') as f:
@@ -52,7 +54,7 @@ def update_setting():
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to read local settings: {e}"}), 500
 
-    url = f"{BASE_URL}/updateSetting/{group_id}"
+    url = f"{BASE_URL}/updateSetting/{user_id}"
 
     # Mapowanie pól na format Terrarium
     day_map = {
@@ -103,12 +105,12 @@ def update_setting():
 
 
 #pobieranie settingu na starcie? serwera 
-@api_external.route('/sendData/group-A1', methods=['POST'])
-def send_data(group_id):
+@api_external.route('/sendData', methods=['POST'])
+def send_data():
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     # Pobierz ustawienia z zewnętrznego API Terrarium
     try:
-        ext_url = f"{BASE_URL}/sendData/{group_id}"
+        ext_url = f"{BASE_URL}/sendData/{user_id}"
         ext_resp = requests.post(ext_url, headers={"Content-Type": "application/json"}, json={})
         if ext_resp.status_code != 200:
             return jsonify({"status": "ERROR", "message": f"Terrarium API error: {ext_resp.text}"}), 500

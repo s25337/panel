@@ -1,9 +1,9 @@
 {
-  "setting_id": "group-A1",
+  "setting_id": "8",
   "plant_name": "six seven",
-  "target_temp": 27,
-  "target_hum": 48,
-  "light_intensity": 50,
+  "target_temperature": 27.0,
+  "target_hum": 48.0,
+  "light_intensity": 50.0,
   "start_hour": 7,
   "end_hour": 18,
   "watering_mode": "standard",
@@ -11,6 +11,7 @@
   "watering_days": [
     2,
     4,
-    5
+    5,
+    7
   ]
 }

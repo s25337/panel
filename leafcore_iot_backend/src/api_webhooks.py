@@ -4,9 +4,13 @@ import os
 import json
 from flask import Blueprint, request, jsonify
 
+
+user_id = "group-A1"  # Globalna zmienna user_id
 from flask import current_app
 
+# Blueprint
 api_webhooks = Blueprint('api_webhooks', __name__)
+
 # Webhook do odbioru ustawień z Terrarium
 @api_webhooks.route('/external/settings', methods=['POST'])
 def receive_external_settings():
