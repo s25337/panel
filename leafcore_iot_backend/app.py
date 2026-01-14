@@ -247,6 +247,7 @@ CORS(app, resources={
 })
 
 # Register blueprints
+
 app.register_blueprint(api_frontend)
 app.register_blueprint(api_external)
 app.register_blueprint(api_webhooks)
@@ -255,6 +256,10 @@ app.register_blueprint(api_webhooks)
 gpio_thread = GPIOController()
 gpio_thread.start()
 print("✓ GPIO Controller thread started")
+# Start periodic data sender thread (after app is created)
+from src.periodic_data_sender import start_periodic_sender
+start_periodic_sender(app)
+
 
 # Start Sensor Service thread
 sensor_thread = SensorService(
@@ -267,14 +272,6 @@ sensor_thread = SensorService(
 sensor_thread.start()
 print("✓ Sensor Service thread started")
 
-# Start Bluetooth Service thread (optional, can be disabled)
-try:
-    bluetooth_thread = BluetoothService(devices_info_file)
-    bluetooth_thread.start()
-    print("✓ Bluetooth Service thread started")
-except Exception as e:
-    print(f"⚠️  Bluetooth Service failed to start: {e}")
-    bluetooth_thread = None
 
 # ========== SHUTDOWN ==========
 

@@ -86,25 +86,6 @@ const apiService = {
     }
   },
 
-  /**
-   * Steruje urządzeniami
-   * @param {object} control - { fan?: boolean, light?: boolean, pump?: boolean }
-   */
-  async controlDevice(control) {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(control),
-      });
-      if (!response.ok) throw new Error('Failed to control device');
-      return await response.json();
-    } catch (error) {
-      console.error('Error controlling device:', error);
-      return { status: 'error' };
-    }
-  },
-
   
 
   /**
@@ -180,78 +161,8 @@ const apiService = {
   },
 
 
-  /**
-   * Pobiera manualne ustawienia urządzeń
-   */
-  async getManualSettings() {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/manual-settings`);
-      if (!response.ok) throw new Error('Failed to fetch manual settings');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching manual settings:', error);
-      return {
-        is_manual: false,
-        light: false,
-        heater: false,
-        fan: false,
-        pump: false,
-        sprinkler: false
-      };
-    }
-  },
 
-  /**
-   * Przełącza tryb manual on/off
-   * @param {string} state - 'on' lub 'off'
-   */
-  async toggleManualMode(state) {
-    try {
-      const response = await fetchWithTimeout(
-        `${API_BASE_URL}/api/manual-mode/${state}`,
-        { method: 'POST' }
-      );
-      if (!response.ok) throw new Error('Failed to toggle manual mode');
-      return await response.json();
-    } catch (error) {
-      console.error('Error toggling manual mode:', error);
-      return { status: 'error' };
-    }
-  },
 
-  /**
-   * Sparuje moduły i wysyła je do chmury
-   */
-  async pairModules() {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/modules/pair`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!response.ok) throw new Error('Failed to pair modules');
-      return await response.json();
-    } catch (error) {
-      console.error('Error pairing modules:', error);
-      return { 
-        status: 'ERROR',
-        message: error.message
-      };
-    }
-  },
-
-  /**
-   * Pobiera listę wszystkich modułów
-   */
-  async getModules() {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/modules`);
-      if (!response.ok) throw new Error('Failed to fetch modules');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching modules:', error);
-      return { modules: {}, registered_count: 0, total_count: 0 };
-    }
-  },
 };
 
 export default apiService;

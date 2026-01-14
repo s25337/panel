@@ -290,7 +290,7 @@ export default function App() {
             <ScreenNavigator
               currentScreen={currentScreen}
               onScreenChange={setCurrentScreen}
-              isSliderActive={isSliderActive}
+              isSliderActive={isSliderActive || currentScreen === 2} // blokuj gesty na HistoryPanel
               screens={[
                 // Screen 0: Main Panel - 3x2 Grid
                 <View
@@ -303,12 +303,6 @@ export default function App() {
                       <Text style={styles.topLeftTime}>{formatTime()}</Text>
                       <Text style={styles.topLeftDate}>{formatDate()}</Text>
                     </View>
-                    <Text style={[
-                      styles.manualModeIndicator,
-                      { color: manualMode ? '#FF9800' : '#666666' }
-                    ]}>
-                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
-                    </Text>
                   </View>
 
                   <View 

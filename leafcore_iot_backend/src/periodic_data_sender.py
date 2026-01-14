@@ -26,16 +26,6 @@ def periodic_data_terrarium_sender(app):
         except Exception as e:
             print(f"[dataTerrarium] Błąd wysyłania danych: {e}")
 
-def start_periodic_sender():
-    # Pobierz instancję aplikacji Flask
-    import sys
-    app = None
-    for obj in sys.modules.values():
-        if isinstance(obj, Flask):
-            app = obj
-            break
-    if app is None:
-        print("[dataTerrarium] Nie znaleziono instancji Flask app do uruchomienia wątku!")
-        return
+def start_periodic_sender(app):
     t = threading.Thread(target=periodic_data_terrarium_sender, args=(app,), daemon=True)
     t.start()
