@@ -303,6 +303,12 @@ export default function App() {
                       <Text style={styles.topLeftTime}>{formatTime()}</Text>
                       <Text style={styles.topLeftDate}>{formatDate()}</Text>
                     </View>
+                    <Text style={[
+                      styles.manualModeIndicator,
+                      { color: manualMode ? '#FF9800' : '#666666' }
+                    ]}>
+                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
+                    </Text>
                   </View>
 
                   <View 
@@ -387,7 +393,7 @@ export default function App() {
                   {/* Col 3: Pair Modules Button */}
                   <TouchableOpacity 
                     style={[
-                      styles.gridItemShort, 
+                      styles.gridItemShort,
                       { flex: 0.6 },
                       pairingStatus === 'loading' && styles.pairingButtonLoading,
                       pairingStatus === 'success' && styles.pairingButtonSuccess,
@@ -398,7 +404,7 @@ export default function App() {
                     disabled={pairingStatus === 'loading'}
                   >
                     {pairingStatus === 'loading' && (
-                      <ActivityIndicator size="small" color="#ffffff" />
+                      <ActivityIndicator size={45} color="#ffffff" />
                     )}
                     {pairingStatus !== 'loading' && (
                       <Image 
@@ -413,8 +419,8 @@ export default function App() {
                     ]}>
                       {pairingStatus === 'idle' && 'Pair'}
                       {pairingStatus === 'loading' && 'Pairing...'}
-                      {pairingStatus === 'success' && '✓ OK'}
-                      {pairingStatus === 'error' && '✗ Error'}
+                      {pairingStatus === 'success' && 'OK'}
+                      {pairingStatus === 'error' && 'Error'}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -711,8 +717,8 @@ const styles = StyleSheet.create({
     tintColor: '#ffffff',
   },
   pairModulesButtonText: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansRegular,
+    fontSize: 17,
+    fontFamily: FontFamily.workSansLight,
     fontWeight: '600',
     textAlign: 'center',
   },
@@ -723,7 +729,7 @@ const styles = StyleSheet.create({
     color: '#FF6B6B',
   },
   pairingButtonLoading: {
-    opacity: 0.7,
+    opacity: 2,
   },
   pairingButtonSuccess: {
     backgroundColor: 'rgba(76, 175, 80, 0.2)',
