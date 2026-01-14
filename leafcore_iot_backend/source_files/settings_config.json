@@ -1,15 +1,15 @@
 {
   "setting_id": "group-A1",
   "plant_name": "six seven",
-  "target_temp": 44.0,
-  "target_hum": 67.0,
-  "light_intensity": 66.0,
-  "start_hour": 19,
-  "end_hour": 5,
+  "target_temp": 27,
+  "target_hum": 48,
+  "light_intensity": 50,
+  "start_hour": 7,
+  "end_hour": 18,
   "watering_mode": "standard",
   "water_seconds": 1,
   "watering_days": [
-    3,
+    2,
     4,
     5
   ]
