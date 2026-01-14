@@ -3,6 +3,7 @@ Bluetooth WiFi Configurator Service
 Handles WiFi credential configuration via BLE
 """
 import logging
+logging.basicConfig(level=logging.INFO)
 import signal
 import subprocess
 import requests

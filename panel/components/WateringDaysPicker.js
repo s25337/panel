@@ -168,9 +168,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   dayLabel: {
-    fontSize: 11,
+    fontSize: 17,
     fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
+    fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 0.3,
   },

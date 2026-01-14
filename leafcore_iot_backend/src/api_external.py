@@ -8,7 +8,7 @@ import requests
 
 BASE_URL = "http://31.11.238.45:8081/terrarium"
 ENDPOINT_ADD_MODULE = f"{BASE_URL}/module"
-ENDPOINT_SEND_DATA = f"{BASE_URL}/dataTerrarium"
+ENDPOINT_SEND_DATA = f"{BASE_URL}/dataTerrarium/group-A1"
 ENDPOINT_UPDATE_SETTING = f"{BASE_URL}/updateSetting"
 
 api_external = Blueprint('api_external', __name__, url_prefix='/api')
@@ -24,9 +24,21 @@ def send_data_terrarium():
     try:
         with open(sensor_history_file, 'r') as f:
             data = json.load(f)
-        return jsonify(data)
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to read sensor history: {e}"}), 500
+
+    # Wyślij dane do zewnętrznego API Terrarium
+    try:
+        response = requests.post(
+            ENDPOINT_SEND_DATA,
+            json=data,
+            headers={"Content-Type": "application/json"},
+            timeout=10
+        )
+        # Zwróć odpowiedź z serwera Terrarium
+        return (response.text, response.status_code, {"Content-Type": response.headers.get("Content-Type", "application/json")})
+    except Exception as e:
+        return jsonify({"status": "ERROR", "message": f"Failed to send to Terrarium server: {e}"}), 503
 
 @api_external.route('/updateSetting', methods=['POST'])
 def update_setting():

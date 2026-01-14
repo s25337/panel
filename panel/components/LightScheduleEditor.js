@@ -115,7 +115,7 @@ const styles = StyleSheet.create({
     paddingRight: 16,
     paddingTop: 16,
     paddingBottom: 16,
-    minHeight: 120,
+    minHeight: 130,
     opacity: 0.7,
   },
   title: {
