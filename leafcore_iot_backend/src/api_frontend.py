@@ -112,6 +112,14 @@ def get_devices():
         devices_info = json.load(f)
     return jsonify(devices_info)
 
+@api_frontend.route("/control/<device>/<state>", methods=["POST"])
+def toggle_device(device, state):
+    devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
+    with open(devices_info_file, 'r') as f:
+        devices_info = json.load(f)
+        devices_info[device]["state"] = state 
+    with open(devices_info_file, 'w') as f:
+        json.dump(devices_info, f, indent=2)
 
 ## bardzo dlugi useless timer dla frontu idk
 

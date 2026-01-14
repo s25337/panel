@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { FontFamily, Color, scale } from './GlobalStyles';
@@ -13,7 +13,7 @@ import ScreenNavigator from './components/ScreenNavigator';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
-
+const cachedSettings = { target_temp: 25, target_hum: 60 };
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
   circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
@@ -47,7 +47,8 @@ export default function App() {
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
   const wateringPollInterval = useRef(null);
-
+  const [showLogModal, setShowLogModal] = React.useState(false);
+  const [logs, setLogs] = React.useState([]);
   // Load custom fonts
   useEffect(() => {
     const loadFonts = async () => {
@@ -67,6 +68,27 @@ export default function App() {
     loadFonts();
   }, []);
 
+ useEffect(() => {
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/settings_config.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      const data = await response.json();
+      cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
+      console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
+      cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
+      console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
+      setTargetTemp(cachedSettings.target_temp);
+      setTargetHumidity(cachedSettings.target_hum);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };
+
+  loadSettings();
+}, []);
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
     if (data.temperature !== null) setTemperature(data.temperature);
@@ -88,12 +110,23 @@ export default function App() {
     }
   };
 
-  const fetchSettings = async () => {
+   const fetchSettings = async () => {
+  try {
     const data = await apiService.getSettings();
-    setTargetTemp(data.target_temp || 25);
-    setTargetHumidity(data.target_hum || 60);
-  };
-
+    if (data.target_temp !== undefined && data.target_temp !== null) {
+      setTargetTemp(data.target_temp);
+    }
+    if (data.target_hum !== undefined && data.target_hum !== null) {
+      setTargetHumidity(data.target_hum);
+    }
+  } catch (error) {
+    console.error('Error fetching settings from API:', error);
+    // Fallback to cached settings only if the state is not already set
+    setTargetTemp((prev) => prev || cachedSettings.target_temp);
+    setTargetHumidity((prev) => prev || cachedSettings.target_hum);
+  }
+};
+     
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
     if (data && data.interval_seconds) {
@@ -154,7 +187,7 @@ export default function App() {
   // Refetchuj settings gdy wrócisz na main screen (screen 0)
   useEffect(() => {
     if (currentScreen === 0) {
-      fetchSettings();
+     // fetchSettings();
     }
   }, [currentScreen]);
 
@@ -227,7 +260,20 @@ export default function App() {
 
   const handleStartBluetooth = async () => {
     setPairingStatus('loading');
-    try {
+    setLogs([]); // Clear old logs
+    setShowLogModal(true); // Open the popup
+const eventSource = new EventSource(`${API_BASE_URL}/api/bluetooth-logs`);
+eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        setLogs((prevLogs) => [...prevLogs, data.message]);
+};
+
+eventSource.onerror = (err) => {
+        console.error("EventSource failed:", err);
+        eventSource.close();
+    };    
+
+try {
       const response = await apiService.startBluetooth();
       if (response.status === 'ok') {
         setPairingStatus('success');
@@ -241,7 +287,6 @@ export default function App() {
       setTimeout(() => setPairingStatus('idle'), 3000);
     }
   };
-
   const formatTime = () => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -423,6 +468,32 @@ export default function App() {
                       {pairingStatus === 'error' && 'Error'}
                     </Text>
                   </TouchableOpacity>
+                 {/* --- LOG MODAL --- */}
+{showLogModal && (
+    <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Bluetooth Device Logs</Text>
+            
+            {/* Scrollable Log Area */}
+            <ScrollView style={styles.logContainer}>
+                {logs.map((log, index) => (
+                    <Text key={index} style={styles.logText}>{log.trim()}</Text>
+                ))}
+            </ScrollView>
+
+            {/* Close Button */}
+            <TouchableOpacity 
+                style={styles.closeButton} 
+                onPress={() => {
+                    setShowLogModal(false);
+                    // Optional: You might want to stop the backend process here too
+                }}
+            >
+                <Text style={styles.closeButtonText}>Close</Text>
+            </TouchableOpacity>
+        </View>
+    </View>
+)}
                 </View>
               </View>
                 </View>,
@@ -741,4 +812,55 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#FF6B6B',
   },
+modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)', // Semi-transparent black
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000, // Ensure it sits on top
+  },
+  modalContent: {
+    width: '80%',
+    height: '60%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  logContainer: {
+    flex: 1,
+    backgroundColor: '#1e1e1e', // Dark terminal-like background
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  logText: {
+    color: '#00FF00', // Hacker green text
+    fontFamily: 'monospace',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  closeButton: {
+    backgroundColor: '#FF5252',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  }
 });

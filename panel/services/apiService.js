@@ -6,7 +6,7 @@
 // services/apiService.js
 // Usługa do komunikacji z backend'em IoT
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
 
 // Helper function to fetch with timeout
 const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
