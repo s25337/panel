@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, PanResponder, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Dimensions } from 'react-native';
 import apiService from '../services/apiService';
 import WateringDaysPicker from './WateringDaysPicker';
 import LightScheduleEditor from './LightScheduleEditor';
-import ValueSlider from './ValueSlider';
 import { FontFamily, scale } from '../GlobalStyles';
 
 const { width, height } = Dimensions.get('window');
@@ -24,23 +23,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [plantName, setPlantName] = useState('');
   const [settingId, setSettingId] = useState('');
   const [loading, setLoading] = useState({});
-  const [bluetoothLoading, setBluetoothLoading] = useState(false);
-  const [bluetoothConnected, setBluetoothConnected] = useState(false);
-  const handleBluetoothConnect = async () => {
-    setBluetoothLoading(true);
-    try {
-      const response = await apiService.startBluetooth();
-      if (response.status === 'ok') {
-        setBluetoothConnected(true);
-        setBluetoothLoading(false);
-      } else {
-        setBluetoothLoading(false);
-      }
-    } catch (error) {
-      setBluetoothLoading(false);
-    }
-  };
-
   // Fetch initial status
   useEffect(() => {
     fetchStatus();
@@ -156,8 +138,8 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
         </View>
 
         <ControlTile 
-          device="heater" 
-          label="Heater" 
+          device="heat_mat" 
+          label="Heat Mat" 
           isOn={heaterOn}
         />
 
@@ -256,28 +238,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     textAlign: 'center',
   },
-  settingsRow: {
-    flexDirection: 'row',
-    gap: 6,
-    justifyContent: 'center',
-    width: '100%',
-  },
-  settingItem: {
-    alignItems: 'center',
-  },
-  settingLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    fontFamily: FontFamily.workSansRegular,
-    color: '#888',
-    marginBottom: 2,
-  },
-  settingValue: {
-    fontSize: 11,
-    fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
-    color: '#fff',
-  },
   tileActive: {
     backgroundColor: 'rgba(76, 175, 80, 0.8)',
   },
@@ -311,11 +271,6 @@ const styles = StyleSheet.create({
   },
   tileStatusActive: {
     color: '#fff',
-  },
-  tileLarge: {
-    width: '46%',
-    aspectRatio: 1,
-    padding: 10,
   },
   tileWateringDays: {
     width: '100%',

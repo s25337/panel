@@ -68,6 +68,10 @@ const apiService = {
   /**
    * Pobiera status wszystkich urządzeń
    */
+  /**
+   * Pobiera status wszystkich urządzeń
+   * Zwraca obiekt z kluczem 'devices', gdzie devices.heat_mat zawiera stan maty grzewczej
+   */
   async getStatus() {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/status`);
@@ -76,12 +80,14 @@ const apiService = {
     } catch (error) {
       console.error('Error fetching status:', error);
       return { 
-        fan: false, 
-        light: false, 
-        pump: false, 
-        heater: false,
-        sprinkler: false,
-        manual_mode: false
+        devices: {
+          fan: false, 
+          light: false, 
+          pump: false, 
+          heat_mat: false,
+          sprinkler: false,
+          manual_mode: false
+        }
       };
     }
   },
