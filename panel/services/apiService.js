@@ -1,3 +1,4 @@
+
   /**
    * Wywołuje podlewanie (uruchamia pompę na water_seconds)
    */
@@ -22,6 +23,22 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
 };
 
 const apiService = {
+    /**
+     * Uruchamia BluetoothService na backendzie
+     */
+    async startBluetooth() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) throw new Error('Failed to start bluetooth');
+        return await response.json();
+      } catch (error) {
+        console.error('Error starting bluetooth:', error);
+        return { status: 'error' };
+      }
+    },
   /**
    * Pobiera aktualne wartości czujników
    */

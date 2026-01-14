@@ -224,30 +224,21 @@ export default function App() {
     return `${day}, ${month} ${date}`;
   };
 
-  const handlePairModules = async () => {
+
+  const handleStartBluetooth = async () => {
     setPairingStatus('loading');
-    
     try {
-      const result = await apiService.pairModules();
-      
-      if (result.status === 'OK') {
+      const response = await apiService.startBluetooth();
+      if (response.status === 'ok') {
         setPairingStatus('success');
-        // Reset to idle after 3 seconds
-        setTimeout(() => {
-          setPairingStatus('idle');
-        }, 3000);
+        setTimeout(() => setPairingStatus('idle'), 3000);
       } else {
         setPairingStatus('error');
-        // Reset to idle after 3 seconds
-        setTimeout(() => {
-          setPairingStatus('idle');
-        }, 3000);
+        setTimeout(() => setPairingStatus('idle'), 3000);
       }
     } catch (error) {
       setPairingStatus('error');
-      setTimeout(() => {
-        setPairingStatus('idle');
-      }, 3000);
+      setTimeout(() => setPairingStatus('idle'), 3000);
     }
   };
 
@@ -408,7 +399,7 @@ export default function App() {
                       pairingStatus === 'success' && styles.pairingButtonSuccess,
                       pairingStatus === 'error' && styles.pairingButtonError,
                     ]}
-                    onPress={handlePairModules}
+                    onPress={handleStartBluetooth}
                     activeOpacity={0.7}
                     disabled={pairingStatus === 'loading'}
                   >

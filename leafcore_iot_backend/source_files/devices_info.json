@@ -13,7 +13,7 @@
   "fan": {
     "device_name": "LC_Greenhouse_Module_Fan001",
     "type": "fan",
-    "state": "on",
+    "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "2026-01-13 15:10:21",
@@ -33,7 +33,7 @@
   "sprinkler": {
     "device_name": "LC_Greenhouse_Module_Sprinkler001",
     "type": "sprinkler",
-    "state": "off",
+    "state": "on",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "2026-01-13T23:58:05.198886",
@@ -43,7 +43,7 @@
   "heat_mat": {
     "device_name": "LC_Greenhouse_Module_Heat001",
     "type": "heating mat",
-    "state": "off",
+    "state": "on",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "2026-01-13 15:10:21",

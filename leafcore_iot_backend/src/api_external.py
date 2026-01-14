@@ -28,24 +28,47 @@ def send_data_terrarium():
 
 @api_external.route('/updateSetting', methods=['POST'])
 def update_setting():
-    # Pobierz aktualne ustawienia z lokalnego endpointa sendData
+
+    # Pobierz aktualne lokalne ustawienia z pliku
     group_id = "group-A1"
+    settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     try:
-        local_url = f"http://localhost:5000/sendData/{group_id}"
-        local_resp = requests.post(local_url, headers={"Content-Type": "application/json"}, json={})
-        if local_resp.status_code != 200:
-            return jsonify({"status": "ERROR", "message": f"Local sendData error: {local_resp.text}"}), 500
-        mapped = local_resp.json()
+        with open(settings_file, 'r') as f:
+            local_settings = json.load(f)
     except Exception as e:
-        return jsonify({"status": "ERROR", "message": f"Failed to get local settings: {e}"}), 500
+        return jsonify({"status": "ERROR", "message": f"Failed to read local settings: {e}"}), 500
 
     url = f"{BASE_URL}/updateSetting/{group_id}"
+
+    # Mapowanie pól na format Terrarium
+    day_map = {
+        1: "MONDAY",
+        2: "TUESDAY",
+        3: "WEDNESDAY",
+        4: "THURSDAY",
+        5: "FRIDAY",
+        6: "SATURDAY",
+        7: "SUNDAY"
+    }
+    mapped = {
+        "setting_id": local_settings.get("setting_id"),
+        "plant_name": local_settings.get("plant_name"),
+        "optimal_temperature": local_settings.get("target_temp"),
+        "optimal_humidity": local_settings.get("target_hum"),
+        "optimal_brightness": local_settings.get("light_intensity"),
+        "light_schedule_start_time": f"{local_settings.get('start_hour', 0):02d}:00",
+        "light_schedule_end_time": f"{local_settings.get('end_hour', 0):02d}:00",
+        "watering_mode": local_settings.get("watering_mode"),
+        "water_amount": local_settings.get("water_seconds"),
+        "light_intensity": local_settings.get("light_intensity"),
+        "dayOfWeek": [day_map.get(d, str(d)) for d in local_settings.get("watering_days", [])]
+    }
 
     print("Wysyłany JSON do Terrarium:")
     print(json.dumps(mapped, indent=2))
     print(f"Pełny URL: {url}")
 
-    # Wyślij mapped settings do zewnętrznego serwera
+    # Wyślij zmapowane ustawienia do zewnętrznego serwera
     try:
         response = requests.post(
             url,
@@ -65,8 +88,8 @@ def update_setting():
 
 
 
-#pobieranie settingu na starcie serwera 
-@api_external.route('/sendData/<group_id>', methods=['POST'])
+#pobieranie settingu na starcie? serwera 
+@api_external.route('/sendData/group-A1', methods=['POST'])
 def send_data(group_id):
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     # Pobierz ustawienia z zewnętrznego API Terrarium
@@ -94,7 +117,7 @@ def send_data(group_id):
         new_settings = {
             "setting_id": ext_settings.get("setting_id", "67"),
             "plant_name": ext_settings.get("plant_name", "Unknown"),
-            "target_temp": ext_settings.get("optimal_temperature", 0),
+            "target_temperature": ext_settings.get("optimal_temperature", 0),
             "target_hum": ext_settings.get("optimal_humidity", 0),
             "light_intensity": ext_settings.get("optimal_brightness", 0),
             "start_hour": int(ext_settings.get("light_schedule_start_time", "00:00").split(":")[0]),
@@ -102,7 +125,7 @@ def send_data(group_id):
             "watering_mode": ext_settings.get("watering_mode", "standard"),
             "water_seconds": ext_settings.get("water_amount", 1),
             "watering_days": [day_map_rev.get(day, 1) for day in ext_settings.get("dayOfWeek", [])],
-            "watering_time": ext_settings.get("watering_time", "12:00")
+          #  "watering_time": ext_settings.get("watering_time", "12:00")
         }
         with open(settings_file, 'w') as f:
             json.dump(new_settings, f, indent=2)

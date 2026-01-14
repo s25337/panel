@@ -1,15 +1,15 @@
-# --- Watering timer endpoint ---
-from datetime import datetime, timedelta, time as dtime
-from src.bluetooth_service import BluetoothService
+
 import threading
+from src.bluetooth_service import BluetoothService
+from datetime import datetime, timedelta, time as dtime
 from flask import Blueprint, jsonify, request, current_app
 import json
 import os
-bluetooth_thread = None
 
 api_frontend = Blueprint('frontend', __name__, url_prefix='/api')
+bluetooth_thread = None
 
-@api_frontend.route('/bluetooth', methods=['POST'])
+@api_frontend.route('/bluetooth/start', methods=['POST'])
 def start_bluetooth():
     global bluetooth_thread
     if bluetooth_thread and bluetooth_thread.is_alive():
@@ -21,7 +21,7 @@ def start_bluetooth():
         return jsonify({'status': 'ok', 'message': 'Bluetooth started'})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}), 500
-
+    
 @api_frontend.route("/sensors", methods=["GET"])
 def get_sensors():
     sensor_data_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data.json")

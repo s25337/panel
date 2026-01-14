@@ -1,9 +1,9 @@
 {
   "setting_id": "8",
   "plant_name": "Monstera",
-  "target_temp": 6.0,
-  "target_hum": 22.0,
-  "light_intensity": 77.0,
+  "target_temp": 33,
+  "target_hum": 79,
+  "light_intensity": 34,
   "start_hour": 18,
   "end_hour": 16,
   "watering_mode": "auto",
