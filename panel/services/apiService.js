@@ -144,25 +144,6 @@ const apiService = {
     }
   },
 
-  /**
-   * Pobiera harmonogram światła
-   */
-  async getLightSchedule() {
-    try {
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/light-schedule`);
-      if (!response.ok) throw new Error('Failed to fetch light schedule');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching light schedule:', error);
-      return { 
-        light_hours: 12,
-        start_hour: 6,
-        start_minute: 0,
-        end_hour: 18,
-        end_minute: 0
-      };
-    }
-  },
 
   /**
    * Pobiera manualne ustawienia urządzeń

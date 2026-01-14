@@ -13,12 +13,12 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const data = await apiService.getLightSchedule();
-        setStartHour(data.start_hour || 18);
-        setEndHour(data.end_hour || 6);
+        const settings = await apiService.getSettings();
+        setStartHour(settings.start_hour || 18);
+        setEndHour(settings.end_hour || 6);
         setIsLoading(false);
       } catch (error) {
-        console.error('Error fetching light schedule:', error);
+        console.error('Error calculating light schedule:', error);
         setIsLoading(false);
       }
     };

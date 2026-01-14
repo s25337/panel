@@ -101,12 +101,20 @@ export default function App() {
     }
   };
 
+
+  // Wylicz harmonogram światła na podstawie settings
   const fetchLightSchedule = async () => {
     try {
-      const data = await apiService.getLightSchedule();
-      setLightSchedule(data);
+      const settings = await apiService.getSettings();
+      setLightSchedule({
+        light_hours: settings.light_hours,
+        start_hour: settings.start_hour,
+        end_hour: settings.end_hour,
+        start_minute: settings.start_minute || 0,
+        end_minute: settings.end_minute || 0
+      });
     } catch (error) {
-      console.error('Error fetching light schedule:', error);
+      console.error('Error calculating light schedule:', error);
     }
   };
 

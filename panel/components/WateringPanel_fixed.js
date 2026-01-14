@@ -14,8 +14,9 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   useEffect(() => {
     const calculateTimeToNextWatering = async () => {
       try {
-        const wateringData = await apiService.getWateringDays();
-        const { watering_days, watering_time } = wateringData;
+        const settings = await apiService.getSettings();
+        const watering_days = settings.watering_days;
+        const watering_time = settings.watering_time || '12:00';
 
         if (!watering_days || watering_days.length === 0) {
           setIsLoading(false);

@@ -14,11 +14,14 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
   useEffect(() => {
     const fetchWateringDays = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/watering-days');
-        if (response.ok) {
-          const data = await response.json();
-          setSelectedDays(data.watering_days || ['MONDAY', 'WEDNESDAY', 'FRIDAY']);
+        const settings = await apiService.getSettings();
+        // Zamień numery dni na nazwy (jeśli trzeba)
+        const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+        let selected = settings.watering_days;
+        if (selected && typeof selected[0] === 'number') {
+          selected = selected.map(d => DAYS[(d-1)%7]);
         }
+        setSelectedDays(selected || ['MONDAY', 'WEDNESDAY', 'FRIDAY']);
       } catch (error) {
         console.error('Error fetching watering days:', error);
       } finally {

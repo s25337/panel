@@ -1,3 +1,5 @@
+# --- Watering timer endpoint ---
+from datetime import datetime, timedelta, time as dtime
 from src.bluetooth_service import BluetoothService
 import threading
 from flask import Blueprint, jsonify, request, current_app
@@ -81,6 +83,16 @@ def update_settings():
     settings.update(data)
     with open(settings_file, 'w') as f:
         json.dump(settings, f, indent=2)
+
+    # Automatycznie wywołaj endpoint od aktualizacji ustawień w backendzie zuzi
+    try:
+        from requests import post
+        backend_url = "http://localhost:5000/updateSetting"
+        terrarium_response = post(backend_url, headers={"Content-Type": "application/json"}, timeout=5)
+        print(f"Wywołano /updateSetting, status: {terrarium_response.status_code}, body: {terrarium_response.text}")
+    except Exception as e:
+        print(f"Błąd wywołania /updateSetting: {e}")
+
     return jsonify({"status": "OK", "settings": settings})
 
 @api_frontend.route("/devices", methods=["GET"])
@@ -91,6 +103,59 @@ def get_devices():
         devices_info = json.load(f)
     return jsonify(devices_info)
 
+
+## bardzo dlugi useless timer dla frontu idk
+
+
+@api_frontend.route("/watering-timer", methods=["GET"])
+def get_watering_timer():
+    """Zwraca czas do najbliższego podlewania (dni, godziny, minuty, sekundy, interval_seconds)"""
+    settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
+    with open(settings_file, 'r') as f:
+        settings = json.load(f)
+    watering_days = settings.get('watering_days', [])
+    watering_time = settings.get('watering_time', '12:00')
+    try:
+        target_hour, target_minute = map(int, watering_time.split(':'))
+    except Exception:
+        target_hour, target_minute = 12, 0
+
+    # Zamień dni na pythonowe (1=poniedziałek, 7=niedziela -> 0=poniedziałek, 6=niedziela)
+    watering_days_py = [(d-1)%7 for d in watering_days]
+
+    now = datetime.now()
+    current_day_py = now.weekday()  # 0=poniedziałek, 6=niedziela
+    current_time = now.time()
+
+    # Szukaj najbliższego dnia podlewania
+    days_until = None
+    for i in range(7):
+        check_day = (current_day_py + i) % 7
+        if check_day in watering_days_py:
+            days_until = i
+            break
+    if days_until is None:
+        return jsonify({"days": 0, "hours": 0, "minutes": 0, "seconds": 0, "interval_seconds": 0})
+
+    # Jeśli to dziś i godzina już minęła, to będzie dopiero za tydzień
+    next_watering_date = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+    if days_until == 0 and current_time > dtime(target_hour, target_minute):
+        days_until = 7
+    next_watering_date = next_watering_date + timedelta(days=days_until)
+
+    seconds_left = int((next_watering_date - now).total_seconds())
+    days = seconds_left // 86400
+    hours = (seconds_left % 86400) // 3600
+    minutes = (seconds_left % 3600) // 60
+    seconds = seconds_left % 60
+
+    return jsonify({
+        "days": days,
+        "hours": hours,
+        "minutes": minutes,
+        "seconds": seconds,
+        "interval_seconds": seconds_left
+    })
 
 
 

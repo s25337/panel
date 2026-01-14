@@ -53,12 +53,13 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
 
   const fetchStatus = async () => {
     try {
-      const manualSettings = await apiService.getManualSettings();
-      setManualMode(manualSettings.is_manual === true);
-      setLightOn(manualSettings.light === true || manualSettings.light > 0);
-      setHeaterOn(manualSettings.heater === true);
-      setFanOn(manualSettings.fan === true);
-      // Nie pobieramy pump/sprinkler - są obsługiwane przez press/hold UI
+      const status = await apiService.getStatus();
+      const devices = status.devices || {};
+      setManualMode(devices.manual_mode === true);
+      setLightOn(devices.light === true || devices.light === 1 || devices.light?.state === 'on');
+      setHeaterOn(devices.heater === true || devices.heater === 1 || devices.heater?.state === 'on');
+      setFanOn(devices.fan === true || devices.fan === 1 || devices.fan?.state === 'on');
+      // Pompa i sprinkler obsługiwane przez UI
     } catch (error) {
       console.error('Error fetching status:', error);
     }
