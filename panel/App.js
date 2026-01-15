@@ -11,21 +11,9 @@ import ControlPanel from './components/ControlPanel';
 import HistoryPanel from './components/HistoryPanel';
 import ScreenNavigator from './components/ScreenNavigator';
 import apiService from './services/apiService';
+import { styles, RESPONSIVE_SIZES } from './AppStyles';
 
 const { width, height } = Dimensions.get('window');
-
-// Responsive sizes optimized for 1024x600
-const RESPONSIVE_SIZES = {
-  circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
-  gridPaddingHorizontal: Math.round(40 * scale),     // 40px horizontal padding
-  gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
-  gridGap: Math.round(28 * scale),                   // 28px gap between items
-  borderRadius: Math.round(24 * scale),              // 24px border radius
-  componentPadding: Math.round(12 * scale),          // 12px component internal padding
-  screensaverSliderWidth: Math.round(320 * scale),   // 320px on 1024x600
-  screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
-  topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
-};
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -37,9 +25,6 @@ export default function App() {
   const [isScreenOn, setIsScreenOn] = useState(true);
   const [lightStatus, setLightStatus] = useState(false);
   const [lightIntensity, setLightIntensity] = useState(50);
-  const [lightSchedule, setLightSchedule] = useState(null);
-  const [manualMode, setManualMode] = useState(false);
-  const [wateringInterval, setWateringInterval] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isSliderActive, setIsSliderActive] = useState(false);
   const [pairingStatus, setPairingStatus] = useState('idle'); // idle, loading, success, error
@@ -76,7 +61,6 @@ export default function App() {
   const fetchStatus = async () => {
     const data = await apiService.getStatus();
     setLightStatus(data.light || false);
-    setManualMode(data.manual_mode || false);
   };
 
   const fetchLightIntensity = async () => {
@@ -95,30 +79,8 @@ export default function App() {
   };
 
   const fetchWateringTimer = async () => {
-    const data = await apiService.getWateringTimer();
-    if (data && data.interval_seconds) {
-      setWateringInterval(data.interval_seconds);
-    }
   };
 
-
-  // Wylicz harmonogram światła na podstawie settings
-  const fetchLightSchedule = async () => {
-    try {
-      const settings = await apiService.getSettings();
-      setLightSchedule({
-        light_hours: settings.light_hours,
-        start_hour: settings.start_hour,
-        end_hour: settings.end_hour,
-        start_minute: settings.start_minute || 0,
-        end_minute: settings.end_minute || 0
-      });
-    } catch (error) {
-      console.error('Error calculating light schedule:', error);
-    }
-  };
-
-  // Pobieraj dane czujników co 2 sekundy
   useEffect(() => {
     // Początkowe pobranie
     fetchSensors();
@@ -126,20 +88,18 @@ export default function App() {
     fetchSettings();
     fetchLightIntensity();
     fetchWateringTimer();
-    fetchLightSchedule();
 
-    // Polling co 5 sekund
+    // Polling co 10 sekund
     sensorPollInterval.current = setInterval(() => {
       fetchSensors();
       fetchStatus();
       fetchLightIntensity();
-    }, 5000);
+    }, 10000);
 
-    // Polling dla watering timera co 5 sekund (rzadsze)
+    // Polling dla watering timera co 60
     wateringPollInterval.current = setInterval(() => {
       fetchWateringTimer();
-      fetchLightSchedule();
-    }, 5000);
+    }, 60000);
 
     return () => {
       if (sensorPollInterval.current) {
@@ -185,7 +145,7 @@ export default function App() {
 
   const wakeScreen = () => {
     setIsScreenOn(true);
-    // Nie wołaj resetScreenTimeout - to może spowodować pętlę
+    // Nie wołaj resetScreenTimeout bo petla
     if (screenTimeoutRef.current) {
       clearTimeout(screenTimeoutRef.current);
     }
@@ -204,6 +164,15 @@ export default function App() {
 
   const handleSliderEnd = () => {
     setIsSliderActive(false);
+  };
+
+  const handleLightIntensitySliderEnd = async () => {
+    try {
+      await apiService.updateSettings({ light_intensity: lightIntensity });
+    } catch (error) {
+      console.error('Error updating light intensity:', error);
+    }
+    handleSliderEnd();
   };
 
   useEffect(() => {
@@ -303,12 +272,6 @@ export default function App() {
                       <Text style={styles.topLeftTime}>{formatTime()}</Text>
                       <Text style={styles.topLeftDate}>{formatDate()}</Text>
                     </View>
-                    <Text style={[
-                      styles.manualModeIndicator,
-                      { color: manualMode ? '#FF9800' : '#666666' }
-                    ]}>
-                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
-                    </Text>
                   </View>
 
                   <View 
@@ -323,7 +286,13 @@ export default function App() {
                       value={targetHumidity}
                       onChange={(newHum) => {
                         setTargetHumidity(newHum);
-                        apiService.updateSettings({ target_hum: newHum });
+                      }}
+                      onSliderEnd={async () => {
+                        try {
+                          await apiService.updateSettings({ target_hum: targetHumidity });
+                        } catch (error) {
+                          console.error('Error updating target humidity:', error);
+                        }
                       }}
                       size={RESPONSIVE_SIZES.circularGaugeSize}
                     />
@@ -336,7 +305,13 @@ export default function App() {
                       value={targetTemp}
                       onChange={(newTemp) => {
                         setTargetTemp(newTemp);
-                        apiService.updateSettings({ target_temp: newTemp });
+                      }}
+                      onSliderEnd={async () => {
+                        try {
+                          await apiService.updateSettings({ target_temp: targetTemp });
+                        } catch (error) {
+                          console.error('Error updating target temperature:', error);
+                        }
                       }}
                       size={RESPONSIVE_SIZES.circularGaugeSize}
                     />
@@ -371,16 +346,9 @@ export default function App() {
                       step={1}
                       unit="%"
                       onSliderStart={handleSliderStart}
-                      onSliderEnd={handleSliderEnd}
+                      onSliderEnd={handleLightIntensitySliderEnd}
                       onValueChange={(newIntensity) => {
                         setLightIntensity(newIntensity);
-                        if (manualMode) {
-                          // W manual mode wysyłaj bezpośrednio do control endpoint
-                          apiService.toggleDevice('light', newIntensity);
-                        } else {
-                          // W auto mode ustawiaj settings
-                          apiService.updateSettings({ light_intensity: newIntensity });
-                        }
                       }}
                     />
                   </View>
@@ -461,284 +429,3 @@ export default function App() {
     </ImageBackground>
   );
 }
-const styles = StyleSheet.create({
-  fullBackground: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  screenContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    fontFamily: FontFamily.workSansRegular,
-  },
-  contentWrapper: {
-    flex: 1,
-  },
-  backgroundImage: {
-    resizeMode: 'cover',
-    flex: 1,
-  },
-  mainGrid: {
-    flex: 1,
-    flexDirection: 'column',
-    paddingHorizontal: RESPONSIVE_SIZES.gridPaddingHorizontal,
-    paddingVertical: RESPONSIVE_SIZES.gridPaddingVertical,
-    gap: RESPONSIVE_SIZES.gridGap,
-    justifyContent: 'space-between',
-    marginTop: Math.round(50 * scale),  // Responsive margin for time/date area
-  },
-  rowWrapperTall: {
-    flex: 1.2,
-    flexDirection: 'row',
-    gap: RESPONSIVE_SIZES.gridGap,
-  },
-  rowWrapperShort: {
-    flex: 0.7,
-    flexDirection: 'row',
-    gap: RESPONSIVE_SIZES.gridGap,
-  },
-  gridItemTall: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: RESPONSIVE_SIZES.borderRadius,
-    padding: RESPONSIVE_SIZES.componentPadding,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.7,
-  },
-  gridItemShort: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: RESPONSIVE_SIZES.borderRadius,
-    padding: RESPONSIVE_SIZES.componentPadding,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.7,
-  },
-  gridLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#aaaaaa',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  currentValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  currentLabel: {
-    fontSize: 12,
-    color: '#888888',
-    letterSpacing: 0.3,
-  },
-  currentValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: -20,
-    justifyContent: 'center',
-  },
-  sensorLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansRegular,
-    color: '#888888',
-    letterSpacing: 0.3,
-    marginBottom: 4,
-  },
-  sensorValue: {
-    fontSize: 36,
-    fontFamily: FontFamily.workSansExtraLight,
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
-    fontWeight: '600',
-  },
-  headerBox: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  statusBox: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statusOn: {
-    backgroundColor: '#4CAF50',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-  statusOff: {
-    backgroundColor: '#666666',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  leftColumn: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightColumn: {
-    flex: 0.75,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  leftColumnSmall: {
-    flex: 0.5,
-    justifyContent: 'flex-start',
-    alignItems: 'stretch',
-    paddingTop: 10,
-  },
-  rightColumnLarge: {
-    flex: 1.5,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  panelsColumn: {
-    flex: 1,
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  gaugesColumn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 40,
-    alignItems: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  time: {
-    fontSize: 72,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 2,
-  },
-  date: {
-    fontSize: 18,
-    color: '#888888',
-    marginTop: 10,
-    letterSpacing: 0.5,
-  },
-  manualModeIndicator: {
-    fontSize: 14,
-    color: '#FF9800',
-    marginTop: 8,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  sensorValues: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sensorText: {
-    fontSize: 16,
-    color: '#aaaaaa',
-    letterSpacing: 0.5,
-  },
-  screensaverContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#000000',
-  },
-  screensaverContent: {
-    alignItems: 'center',
-    gap: 40,
-  },
-  screensaverLabel: {
-    fontSize: 32,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  screensaverValue: {
-    fontSize: 72,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 2,
-  },
-  topLeftTimeContainer: {
-    position: 'absolute',
-    top: RESPONSIVE_SIZES.topLeftMargin,
-    left: RESPONSIVE_SIZES.topLeftMargin,
-    right: RESPONSIVE_SIZES.topLeftMargin,
-    zIndex: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  topLeftTime: {
-    fontSize: 20,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  topLeftDate: {
-    fontSize: 20,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  lightScheduleText: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansMedium,
-    color: '#e0e0e0',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  bluetoothImage: {
-    width: 50,
-    height: 50,
-    marginBottom: 6,
-    resizeMode: 'contain',
-    tintColor: '#ffffff',
-  },
-  pairModulesButtonText: {
-    fontSize: 17,
-    fontFamily: FontFamily.workSansLight,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  pairModulesButtonTextSuccess: {
-    color: '#4CAF50',
-  },
-  pairModulesButtonTextError: {
-    color: '#FF6B6B',
-  },
-  pairingButtonLoading: {
-    opacity: 2,
-  },
-  pairingButtonSuccess: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  pairingButtonError: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
-  },
-});

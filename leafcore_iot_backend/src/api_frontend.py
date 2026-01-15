@@ -44,12 +44,15 @@ def get_sensors():
 def get_status():
     """Get device states + sensor data"""
     sensor_data_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data.json")
-    devices_info = current_app.config['DEVICES_INFO']
+    devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
     
     with open(sensor_data_file, 'r') as f:
         sensor_data = json.load(f)
         if isinstance(sensor_data, list):
             sensor_data = sensor_data[0] if sensor_data else {}
+    
+    with open(devices_info_file, 'r') as f:
+        devices_info = json.load(f)
     
     return jsonify({
         "temperature": sensor_data.get("temperature"),

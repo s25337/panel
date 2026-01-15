@@ -39,6 +39,7 @@ export default function CircularGauge({
   value,
   onValueChange,
   onChange,
+  onSliderEnd,
   min,
   max,
   step,
@@ -125,6 +126,9 @@ export default function CircularGauge({
         updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
       onPanResponderMove: (e) =>
         updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
+      onPanResponderRelease: () => {
+        if (onSliderEnd) onSliderEnd();
+      },
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => true,
     })

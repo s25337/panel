@@ -86,7 +86,6 @@ const apiService = {
           pump: false, 
           heat_mat: false,
           sprinkler: false,
-          manual_mode: false
         }
       };
     }

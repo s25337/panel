@@ -15,7 +15,7 @@ const RESPONSIVE_SIZES = {
 };
 
 const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
-  const [manualMode, setManualMode] = useState(false);
+  const [manualMode, setManualMode] = useState(true); // Always manual mode
   const [lightOn, setLightOn] = useState(false);
   const [heaterOn, setHeaterOn] = useState(false);
   const [fanOn, setFanOn] = useState(false);
@@ -53,7 +53,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     try {
       const status = await apiService.getStatus();
       const devices = status.devices || {};
-      setManualMode(devices.manual_mode === true);
       setLightOn(devices.light === true || devices.light === 1 || devices.light?.state === 'on');
       setHeaterOn(devices.heat_mat === true || devices.heat_mat === 1 || devices.heat_mat?.state === 'on');
       setFanOn(devices.fan === true || devices.fan === 1 || devices.fan?.state === 'on');
@@ -68,15 +67,9 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     setLoading(prev => ({ ...prev, [device]: true }));
 
     try {
-      if (device === 'manual_mode') {
-        // Special handling for manual mode toggle
-        await apiService.toggleManualMode(newState);
-        setManualMode(newState === 'on');
-      } else {
-        await apiService.toggleDevice(device, newState);
-        // Refetch status po zmianie aby być pewnym stanu
-        await fetchStatus();
-      }
+      await apiService.toggleDevice(device, newState);
+      // Refetch status po zmianie aby być pewnym stanu
+      await fetchStatus();
     } catch (error) {
       Alert.alert('Błąd', `Nie udało się zmienić stanu ${device}`);
       console.error(`Error toggling ${device}:`, error);
@@ -85,13 +78,17 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     }
   };
 
-  const handleLightIntensityChange = async (newIntensity) => {
+  const handleLightIntensityChange = (newIntensity) => {
     setLightIntensity(newIntensity);
+  };
+
+  const handleLightIntensitySliderEnd = async () => {
     try {
-      await apiService.updateSettings({ light_intensity: Math.round(newIntensity) });
+      await apiService.updateSettings({ light_intensity: Math.round(lightIntensity) });
     } catch (error) {
       console.error('Error updating light intensity:', error);
     }
+    if (onSliderEnd) onSliderEnd();
   };
 
   const ControlTile = ({ device, label, isOn, isPressable, onClick }) => (
@@ -101,10 +98,9 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
         isOn && styles.tileActive,
         isPressable && isOn && styles.tilePressableActive,
         isPressable && !isOn && styles.tilePressable,
-        !manualMode && device !== 'manual_mode' && styles.tileDisabled
       ]}
-      onPress={isPressable ? onClick : () => handleDeviceToggle(device, isOn)}
-      disabled={loading[device] || (!manualMode && device !== 'manual_mode')}
+      onPress={isPressable ? onClick : (device === 'heat_mat' || device === 'fan' ? undefined : () => handleDeviceToggle(device, isOn))}
+      disabled={loading[device] || device === 'heat_mat' || device === 'fan'}
       activeOpacity={0.7}
       hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
     >
@@ -223,6 +219,14 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     letterSpacing: 0.5,
   },
+  settingLabel: {
+    fontSize: 15,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansRegular,
+    color: '#ffffff',
+    marginBottom: 4,
+    opacity: 0.4,
+  },
   settingId: {
     fontSize: 18,
     fontWeight: '100',
@@ -240,6 +244,7 @@ const styles = StyleSheet.create({
   },
   tileActive: {
     backgroundColor: 'rgba(76, 175, 80, 0.8)',
+    opacity: 0.7,
   },
   tilePressable: {
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
