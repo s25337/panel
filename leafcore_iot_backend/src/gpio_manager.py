@@ -77,15 +77,24 @@ class AutomationRules:
         """Apply watering schedule automation"""
         if devices_info.get("pump", {}).get("mode") != "auto":
             return
-        
-        watering_days = settings.get('watering_days', [])
-        current_day = datetime.datetime.now().strftime("%A").upper()
-        current_time = datetime.datetime.now().strftime("%H:%M")
-        watering_time = settings.get('watering_time', '09:00')
-        
-        if current_day in watering_days and current_time == watering_time:
-            devices_info["pump"]["state"] = "on"
-            logger.info(f"Watering schedule triggered: {current_day} at {watering_time}")
+        if devices_info.get("pump",{}).get("state") == "on":
+            return
+        else:
+            now = datetime.datetime.now()
+            watering_days = settings.get('watering_days', [])
+            current_day = int(datetime.datetime.now().strftime("%w"))
+            current_time = datetime.datetime.now().strftime("%H:%M")
+            current_date_str = now.strftime("%Y-%m-%d")
+            watering_time = settings.get('watering_time', '12:45')
+            last_run = devices_info.get("pump", {}).get("last_edit_date")
+            if last_run == current_date_str:
+               return
+            #logger.info(f"Watering schedule: {watering_days},{current_time},{current_day},{watering_time}")
+            if current_day in watering_days and current_time == watering_time:
+               devices_info["pump"]["state"] = "on"
+               devices_info["pump"]["last_edit_date"] = current_date_str
+               logger.info(f"Watering schedule triggered: {current_day} at {watering_time}")
+               return
 
 
     
