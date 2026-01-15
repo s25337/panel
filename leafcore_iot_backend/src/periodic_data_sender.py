@@ -1,19 +1,19 @@
 
-
+import requests
 import threading
 import time
 import os
 import json
 from flask import current_app
 
-BASE_URL = "http://31.11.238.45:8081/terrarium"
+BASE_URL = "http://localhost:5000/api/dataTerrarium/group-A1"
 
 def periodic_data_terrarium_sender(app):
     interval_minutes = 5
     while True:
         for m in range(interval_minutes, 0, -1):
             print(f"[dataTerrarium] Za {m} min wyślę dane do Terrarium...")
-            time.sleep(60)
+            time.sleep(5)
         try:
             with app.app_context():
                 sensor_history_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data_history.json")

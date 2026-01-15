@@ -135,9 +135,12 @@ class GPIOController(threading.Thread):
                     # Sprawdź czy pompa ma być wyłączona po water_seconds
                     if devices_info.get("pump", {}).get("turned_on_at"):
                         water_seconds = settings.get('water_seconds', 30)
+                        logger.info(f"{water_seconds}")
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
+                        logger.info(f"{elapsed}")
                         if elapsed > water_seconds:
                             devices_info["pump"]["state"] = "off"
+                            logger.info("finished watering")
                             del devices_info["pump"]["turned_on_at"]
                     
                     # Save updated device states
@@ -219,8 +222,8 @@ class GPIOController(threading.Thread):
                         water_seconds = settings.get('water_seconds', 30)
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
                         if elapsed > water_seconds:
-                            devices_info["pump"]["state"] = "off"
-                            del devices_info["pump"]["turned_on_at"]
+                            	devices_info["pump"]["state"] = "off"
+                            	del devices_info["pump"]["turned_on_at"]
                     
                     # Save updated device states
                     with open(devices_info_file, 'w') as f:

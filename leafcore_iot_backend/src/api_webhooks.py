@@ -62,7 +62,6 @@ def external_watering_control():
         print(f"[webhook] Błąd wywołania /api/watering: {e}")
         return {"status": "ERROR", "message": str(e)}, 500
 
-
 @api_webhooks.route('/webhook/test', methods=['POST'])
 def webhook_test():
     data = request.get_json(force=True)

@@ -2,21 +2,21 @@
   "light": {
     "device_name": "LC_Greenhouse_Module_Light001",
     "type": "light",
-    "state": "off",
+    "state": "on",
     "mode": "auto",
-    "intensity": 0.51,
+    "intensity": 0.32,
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
   "fan": {
     "device_name": "LC_Greenhouse_Module_Fan001",
     "type": "fan",
-    "state": "off",
+    "state": "on",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
@@ -26,27 +26,27 @@
     "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13T23:58:31.433873",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
   "sprinkler": {
     "device_name": "LC_Greenhouse_Module_Sprinkler001",
     "type": "sprinkler",
-    "state": "on",
+    "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13T23:58:05.198886",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
   "heat_mat": {
     "device_name": "LC_Greenhouse_Module_Heat001",
     "type": "heating mat",
-    "state": "on",
+    "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
@@ -56,7 +56,7 @@
     "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
@@ -66,7 +66,7 @@
     "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   },
@@ -76,7 +76,7 @@
     "state": "off",
     "mode": "auto",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-    "last_edit_date": "2026-01-13 15:10:21",
+    "last_edit_date": "",
     "is_registered": 0,
     "user_id": null
   }
