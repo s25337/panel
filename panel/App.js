@@ -13,7 +13,6 @@ import ScreenNavigator from './components/ScreenNavigator';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
-const cachedSettings = { target_temp: 25, target_hum: 60 };
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
   circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
@@ -89,31 +88,7 @@ useEffect(() => {
     } catch (error) {
       console.error('Error loading settings:', error);
     }
-  };
-
-<<<<<<< Updated upstream
- useEffect(() => {
-  const loadSettings = async () => {
-    try {
-      const response = await fetch('/settings_config.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      const data = await response.json();
-      cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
-      console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
-      cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
-      console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
-      setTargetTemp(cachedSettings.target_temp);
-      setTargetHumidity(cachedSettings.target_hum);
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };
-
-=======
->>>>>>> Stashed changes
-  loadSettings();
+  };  loadSettings();
 }, []);
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
@@ -138,12 +113,7 @@ useEffect(() => {
       setLightIntensity((prev) => prev || cachedSettings.light_intensity);
     }
   };
-
-<<<<<<< Updated upstream
    const fetchSettings = async () => {
-=======
- const fetchSettings = async () => {
->>>>>>> Stashed changes
   try {
     const data = await apiService.getSettings();
     if (data.target_temp !== undefined && data.target_temp !== null) {
@@ -152,24 +122,12 @@ useEffect(() => {
     if (data.target_hum !== undefined && data.target_hum !== null) {
       setTargetHumidity(data.target_hum);
     }
-<<<<<<< Updated upstream
   } catch (error) {
     console.error('Error fetching settings from API:', error);
-    // Fallback to cached settings only if the state is not already set
-=======
-    
-  } catch (error) {
-    console.error('Error fetching settings from API:', error);
->>>>>>> Stashed changes
     setTargetTemp((prev) => prev || cachedSettings.target_temp);
     setTargetHumidity((prev) => prev || cachedSettings.target_hum);
   }
 };
-<<<<<<< Updated upstream
-     
-=======
-
->>>>>>> Stashed changes
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
     if (data && data.interval_seconds) {
@@ -230,11 +188,6 @@ useEffect(() => {
   // Refetchuj settings gdy wrócisz na main screen (screen 0)
   useEffect(() => {
     if (currentScreen === 0) {
-<<<<<<< Updated upstream
-     // fetchSettings();
-=======
-  //    fetchSettings();
->>>>>>> Stashed changes
     }
   }, [currentScreen]);
 

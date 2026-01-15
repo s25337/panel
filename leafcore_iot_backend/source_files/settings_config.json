@@ -1,18 +1,16 @@
 {
-  "setting_id": "group-A1",
-  "plant_name": "six seven",
-  "target_temp": 10,
-  "target_hum": 35,
-  "light_intensity": 66,
-  "start_hour": 12,
-  "end_hour": 13,
+  "setting_id": "7",
+  "plant_name": "Joker Kush Mush",
+  "target_temp": 36.0,
+  "target_hum": 90.0,
+  "light_intensity": 11.0,
+  "start_hour": 16,
+  "end_hour": 16,
   "watering_mode": "standard",
-  "water_seconds": 3,
+  "water_seconds": 400,
   "watering_days": [
-    1,
-    2,
-    3,
-    4,
-    5
+    5,
+    6,
+    7
   ]
 }

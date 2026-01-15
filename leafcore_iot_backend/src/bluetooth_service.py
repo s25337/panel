@@ -2,6 +2,7 @@
 Bluetooth WiFi Configurator Service
 Handles WiFi credential configuration via BLE
 """
+import sys
 import logging
 import signal
 import subprocess
@@ -11,11 +12,21 @@ import os
 import datetime
 import threading
 
+logging.basicConfig(level=logging.INFO)
+
+# 2. DEBUG: Print exactly which Python executable is running
+# This will tell us if we are in the venv or system python
+print(f"DEBUG: Running Python from: {sys.executable}", flush=True)
+
 try:
     from bluezero import peripheral, localGATT, async_tools, adapter
     BLUEZERO_AVAILABLE = True
-except ImportError:
+    print("DEBUG: Bluezero Import SUCCESS", flush=True)
+except ImportError as e:
     BLUEZERO_AVAILABLE = False
+    print(f"DEBUG: Bluezero Import FAILED. Error: {e}", flush=True)
+    # Print the path so we see where it tried to look
+    print(f"DEBUG: sys.path is: {sys.path}", flush=True)
 
 LEAFCORE_SERVICE_UUID = "c62a771b-095e-4f60-a383-bca1f8f96210"
 SSID_CHAR_UUID = "5c3dc741-7850-4b0a-ac77-1ea26bdb73f1"

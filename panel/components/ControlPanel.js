@@ -26,8 +26,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const [plantName, setPlantName] = useState('');
   const [settingId, setSettingId] = useState('');
   const [loading, setLoading] = useState({});
-<<<<<<< Updated upstream
-=======
   const [bluetoothLoading, setBluetoothLoading] = useState(false);
   const [bluetoothConnected, setBluetoothConnected] = useState(false);
   const handleBluetoothConnect = async () => {
@@ -44,7 +42,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       setBluetoothLoading(false);
     }
   };
->>>>>>> Stashed changes
 
   // Fetch initial status
   useEffect(() => {
@@ -108,11 +105,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       const status = await apiService.getStatus();
       const devices = status.devices || {};
       setManualMode(devices.manual_mode === true);
-<<<<<<< Updated upstream
-      setLightOn(devices.light === true || devices.light === 1 || devices.light?.state === 'on');
-      setHeaterOn(devices.heater === true || devices.heater === 1 || devices.heater?.state === 'on');
-      setFanOn(devices.fan === true || devices.fan === 1 || devices.fan?.state === 'on');
-=======
       if(devices.light?.state == "on"){
         setLightOn(true);}
         else{
@@ -128,7 +120,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
         else{
           setFanOn((prev) => prev || cachedSettings.fan_on);
         }
->>>>>>> Stashed changes
       // Pompa i sprinkler obsługiwane przez UI
     } catch (error) {
       console.error('Error fetching status:', error);
@@ -195,31 +186,32 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   return (
     <View style={styles.container}>
       <View style={styles.grid}>
-        {/* Row 1 - Settings Display + Intensity + Heater + Fan */}
+        {/* Row 1 - Settings Display + Intensity + Heater + Fan + Bluetooth */}
         <View style={styles.settingsDisplayTile}>
           <Text style={styles.settingLabel}>setting_id</Text>
           <Text style={styles.settingId}>{settingId}</Text>
           <Text style={styles.settingLabel}>plant_name</Text>
           <Text style={styles.plantName}>{plantName}</Text>
         </View>
-        
+
         {/* Current Light Intensity Display */}
         <View style={styles.intensityDisplayTile}>
           <Text style={styles.intensityDisplayLabel}>Intensity</Text>
           <Text style={styles.intensityDisplayValue}>{Math.round(lightIntensity)}</Text>
         </View>
-        
+
         <ControlTile 
           device="heater" 
           label="Heater" 
           isOn={heaterOn}
         />
-        
+
         <ControlTile 
           device="fan" 
           label="Fan" 
           isOn={fanOn}
         />
+
       </View>
 
       {/* Light Schedule Editor - Full Width Above Watering Days */}
@@ -252,7 +244,7 @@ const styles = StyleSheet.create({
   },
   tile: {
     width: '22%',
-    height: 90,
+    height: 170,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 14,
     padding: 6,
@@ -262,7 +254,7 @@ const styles = StyleSheet.create({
   },
   settingsDisplayTile: {
     width: '22%',
-    height: 90,
+    height: 170,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 14,
     padding: 10,
@@ -272,7 +264,7 @@ const styles = StyleSheet.create({
   },
   intensityDisplayTile: {
     width: '22%',
-    height: 90,
+    height: 170,
     backgroundColor: 'rgba(30, 30, 30, 0.7)',
     borderRadius: 14,
     padding: 10,
@@ -281,32 +273,32 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   intensityDisplayLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    fontFamily: FontFamily.workSansRegular,
+    fontSize: 20,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
     color: '#888',
     marginBottom: 4,
   },
   intensityDisplayValue: {
-    fontSize: 24,
-    fontWeight: '300',
+    fontSize: 34,
+    fontWeight: '100',
     fontFamily: FontFamily.workSansLight,
-    color: '#FFD700',
+    color: '#ffffff',
     letterSpacing: 0.5,
   },
   settingId: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
-    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: '100',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
     textAlign: 'center',
     marginBottom: 8,
   },
   plantName: {
-    fontSize: 13,
-    fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
-    color: '#FFD700',
+    fontSize: 18,
+    fontWeight: '100',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
     textAlign: 'center',
   },
   settingsRow: {
@@ -319,11 +311,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   settingLabel: {
-<<<<<<< Updated upstream
-    fontSize: 10,
-=======
     fontSize: 14,
->>>>>>> Stashed changes
     fontWeight: '500',
     fontFamily: FontFamily.workSansRegular,
     color: '#888',
@@ -349,9 +337,9 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   tileLabel: {
-    fontSize: 13,
+    fontSize: 17,
     fontWeight: '600',
-    fontFamily: FontFamily.workSansMedium,
+    fontFamily: FontFamily.workSansLight,
     color: '#aaa',
     marginBottom: 6,
     textAlign: 'center',

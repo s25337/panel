@@ -30,8 +30,8 @@ app.post('/api/bluetooth/start', (req, res) => {
     console.log('Attempting to start Bluetooth Service...');
 
     // --- CONFIGURATION ---
-    const WORK_DIR = '/home/orangepi/Desktop/Leafcore-IoT/Leafcore';
-    const PYTHON_EXEC = path.join(WORK_DIR, 'Leafcore/bin/python');
+    const WORK_DIR = '/home/orangepi/Desktop/panel/leafcore_iot_backend';
+    const PYTHON_EXEC = path.join(WORK_DIR, '.venv/bin/python');
     const SCRIPT_FILE = path.join(WORK_DIR, 'bluetooth_service.py');
     // ---------------------
     spawn('sudo', ['pkill', '-f', 'bluetooth_service.py']);
