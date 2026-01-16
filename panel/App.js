@@ -260,20 +260,7 @@ useEffect(() => {
 
   const handleStartBluetooth = async () => {
     setPairingStatus('loading');
-    setLogs([]); // Clear old logs
-    setShowLogModal(true); // Open the popup
-const eventSource = new EventSource(`${API_BASE_URL}/api/bluetooth-logs`);
-eventSource.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        setLogs((prevLogs) => [...prevLogs, data.message]);
-};
-
-eventSource.onerror = (err) => {
-        console.error("EventSource failed:", err);
-        eventSource.close();
-    };    
-
-try {
+    try {
       const response = await apiService.startBluetooth();
       if (response.status === 'ok') {
         setPairingStatus('success');
@@ -287,6 +274,7 @@ try {
       setTimeout(() => setPairingStatus('idle'), 3000);
     }
   };
+
   const formatTime = () => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -468,32 +456,6 @@ try {
                       {pairingStatus === 'error' && 'Error'}
                     </Text>
                   </TouchableOpacity>
-                 {/* --- LOG MODAL --- */}
-{showLogModal && (
-    <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Bluetooth Device Logs</Text>
-            
-            {/* Scrollable Log Area */}
-            <ScrollView style={styles.logContainer}>
-                {logs.map((log, index) => (
-                    <Text key={index} style={styles.logText}>{log.trim()}</Text>
-                ))}
-            </ScrollView>
-
-            {/* Close Button */}
-            <TouchableOpacity 
-                style={styles.closeButton} 
-                onPress={() => {
-                    setShowLogModal(false);
-                    // Optional: You might want to stop the backend process here too
-                }}
-            >
-                <Text style={styles.closeButtonText}>Close</Text>
-            </TouchableOpacity>
-        </View>
-    </View>
-)}
                 </View>
               </View>
                 </View>,

@@ -27,8 +27,12 @@ def start_bluetooth():
         if connected:
             return jsonify({'status': 'ok', 'message': 'Bluetooth client connected'})
         else:
+            bluetooth_thread.stop()
+            bluetooth_thread.join(timeout=2)
             return jsonify({'status': 'error', 'message': 'No client connected within timeout'}), 504
     except Exception as e:
+        if bluetooth_thread and bluetooth_thread.is_alive():
+            bluetooth_thread.stop()
         return jsonify({'status': 'error', 'message': str(e)}), 500
     
 @api_frontend.route("/sensors", methods=["GET"])

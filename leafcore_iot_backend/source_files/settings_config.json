@@ -1,7 +1,7 @@
 {
   "setting_id": "7",
   "plant_name": "Joker Kush Mush",
-  "target_temp": 36.0,
+  "target_temp": 15.0,
   "target_hum": 90.0,
   "light_intensity": 11.0,
   "start_hour": 16,
