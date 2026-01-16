@@ -85,7 +85,7 @@ class AutomationRules:
             current_day = int(datetime.datetime.now().strftime("%w"))
             current_time = datetime.datetime.now().strftime("%H:%M")
             current_date_str = now.strftime("%Y-%m-%d")
-            watering_time = settings.get('watering_time', '12:45')
+            watering_time = settings.get('watering_time', '18:10')
             last_run = devices_info.get("pump", {}).get("last_edit_date")
             if last_run == current_date_str:
                return

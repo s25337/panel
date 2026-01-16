@@ -131,9 +131,16 @@ class WifiConfigurator:
         except subprocess.CalledProcessError as e:
             logging.error("--- Failed to connect to Wi-Fi. ---")
             logging.error(f"nmcli error: {e.stderr}")
+        except Exception as e:
+            logging.error(f"Connection logic error: {e}")
         finally:
             self.ssid = None
             self.password = None
+            try:
+                logging.info("Configuration attempt finished. Stopping Bluetooth.")
+                async_tools.EventLoop().quit()
+            except Exception:
+                pass
 
 
 class BluetoothService(threading.Thread):
@@ -142,8 +149,9 @@ class BluetoothService(threading.Thread):
         super().__init__()
         self.daemon = True
         self.devices_info_file = devices_info_file
-        self.running = True
+        #self.running = True
         self.connection_event = connection_event or threading.Event()
+        self.mainloop = None
 
     def run(self):
         if not BLUEZERO_AVAILABLE:
@@ -151,7 +159,7 @@ class BluetoothService(threading.Thread):
             return
         
         logging.basicConfig(level=logging.INFO)
-        mainloop = async_tools.EventLoop()
+        self.mainloop = async_tools.EventLoop()
         config = WifiConfigurator(self.devices_info_file, connection_event=self.connection_event)
 
         try:
@@ -207,28 +215,18 @@ class BluetoothService(threading.Thread):
                 read_callback=None,
                 write_callback=config.on_user_id
             )
-
-            my_server.publish()
             logging.info("Bluetooth server is published and broadcasting. Waiting for WiFi config...")
-            
-            while self.running:
-                try:
-                    mainloop.run()
-                    break
-                except KeyboardInterrupt:
-                    break
+            my_server.publish()
+        except Exception as e:
+            logging.error(f"Bluetooth Service Error: {e}")
 
         except adapter.AdapterError as e:
             logging.error(f"Bluetooth Error: {e}")
-        except Exception as e:
-            logging.error(f"Bluetooth Service Error: {e}")
-        finally:
-            logging.info("Shutting down Bluetooth service...")
-            try:
-                if 'mainloop' in locals() and mainloop.is_running():
-                    mainloop.quit()
-            except:
-                pass
 
     def stop(self):
-        self.running = False
+        if self.mainloop:
+            try:
+                logging.info("Force stopping Bluetooth service...")
+                self.mainloop.quit()
+            except Exception:
+                pass

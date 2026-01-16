@@ -10,7 +10,8 @@ import datetime
 import time
 import threading
 import logging
-
+import board
+import busio
 try:
     import gpiod
     from gpiod.line import Direction, Value, Bias
@@ -162,6 +163,7 @@ class SensorService(threading.Thread):
         """Initialize I2C bridge and sensors"""
         try:
             self.i2c = SoftwareI2CBridge(self.chip_path, self.scl_pin, self.sda_pin)
+            #self.i2c = busio.I2C(board.SCL, board.SDA)
             logger.info("I2C Bridge initialized")
             
             # Initialize AHT10
