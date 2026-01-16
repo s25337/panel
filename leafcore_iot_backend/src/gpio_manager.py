@@ -7,6 +7,7 @@ import os
 import datetime
 import logging
 import threading
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +96,18 @@ class AutomationRules:
                devices_info["pump"]["last_edit_date"] = current_date_str
                logger.info(f"Watering schedule triggered: {current_day} at {watering_time}")
                return
+            
 
+    PUMP_CAL_ML = 300.0
+    PUMP_CAL_S = 21.0
+    PUMP_S_PER_ML = PUMP_CAL_S / PUMP_CAL_ML
+
+    @staticmethod
+    def apply_watering_rules(devices_info, settings):
+        if devices_info.get("pump",{}).get("state") == "on":
+            time.sleep(settings.get('water_seconds', 3) * AutomationRules.PUMP_S_PER_ML)
+            devices_info["pump"]["state"] = "off"
+            return
 
     
 
@@ -109,6 +121,7 @@ def apply_automation_rules(devices_info, sensor_data, settings):
         AutomationRules.apply_humidity_rules(devices_info, sensor_data, settings)
         AutomationRules.apply_brightness_rules(devices_info, sensor_data, settings, current_time_str)
         AutomationRules.apply_watering_schedule(devices_info, settings)
+        AutomationRules.apply_watering_rules(devices_info, settings)
         
         
     except Exception as e:
