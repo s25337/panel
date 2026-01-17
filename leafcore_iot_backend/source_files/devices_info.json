@@ -2,7 +2,7 @@
   "light": {
     "device_name": "LC_Greenhouse_Module_Light001",
     "type": "light",
-    "state": "on",
+    "state": "off",
     "mode": "auto",
     "intensity": 0.79,
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
@@ -75,6 +75,7 @@
     "type": "water level sensor",
     "state": "off",
     "mode": "auto",
+    "water_level": "unknown",
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "",
     "is_registered": 0,

@@ -145,7 +145,7 @@ class SoftwareI2CBridge:
 class SensorService(threading.Thread):
     """Sensor reading thread - collects data from AHT10 and VEML7700"""
     
-    def __init__(self, chip_path, scl_pin, sda_pin, output_file, poll_interval=2.0):
+    def __init__(self, chip_path, scl_pin, sda_pin, output_file, poll_interval=2.0, water_min_pin=None, water_max_pin=None):
         super().__init__()
         self.daemon = True
         self.running = True
@@ -154,7 +154,11 @@ class SensorService(threading.Thread):
         self.sda_pin = sda_pin
         self.output_file = output_file
         self.poll_interval = poll_interval
-        
+        self.water_min_pin = water_min_pin
+        self.water_max_pin = water_max_pin
+
+        self.water_min = None  # For water level pins    
+        self.water_max = None       
         self.sensor_aht = None
         self.sensor_veml = None
         self.i2c = None
@@ -182,7 +186,27 @@ class SensorService(threading.Thread):
                 logger.warning(f"VEML7700 Error: {e}")
                 self.sensor_veml = None
                 
-            return self.sensor_aht or self.sensor_veml
+            # Initialize water level sensors
+            try:
+                if self.water_min_pin is not None:
+                    self.water_min = gpiod.Chip(self.chip_path).request_lines(
+                        consumer="water_min_sensor",
+                        config={self.water_min_pin: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP)}
+                    )
+                    logger.info("✓ Water Min Sensor Connected")
+                if self.water_max_pin is not None:
+                    self.water_max = gpiod.Chip(self.chip_path).request_lines(
+                        consumer="water_max_sensor",
+                        config={self.water_max_pin: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP)}
+                    )
+                    logger.info("✓ Water Max Sensor Connected")
+            except Exception as e:
+                logger.warning(f"Water Level Sensor Error: {e}")
+                self.water_min = None
+                self.water_max = None
+
+            return self.sensor_aht or self.sensor_veml or self.water_min or self.water_max
+
             
         except Exception as e:
             logger.error(f"Sensor initialization failed: {e}")
@@ -225,6 +249,18 @@ class SensorService(threading.Thread):
                             data["brightness"] = round(brightness, 2)
                         except Exception as e:
                             logger.debug(f"VEML7700 read error: {e}")
+
+                    # Read water level sensors
+                    try:
+                        if self.water_min:
+                            min_state = self.water_min.get_value(self.water_min_pin)
+                            data["water_min"] = "low" if min_state == Value.INACTIVE else "ok"
+                        if self.water_max:
+                            max_state = self.water_max.get_value(self.water_max_pin)
+                            data["water_max"] = "high" if max_state == Value.INACTIVE else "ok"     
+                    except Exception as e:
+                        logger.debug(f"Water level sensor read error: {e}")
+
                     # Save to file
                     try:
                         with open(self.output_file, "w") as f:
