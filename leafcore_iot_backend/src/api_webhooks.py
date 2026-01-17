@@ -61,18 +61,31 @@ def external_watering_control():
         print(f"[webhook] Błąd wywołania /api/watering: {e}")
         return {"status": "ERROR", "message": str(e)}, 500
 
-@api_webhooks.route('/webhook/test', methods=['POST'])
-def webhook_test():
+@api_webhooks.route('/external/light', methods=['POST'])
+def external_light_control():
+
     data = request.get_json(force=True)
-    print(f"[webhook] Otrzymano dane: {data}")
-    return jsonify({"status": "OK", "received": data})
+    print(f"[webhook] Otrzymano kontrolę światła: {data}")
+    intensity_value = data.get("intensity", 0)  
+    settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
+    try:
+        with open(settings_file, 'r') as f:
+            settings = json.load(f)
+        
+        settings["light_intensity"] = intensity_value
+        print(f"[webhook] Ustawiono light_intensity w settings na: {intensity_value}")
+        
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+            
+        return jsonify({"status": "OK", "intensity": intensity_value})
+    except Exception as e:
+        print(f"[webhook] Błąd kontroli światła: {e}")
+        return jsonify({"status": "ERROR", "message": str(e)}), 500
+
 
 @api_webhooks.route('/external/devices/register', methods=['POST'])
 def register_device_webhook():
-    """
-    Webhook endpoint for external Terrarium server to register devices
-    Receives user_id and is_registered, updates all devices with these values
-    """
     data = request.get_json(force=True)
     print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
     user_id = data.get("user_id", None)
@@ -90,7 +103,6 @@ def register_device_webhook():
         if device.get("device_name") == device_name:
             device["user_id"] = user_id
             device["is_registered"] = is_registered
-            break  # Update only the first match
     
     try:
         with open(devices_info_file, 'w') as f:
