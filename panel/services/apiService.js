@@ -31,12 +31,27 @@ const apiService = {
         const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/start`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
         });
         if (!response.ok) throw new Error('Failed to start bluetooth');
         return await response.json();
       } catch (error) {
         console.error('Error starting bluetooth:', error);
         return { status: 'error' };
+      }
+    },
+
+    /**
+     * Pobiera logi Bluetooth
+     */
+    async getBluetoothLogs() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs`);
+        if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching bluetooth logs:', error);
+        return { logs: [] };
       }
     },
   /**
