@@ -10,6 +10,7 @@ import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
 import HistoryPanel from './components/HistoryPanel';
 import ScreenNavigator from './components/ScreenNavigator';
+import LogModal from './components/LogModal';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
@@ -48,7 +49,6 @@ export default function App() {
   const sensorPollInterval = useRef(null);
   const wateringPollInterval = useRef(null);
   const [showLogModal, setShowLogModal] = React.useState(false);
-  const [logs, setLogs] = React.useState([]);
   // Load custom fonts
   useEffect(() => {
     const loadFonts = async () => {
@@ -260,19 +260,7 @@ useEffect(() => {
 
   const handleStartBluetooth = async () => {
     setPairingStatus('loading');
-    try {
-      const response = await apiService.startBluetooth();
-      if (response.status === 'ok') {
-        setPairingStatus('success');
-        setTimeout(() => setPairingStatus('idle'), 3000);
-      } else {
-        setPairingStatus('error');
-        setTimeout(() => setPairingStatus('idle'), 3000);
-      }
-    } catch (error) {
-      setPairingStatus('error');
-      setTimeout(() => setPairingStatus('idle'), 3000);
-    }
+    setShowLogModal(true);
   };
 
   const formatTime = () => {
@@ -491,6 +479,7 @@ useEffect(() => {
         )}
         </View>
       </SafeAreaView>
+      <LogModal visible={showLogModal} onClose={() => setShowLogModal(false)} setPairingStatus={setPairingStatus} />
     </ImageBackground>
   );
 }

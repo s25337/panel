@@ -4,7 +4,11 @@
     "type": "light",
     "state": "off",
     "mode": "auto",
+<<<<<<< HEAD
     "intensity": 0.79,
+=======
+    "intensity": 0.0,
+>>>>>>> 77188eb (Fixing Bluetooth + testing bluetooth and integration tests)
     "group_id": "LC_Greenhouse_Box_ModuleGroup001",
     "last_edit_date": "",
     "is_registered": 0,

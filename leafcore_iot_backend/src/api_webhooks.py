@@ -3,7 +3,6 @@ import requests as ext_requests
 import os
 import json
 from flask import Blueprint, request, jsonify
-
 from flask import current_app
 
 api_webhooks = Blueprint('api_webhooks', __name__)
@@ -55,7 +54,7 @@ def external_watering_control():
     Wywołuje lokalny endpoint /api/watering niezależnie od danych wejściowych, might change 
     """
     try:
-        resp = ext_requests.post('http://localhost:5000/api/watering')
+        resp = ext_requests.post('http://localhost:5001/api/watering') ##5001 nie 5000
         print(f"[webhook] Wywołano /api/watering, status: {resp.status_code}, body: {resp.text}")
         return (resp.text, resp.status_code, resp.headers.items())
     except Exception as e:
@@ -67,3 +66,38 @@ def webhook_test():
     data = request.get_json(force=True)
     print(f"[webhook] Otrzymano dane: {data}")
     return jsonify({"status": "OK", "received": data})
+
+@api_webhooks.route('/external/devices/register', methods=['POST'])
+def register_device_webhook():
+    """
+    Webhook endpoint for external Terrarium server to register devices
+    Receives user_id and is_registered, updates all devices with these values
+    """
+    data = request.get_json(force=True)
+    print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
+    user_id = data.get("user_id", None)
+    is_registered = data.get("is_registered", False)
+    device_name = data.get("device_name", "Unknown Device")
+    
+    devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
+    try:
+        with open(devices_info_file, 'r') as f:
+            devices_info = json.load(f)
+    except FileNotFoundError:
+        devices_info = {}
+
+    for device_id, device in devices_info.items():
+        if device.get("device_name") == device_name:
+            device["user_id"] = user_id
+            device["is_registered"] = is_registered
+            break  # Update only the first match
+    
+    try:
+        with open(devices_info_file, 'w') as f:
+            json.dump(devices_info, f, indent=2)
+        print(f"[webhook] Zaktualizowano wszystkie urządzenia: user_id={user_id}, is_registered={is_registered}")
+        return jsonify({"status": "OK", "updated": devices_info})
+    except Exception as e:
+        print(f"[webhook] Błąd zapisu devices_info.json: {e}")
+        return jsonify({"status": "ERROR", "message": str(e)}), 500
+
