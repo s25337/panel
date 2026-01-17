@@ -40,7 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 class WifiConfigurator:
-    def __init__(self, devices_info_file, connection_event=None):
+    def __init__(self, devices_info_file, connection_event=None, logs=None):
         self.ssid_buffer = b"" 
         self.pass_buffer = b""
         self.ssid = None
@@ -49,60 +49,91 @@ class WifiConfigurator:
         self.devices_info_file = devices_info_file
         self.server_url = "http://33.11.238.45:8081/terrarium/"
         self.connection_event = connection_event
+        self.logs = logs or []
 
     def on_ssid_write(self, value, options):
         self.ssid_buffer += bytes(value)
-        logging.info(f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes.")
+        msg = f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes."
+        logging.info(msg)
+        self.logs.append(msg)
 
     def on_pass_write(self, value, options):
         self.pass_buffer += bytes(value)
-        logging.info(f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes.")
+        msg = f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes."
+        logging.info(msg)
+        self.logs.append(msg)
 
     def on_ssid_execute(self, value, options):
-        logging.info("SSID Execute received. Decoding buffer...")
+        msg = "SSID Execute received. Decoding buffer..."
+        logging.info(msg)
+        self.logs.append(msg)
         try:
             self.ssid = self.ssid_buffer.decode('utf-8')
-            logging.info(f"Decoded SSID: {self.ssid}")
+            msg = f"Decoded SSID: {self.ssid}"
+            logging.info(msg)
+            self.logs.append(msg)
         except Exception as e:
-            logging.error(f"Error decoding SSID: {e}")
+            msg = f"Error decoding SSID: {e}"
+            logging.error(msg)
+            self.logs.append(msg)
         finally:
             self.ssid_buffer = b""
             self.attempt_connect()
 
     def on_pass_execute(self, value, options):
-        logging.info("Password Execute received. Decoding buffer...")
+        msg = "Password Execute received. Decoding buffer..."
+        logging.info(msg)
+        self.logs.append(msg)
         try:
             self.password = self.pass_buffer.decode('utf-8')
-            logging.info("Decoded Password (hidden)")
+            msg = "Decoded Password (hidden)"
+            logging.info(msg)
+            self.logs.append(msg)
         except Exception as e:
-            logging.error(f"Error decoding password: {e}")
+            msg = f"Error decoding password: {e}"
+            logging.error(msg)
+            self.logs.append(msg)
         finally:
             self.pass_buffer = b""
             self.attempt_connect()
 
     def on_user_id(self, value, options):
-        logging.info("User ID received")
+        msg = "User ID received"
+        logging.info(msg)
+        self.logs.append(msg)
         self.userid = value
 
     def attempt_connect(self):
         if not self.ssid or not self.password:
-            logging.warning("Missing credentials, waiting for both...")
+            msg = "Missing credentials, waiting for both..."
+            logging.warning(msg)
+            self.logs.append(msg)
             return
 
-        logging.info(f"Attempting to connect to SSID: {self.ssid}")
+        msg = f"Attempting to connect to SSID: {self.ssid}"
+        logging.info(msg)
+        self.logs.append(msg)
         if self.connection_event:
             self.connection_event.set()
         try:
             cmd = ['nmcli', '-t', '-f', 'ACTIVE,SSID', 'dev', 'wifi']
             check_connection = subprocess.run(cmd, capture_output=True, text=True)
             if check_connection.returncode == 0 and 'yes' in check_connection.stdout:
-                logging.info("Device is already connected to a network. Skipping Wi-Fi connection attempt.")
+                msg = "Device is already connected to a network. Skipping Wi-Fi connection attempt."
+                logging.info(msg)
+                self.logs.append(msg)
             else:
                 cmd = ['nmcli', 'dev', 'wifi', 'connect', self.ssid, 'password', self.password]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=30)
-                logging.info(f"NetworkManager output: {result.stdout}")
-                logging.info("--- Successfully connected to Wi-Fi! ---")
-                logging.info("--- Sending device data to server... ---")
+                msg = f"NetworkManager output: {result.stdout}"
+                logging.info(msg)
+                self.logs.append(msg)
+                msg = "--- Successfully connected to Wi-Fi! ---"
+                logging.info(msg)
+                self.logs.append(msg)
+                msg = "--- Sending device data to server... ---"
+                logging.info(msg)
+                self.logs.append(msg)
                 url = self.server_url + "module"
                 try:
                     with open(self.devices_info_file, 'r') as f:
@@ -116,23 +147,41 @@ class WifiConfigurator:
                     response = requests.post(url, json=devices_info)
                     
                     if response.status_code == 200:
-                        logging.info("Server response: 200 OK. Saving updated device info to file.")
+                        msg = "Server response: 200 OK. Saving updated device info to file."
+                        logging.info(msg)
+                        self.logs.append(msg)
                         with open(self.devices_info_file, 'w') as f:
                             json.dump(devices_info, f, indent=4)
                     else:
-                        logging.error(f"Server response: {response.status_code}. Failed to register devices.")
-                        logging.error("Please try again.")
+                        msg = f"Server response: {response.status_code}. Failed to register devices."
+                        logging.error(msg)
+                        self.logs.append(msg)
+                        msg = "Please try again."
+                        logging.error(msg)
+                        self.logs.append(msg)
                 except Exception as e:
-                    logging.error(f"Error sending device data: {e}")
+                    msg = f"Error sending device data: {e}"
+                    logging.error(msg)
+                    self.logs.append(msg)
         except FileNotFoundError:
-            logging.error("--- 'nmcli' command not found. ---")
+            msg = "--- 'nmcli' command not found. ---"
+            logging.error(msg)
+            self.logs.append(msg)
         except subprocess.TimeoutExpired:
-            logging.error("--- Wi-Fi connection timed out. ---")
+            msg = "--- Wi-Fi connection timed out. ---"
+            logging.error(msg)
+            self.logs.append(msg)
         except subprocess.CalledProcessError as e:
-            logging.error("--- Failed to connect to Wi-Fi. ---")
-            logging.error(f"nmcli error: {e.stderr}")
+            msg = "--- Failed to connect to Wi-Fi. ---"
+            logging.error(msg)
+            self.logs.append(msg)
+            msg = f"nmcli error: {e.stderr}"
+            logging.error(msg)
+            self.logs.append(msg)
         except Exception as e:
-            logging.error(f"Connection logic error: {e}")
+            msg = f"Connection logic error: {e}"
+            logging.error(msg)
+            self.logs.append(msg)
         finally:
             self.ssid = None
             self.password = None
@@ -152,6 +201,7 @@ class BluetoothService(threading.Thread):
         #self.running = True
         self.connection_event = connection_event or threading.Event()
         self.mainloop = None
+        self.logs = []
 
     def run(self):
         if not BLUEZERO_AVAILABLE:
@@ -160,7 +210,7 @@ class BluetoothService(threading.Thread):
         
         logging.basicConfig(level=logging.INFO)
         self.mainloop = async_tools.EventLoop()
-        config = WifiConfigurator(self.devices_info_file, connection_event=self.connection_event)
+        config = WifiConfigurator(self.devices_info_file, connection_event=self.connection_event, logs=self.logs)
 
         try:
             dongle = adapter.Adapter()
@@ -230,3 +280,6 @@ class BluetoothService(threading.Thread):
                 self.mainloop.quit()
             except Exception:
                 pass
+
+    def getLogs(self):
+        return self.logs
