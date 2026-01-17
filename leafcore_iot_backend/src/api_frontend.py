@@ -11,19 +11,13 @@ api_frontend = Blueprint('frontend', __name__, url_prefix='/api')
 bluetooth_thread = None
 
 
-@api_frontend.route('/bluetooth/start', methods=['POST'])
-def start_bluetooth():
+@api_frontend.route('/bluetooth/logs', methods=['GET'])
+def get_bluetooth_logs():
     global bluetooth_thread
-    if bluetooth_thread and bluetooth_thread.is_alive():
-        return jsonify({'status': 'ok', 'message': 'Bluetooth already running'})
-    
-    try:
-        devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
-        bluetooth_thread = BluetoothService(devices_info_file)
-        bluetooth_thread.start()
-        return jsonify({'status': 'ok', 'message': 'Bluetooth thread started'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
+    if bluetooth_thread and hasattr(bluetooth_thread, 'logs'):
+        return jsonify({'logs': bluetooth_thread.logs})
+    else:
+        return jsonify({'logs': []})
 
     
 @api_frontend.route("/sensors", methods=["GET"])
