@@ -75,12 +75,10 @@ def register_device_webhook():
     """
     data = request.get_json(force=True)
     print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
-    user_id = data.get("user_id")
+    user_id = data.get("user_id", None)
     is_registered = data.get("is_registered", False)
+    device_name = data.get("device_name", "Unknown Device")
     
-    if user_id is None:
-        return jsonify({"status": "ERROR", "message": "Brak user_id"}), 400
-
     devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
     try:
         with open(devices_info_file, 'r') as f:
@@ -88,11 +86,12 @@ def register_device_webhook():
     except FileNotFoundError:
         devices_info = {}
 
-    # Update all devices with user_id and is_registered
     for device_id, device in devices_info.items():
-        device["user_id"] = user_id
-        device["is_registered"] = is_registered
-
+        if device.get("device_name") == device_name:
+            device["user_id"] = user_id
+            device["is_registered"] = is_registered
+            break  # Update only the first match
+    
     try:
         with open(devices_info_file, 'w') as f:
             json.dump(devices_info, f, indent=2)
