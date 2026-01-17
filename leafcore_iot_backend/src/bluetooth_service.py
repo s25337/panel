@@ -186,7 +186,9 @@ class WifiConfigurator:
             self.ssid = None
             self.password = None
             try:
-                logging.info("Configuration attempt finished. Stopping Bluetooth.")
+                msg = "Configuration attempt finished. Stopping Bluetooth."
+                logging.info(msg)
+                self.logs.append(msg)
                 async_tools.EventLoop().quit()
             except Exception:
                 pass
@@ -205,7 +207,9 @@ class BluetoothService(threading.Thread):
 
     def run(self):
         if not BLUEZERO_AVAILABLE:
-            logging.warning("Bluezero not installed - Bluetooth service disabled")
+            msg = "Bluezero not installed - Bluetooth service disabled"
+            logging.warning(msg)
+            self.logs.append(msg)
             return
         
         logging.basicConfig(level=logging.INFO)
@@ -214,19 +218,25 @@ class BluetoothService(threading.Thread):
 
         try:
             dongle = adapter.Adapter()
-            logging.info(f"Using adapter: {dongle.address}")
+            msg = f"Using adapter: {dongle.address}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server = peripheral.Peripheral(
                 adapter_address=dongle.address,
                 local_name="LC_Greenhouse"
             )
-            logging.info(f"Adding service: {LEAFCORE_SERVICE_UUID}")
+            msg = f"Adding service: {LEAFCORE_SERVICE_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_service(
                 srv_id=0,
                 uuid=LEAFCORE_SERVICE_UUID,
                 primary=True
             )
 
-            logging.info(f"Adding SSID characteristic: {SSID_CHAR_UUID}")
+            msg = f"Adding SSID characteristic: {SSID_CHAR_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_characteristic(
                 srv_id=0, chr_id=0, uuid=SSID_CHAR_UUID, value=[], notifying=False,
                 flags=['write', 'write-without-response'],
@@ -234,7 +244,9 @@ class BluetoothService(threading.Thread):
                 write_callback=config.on_ssid_write
             )
 
-            logging.info(f"Adding Password characteristic: {PASS_CHAR_UUID}")
+            msg = f"Adding Password characteristic: {PASS_CHAR_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_characteristic(
                 srv_id=0, chr_id=1, uuid=PASS_CHAR_UUID, value=[], notifying=False,
                 flags=['write', 'write-without-response'],
@@ -242,7 +254,9 @@ class BluetoothService(threading.Thread):
                 write_callback=config.on_pass_write
             )
 
-            logging.info(f"Adding SSID Execute characteristic: {SSID_EXEC_CHAR_UUID}")
+            msg = f"Adding SSID Execute characteristic: {SSID_EXEC_CHAR_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_characteristic(
                 srv_id=0, chr_id=2, uuid=SSID_EXEC_CHAR_UUID, value=[], notifying=False,
                 flags=['write'],
@@ -250,7 +264,9 @@ class BluetoothService(threading.Thread):
                 write_callback=config.on_ssid_execute
             )
 
-            logging.info(f"Adding Password Execute characteristic: {PASS_EXEC_CHAR_UUID}")
+            msg = f"Adding Password Execute characteristic: {PASS_EXEC_CHAR_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_characteristic(
                 srv_id=0, chr_id=3, uuid=PASS_EXEC_CHAR_UUID, value=[], notifying=False,
                 flags=['write'],
@@ -258,25 +274,35 @@ class BluetoothService(threading.Thread):
                 write_callback=config.on_pass_execute
             )
 
-            logging.info(f"Adding User ID characteristic: {USER_ID_UUID}")
+            msg = f"Adding User ID characteristic: {USER_ID_UUID}"
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.add_characteristic(
                 srv_id=0, chr_id=4, uuid=USER_ID_UUID, value=[], notifying=False,
                 flags=['write'],
                 read_callback=None,
                 write_callback=config.on_user_id
             )
-            logging.info("Bluetooth server is published and broadcasting. Waiting for WiFi config...")
+            msg = "Bluetooth server is published and broadcasting. Waiting for WiFi config..."
+            logging.info(msg)
+            self.logs.append(msg)
             my_server.publish()
         except Exception as e:
-            logging.error(f"Bluetooth Service Error: {e}")
+            msg = f"Bluetooth Service Error: {e}"
+            logging.error(msg)
+            self.logs.append(msg)
 
         except adapter.AdapterError as e:
-            logging.error(f"Bluetooth Error: {e}")
+            msg = f"Bluetooth Error: {e}"
+            logging.error(msg)
+            self.logs.append(msg)
 
     def stop(self):
         if self.mainloop:
             try:
-                logging.info("Force stopping Bluetooth service...")
+                msg = "Force stopping Bluetooth service..."
+                logging.info(msg)
+                self.logs.append(msg)
                 self.mainloop.quit()
             except Exception:
                 pass
