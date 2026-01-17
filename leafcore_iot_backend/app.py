@@ -121,7 +121,7 @@ class GPIOController(threading.Thread):
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
                     # Apply automation rules
-                    apply_automation_rules(devices_info, newest, settings)
+                    apply_automation_rules(devices_info, newest, settings, settings_file)
                     
                     # Jeśli pompa ON, zapisz czas włączenia
                     if devices_info.get("pump", {}).get("state") == "on":
@@ -137,7 +137,7 @@ class GPIOController(threading.Thread):
                         water_seconds = settings.get('water_seconds', 30)
                         logger.info(f"{water_seconds}")
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
-                        logger.info(f"{elapsed}")
+                        logger.info(f"{devices_info["pump"]["state"], devices_info["fan"]["state"]}")
                         if elapsed > water_seconds:
                             devices_info["pump"]["state"] = "off"
                             logger.info("finished watering")
@@ -206,7 +206,7 @@ class GPIOController(threading.Thread):
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
                     # Apply automation rules
-                    apply_automation_rules(devices_info, newest, settings)
+                    apply_automation_rules(devices_info, newest, settings, settings_file)
                     
                     # Jeśli pompa ON, zapisz czas włączenia
                     if devices_info.get("pump", {}).get("state") == "on":
@@ -270,6 +270,8 @@ sensor_thread = SensorService(
     scl_pin=config.SCL_PIN,
     sda_pin=config.SDA_PIN,
     output_file=sensor_data_file,
+    water_min_pin=None,
+    water_max_pin=None,
     poll_interval=2.0
 )
 sensor_thread.start()

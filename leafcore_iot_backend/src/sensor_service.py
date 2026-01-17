@@ -145,7 +145,7 @@ class SoftwareI2CBridge:
 class SensorService(threading.Thread):
     """Sensor reading thread - collects data from AHT10 and VEML7700"""
     
-    def __init__(self, chip_path, scl_pin, sda_pin, output_file, poll_interval=2.0, water_min_pin=None, water_max_pin=None):
+    def __init__(self, chip_path, scl_pin, sda_pin, output_file, water_min_pin, water_max_pin, poll_interval=2.0):
         super().__init__()
         self.daemon = True
         self.running = True

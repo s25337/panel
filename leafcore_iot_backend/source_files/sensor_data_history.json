@@ -1,15 +1,9 @@
 [
     {
-        "temperature": 19.59,
-        "humidity": 61.5,
-        "brightness": 0.88,
-        "timestamp": "2026-01-16T20:04:51.932481"
-    },
-    {
-        "temperature": 18.39,
-        "humidity": 56.23,
-        "brightness": 0.54,
-        "timestamp": "2026-01-16T20:04:31.916739"
+        "temperature": 19.11,
+        "humidity": 56.99,
+        "brightness": 0.53,
+        "timestamp": "2026-01-17T21:20:52.307605"
     },
     {
         "temperature": 20.13,
@@ -298,5 +292,11 @@
         "humidity": 39.28,
         "brightness": 0.32,
         "timestamp": "2026-01-15T11:29:45.581464"
+    },
+    {
+        "temperature": 25.23,
+        "humidity": 49.78,
+        "brightness": 0.24,
+        "timestamp": "2026-01-15T11:29:24.487386"
     }
 ]

@@ -20,7 +20,12 @@ class AutomationRules:
         temp = sensor_data.get('temperature')
         if temp is None:
             return
-        
+        if devices_info.get("pump", {}).get("state") == "on":
+            devices_info["fan"]["state"] = "off"
+            devices_info["heat_mat"]["state"] = "off"
+            logging.info("pump running, fan and heater off")
+            return
+
         target_temp = settings.get('target_temp', 25.0)
         
         # Fan control
@@ -43,7 +48,11 @@ class AutomationRules:
         humid = sensor_data.get('humidity')
         if humid is None:
             return
-        
+        if devices_info.get("pump", {}).get("state") == "on":
+            devices_info["sprinkler"]["state"] = "off"
+            logging.info("pump running, sprinkler off")
+            return
+
         target_hum = settings.get('target_hum', 60.0)
         
         # Sprinkler control
@@ -86,7 +95,7 @@ class AutomationRules:
             current_day = int(datetime.datetime.now().strftime("%w"))
             current_time = datetime.datetime.now().strftime("%H:%M")
             current_date_str = now.strftime("%Y-%m-%d")
-            watering_time = settings.get('watering_time', '18:10')
+            watering_time = settings.get('watering_time', '12:11')
             last_run = devices_info.get("pump", {}).get("last_edit_date")
             if last_run == current_date_str:
                return
@@ -103,15 +112,23 @@ class AutomationRules:
     PUMP_S_PER_ML = PUMP_CAL_S / PUMP_CAL_ML
 
     @staticmethod
-    def apply_watering_rules(devices_info, settings):
-        if devices_info.get("pump",{}).get("state") == "on":
-            time.sleep(settings.get('water_seconds', 3) * AutomationRules.PUMP_S_PER_ML)
-            devices_info["pump"]["state"] = "off"
+    def apply_watering_rules(devices_info, settings, settings_file_path):
+       if devices_info.get("pump",{}).get("state") == "on":
+            settings["water_seconds"] = (settings.get('water_seconds', 3) * AutomationRules.PUMP_S_PER_ML)
+            try:
+                with open(settings_file_path, 'w') as f:
+                    json.dump(settings, f, indent=4)
+                logging.info(f"Updated water_seconds to {settings['water_seconds']} and saved to file.")
+            except Exception as e:
+                logging.error(f"Failed to save settings to file: {e}")
+            #time.sleep(settings.get('water_seconds', 3) * AutomationRules.PUMP_S_PER_ML)
+            logging.info(f"Pump sleeping for {settings.get('water_seconds', 3) * AutomationRules.PUMP_S_PER_ML}")
+            #devices_info["pump"]["state"] = "off"
             return
 
     
 
-def apply_automation_rules(devices_info, sensor_data, settings):
+def apply_automation_rules(devices_info, sensor_data, settings, settings_file_path):
 
     try:
         current_time_str = datetime.datetime.now().strftime("%H:%M")
@@ -121,7 +138,7 @@ def apply_automation_rules(devices_info, sensor_data, settings):
         AutomationRules.apply_humidity_rules(devices_info, sensor_data, settings)
         AutomationRules.apply_brightness_rules(devices_info, sensor_data, settings, current_time_str)
         AutomationRules.apply_watering_schedule(devices_info, settings)
-        AutomationRules.apply_watering_rules(devices_info, settings)
+        AutomationRules.apply_watering_rules(devices_info, settings, settings_file_path)
         
         
     except Exception as e:

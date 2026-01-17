@@ -1,0 +1,79 @@
+DEBUG: Running Python from: /home/orangepi/Desktop/panel/leafcore_iot_backend/.venv/bin/python3
+DEBUG: Bluezero Import SUCCESS
+INFO:src.sensor_service:I2C Bridge initialized
+GPIO Started
+✓ GPIO Controller thread started
+[dataTerrarium] Za 5 min wyślę dane do Terrarium...
+✓ Sensor Service thread started
+ * Serving Flask app 'app'
+ * Debug mode: off
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5001
+ * Running on http://192.168.1.193:5001
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
+WARNING:src.sensor_service:AHT10 Error: No I2C device at address: 0x38
+WARNING:src.sensor_service:VEML7700 Error: No I2C device at address: 0x10
+WARNING:src.sensor_service:No sensors available - running in mock mode
+INFO:src.sensor_service:Mock Sensor Service started
+ERROR:src.sensor_service:Mock history file update error: Extra data: line 83 column 2 (char 2315)
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:36] "GET /api/watering-timer HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "GET /api/sensors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "GET /api/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "GET /api/settings HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "GET /api/watering-timer HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "GET /api/settings HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:37] "OPTIONS /api/bluetooth/start HTTP/1.1" 200 -
+INFO:root:Starting 20-second Watchdog Timer...
+INFO:root:Using adapter: 7E:E9:78:1C:C6:67
+INFO:root:Adding service: c62a771b-095e-4f60-a383-bca1f8f96210
+INFO:root:Adding SSID characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f1
+INFO:root:Adding Password characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f2
+INFO:root:Adding SSID Execute characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f3
+INFO:root:Adding Password Execute characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f4
+INFO:root:Adding User ID characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f5
+INFO:root:Adding user Execute characteristic: 5c3dc741-7850-4b0a-ac77-1ea26bdb73f6
+INFO:root:Bluetooth server is published and broadcasting. Waiting for WiFi config...
+2026-01-17 21:11:37,539 - bluezero.GATT - INFO - GATT application registered
+INFO:bluezero.GATT:GATT application registered
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:42] "GET /api/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:42] "GET /api/sensors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:42] "GET /api/settings HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:42] "GET /api/watering-timer HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:42] "GET /api/settings HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:47] "GET /api/watering-timer HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:47] "GET /api/status HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:47] "GET /api/sensors HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:47] "GET /api/settings HTTP/1.1" 200 -
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:11:47] "GET /api/settings HTTP/1.1" 200 -
+WARNING:root:!!! WATCHDOG TIMER EXPIRED: SWITCHING TO TERMINAL !!!
+WARNING:root:Exiting Python script...
+ERROR:src.sensor_service:Mock history file update error: Extra data: line 83 column 2 (char 2315)
+INFO:root:Force stopping Bluetooth service...
+INFO:werkzeug:127.0.0.1 - - [17/Jan/2026 21:12:09] "[35m[1mPOST /api/bluetooth/start HTTP/1.1[0m" 504 -
+ERROR:src.sensor_service:Mock history file update error: Extra data: line 83 column 2 (char 2315)
+INFO:root:Appended User ID chunk. Buffer is now 2 bytes.
+INFO:root:Userid Execute received. Decoding buffer...
+INFO:root:Decoded userid: 66
+INFO:root:Appended SSID chunk. Buffer is now 24 bytes.
+INFO:root:SSID Execute received. Decoding buffer...
+INFO:root:Decoded SSID: T-Mobile_Swiatlowod_2909
+INFO:root:Appended Password chunk. Buffer is now 20 bytes.
+INFO:root:Password Execute received. Decoding buffer...
+INFO:root:Decoded Password (hidden)
+INFO:root:Attempting to connect to SSID: T-Mobile_Swiatlowod_2909
+INFO:root:NetworkManager output: [2K
+Device 'wlan0' successfully activated with '9240e8b4-3b20-4449-8da1-1c8fa8f5de67'.
+
+INFO:root:--- Successfully connected to Wi-Fi! ---
+INFO:root:--- Sending device data to server... ---
+INFO:root:Loaded devices info json
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+INFO:root:Setting User ID to: 66
+ERROR:src.sensor_service:Mock history file update error: Extra data: line 83 column 2 (char 2315)
