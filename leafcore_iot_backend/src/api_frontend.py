@@ -9,31 +9,22 @@ import os
 api_frontend = Blueprint('frontend', __name__, url_prefix='/api')
 
 bluetooth_thread = None
-bluetooth_event = None
 
 
 @api_frontend.route('/bluetooth/start', methods=['POST'])
 def start_bluetooth():
-    global bluetooth_thread, bluetooth_event
+    global bluetooth_thread
     if bluetooth_thread and bluetooth_thread.is_alive():
         return jsonify({'status': 'ok', 'message': 'Bluetooth already running'})
+    
     try:
         devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
-        bluetooth_event = threading.Event()
-        bluetooth_thread = BluetoothService(devices_info_file, connection_event=bluetooth_event)
+        bluetooth_thread = BluetoothService(devices_info_file)
         bluetooth_thread.start()
-        # Wait for connection event (client connects and sends credentials)
-        connected = bluetooth_event.wait(timeout=30)
-        if connected:
-            return jsonify({'status': 'ok', 'message': 'Bluetooth client connected'})
-        else:
-            bluetooth_thread.stop()
-            bluetooth_thread.join(timeout=2)
-            return jsonify({'status': 'error', 'message': 'No client connected within timeout'}), 504
+        return jsonify({'status': 'ok', 'message': 'Bluetooth thread started'})
     except Exception as e:
-        if bluetooth_thread and bluetooth_thread.is_alive():
-            bluetooth_thread.stop()
-        return jsonify({'status': 'error', 'message': str(e)}), 500
+        return jsonify({'status': 'error', 'message': str(e)})
+
     
 @api_frontend.route("/sensors", methods=["GET"])
 def get_sensors():
