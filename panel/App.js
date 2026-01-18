@@ -4,7 +4,6 @@ import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { FontFamily, Color, scale } from './GlobalStyles';
 import CircularGauge from './components/CircularGauge';
-import LightPanel from './components/LightPanel';
 import ValueSlider from './components/ValueSlider';
 import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
@@ -395,13 +394,7 @@ useEffect(() => {
                       onSliderEnd={handleSliderEnd}
                       onValueChange={(newIntensity) => {
                         setLightIntensity(newIntensity);
-                        if (manualMode) {
-                          // W manual mode wysyłaj bezpośrednio do control endpoint
-                          apiService.toggleDevice('light', newIntensity);
-                        } else {
-                          // W auto mode ustawiaj settings
-                          apiService.updateSettings({ light_intensity: newIntensity });
-                        }
+                        apiService.setLightIntensity(newIntensity);
                       }}
                     />
                   </View>

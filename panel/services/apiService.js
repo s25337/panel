@@ -1,11 +1,4 @@
 
-  /**
-   * Wywołuje podlewanie (uruchamia pompę na water_seconds)
-   */
-
-// services/apiService.js
-// Usługa do komunikacji z backend'em IoT
-
 const API_BASE_URL = 'http://localhost:5001';
 
 // Helper function to fetch with timeout
@@ -77,6 +70,25 @@ const apiService = {
       return await response.json();
     } catch (error) {
       console.error('Error triggering watering:', error);
+      return { status: 'error' };
+    }
+  },
+
+    /**
+   * Ustawia intensywność światła
+   * @param {number} intensity - wartość intensywności (0-100)
+   */
+    async setLightIntensity(intensity) {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/light`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ intensity }),
+      });
+      if (!response.ok) throw new Error('Failed to set light intensity');
+      return await response.json();
+    } catch (error) {
+      console.error('Error setting light intensity:', error);
       return { status: 'error' };
     }
   },
