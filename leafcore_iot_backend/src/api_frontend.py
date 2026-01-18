@@ -71,11 +71,31 @@ def control_watering():
     
     # Włącz pompę
     devices_info["pump"]["state"] = "on"
+    devices_info["pump"]["mode"] = "manual"
     
     with open(devices_info_file, 'w') as f:
         json.dump(devices_info, f, indent=2)
     
     return jsonify({"status": "OK", "device": "pump", "action": "on"})
+@api_frontend.route("/light", methods=["POST"])
+def control_light():
+    data = request.json or {}
+    light_value = data.get("intensity", 100)  
+    devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
+    
+    # Pobierz świeże dane z pliku
+    with open(devices_info_file, 'r') as f:
+        devices_info = json.load(f)
+    
+    # Włącz światło
+    devices_info["light"]["state"] = "on"
+    devices_info["light"]["mode"] = "manual" ##???
+    devices_info["light"]["intensity"] = light_value  
+    
+    with open(devices_info_file, 'w') as f:
+        json.dump(devices_info, f, indent=2)
+    
+    return jsonify({"status": "OK", "device": "light", "action": "on"})
 
 @api_frontend.route("/settings", methods=["GET"])
 def get_settings():
