@@ -7,6 +7,7 @@ import time
 import threading
 import json
 import os
+import fcntl
 import datetime
 import logging
 import sys
@@ -53,7 +54,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 PWM_FREQUENCY = 100
-PWM_PERIOD = 1.0 / PWM_FREQUENCY
+PWM_PERIOD = int(1_000_000_000 / PWM_FREQUENCY)
 
 # File paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -62,10 +63,78 @@ settings_file = os.path.join(current_dir, "source_files", "settings_config.json"
 devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json")
 
 
-with open(devices_info_file, 'r') as f:
-    devices_info = json.load(f)
+def load_json_secure(file_path):
+
+    """Safely reads JSON by waiting for a lock."""
+
+    lock_path = file_path + ".lock"
+
+    with open(lock_path, "w") as lockfile:
+
+        fcntl.flock(lockfile, fcntl.LOCK_SH)
+
+        try:
+
+            with open(file_path, "r") as f:
+
+                return json.load(f)
+
+        except (json.JSONDecodeError, FileNotFoundError):
+
+            return {}
+
+        finally:
+
+            fcntl.flock(lockfile, fcntl.LOCK_UN)
 
 
+def save_json_secure(file_path, data):
+
+    """Safely writes JSON by locking the file exclusively."""
+
+    lock_path = file_path + ".lock"
+
+    with open(lock_path, "w") as lockfile:
+
+        fcntl.flock(lockfile, fcntl.LOCK_EX)
+
+        try:
+
+            with open(file_path, "w") as f:
+
+                json.dump(data, f, indent=4)
+
+                f.flush()
+
+                os.fsync(f.fileno())
+
+        finally:
+
+            fcntl.flock(lockfile, fcntl.LOCK_UN)
+
+devices_info = load_json_secure(devices_info_file)
+
+def setup_pwm():
+    if not os.path.exists("/sys/class/pwm/pwmchip0/pwm3"):
+        try:
+            with open("/sys/class/pwm/pwmchip0/export", "w") as f:
+                f.write("0")
+        except OSError:
+            print("PWM0 already exported or busy.")
+
+    time.sleep(0.8) 
+    with open("/sys/class/pwm/pwmchip0/pwm3/period", "w") as f:
+        f.write(str(PWM_PERIOD))
+
+    with open("/sys/class/pwm/pwmchip0/pwm3/enable", "w") as f:
+        f.write("1")
+
+def set_brightness(intensity):
+    intensity = max(0.0, min(intensity, 1.0))
+    duty_ns = int(PWM_PERIOD * intensity)
+    
+    with open("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "w") as f:
+        f.write(str(duty_ns))
 
 class GPIOController(threading.Thread):
     
@@ -93,7 +162,6 @@ class GPIOController(threading.Thread):
                     config.PUMP_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
-                    config.LIGHT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                 },
             ) as request:
                 self._run_gpio(request)
@@ -108,20 +176,15 @@ class GPIOController(threading.Thread):
         while self.running:
             try:
                 # Czytaj devices_info z pliku co pętlę
-                with open(devices_info_file, 'r') as f:
-                    devices_info = json.load(f)
-                
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                
-                with open(sensor_data_file, 'r') as f:
-                    sensor_list = json.load(f)
+                devices_info = load_json_secure(devices_info_file)
+                settings = load_json_secure(settings_file)
+                sensor_list = load_json_secure(sensor_data_file)
                 
                 if sensor_list:
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
                     # Apply automation rules
-                    apply_automation_rules(devices_info, newest, settings)
+                    apply_automation_rules(devices_info, newest, settings, settings_file, devices_info_file)
                     
                     # Jeśli pompa ON, zapisz czas włączenia
                     if devices_info.get("pump", {}).get("state") == "on":
@@ -144,8 +207,7 @@ class GPIOController(threading.Thread):
                             del devices_info["pump"]["turned_on_at"]
                     
                     # Save updated device states
-                    with open(devices_info_file, 'w') as f:
-                        json.dump(devices_info, f, indent=2)
+                    save_json_secure(devices_info_file, devices_info)
             
             except Exception as e:
                 print(f"Automation error: {e}")
@@ -168,22 +230,11 @@ class GPIOController(threading.Thread):
                 light_conf = devices_info.get("light", {})
                 if light_conf.get("state") == "on":
                     intensity = light_conf.get("intensity", 1.0)
-                    if intensity >= 1.0:
-                        request.set_value(config.LIGHT_PIN, Value.ACTIVE)
-                        time.sleep(PWM_PERIOD)
-                    elif intensity <= 0.0:
-                        request.set_value(config.LIGHT_PIN, Value.INACTIVE)
-                        time.sleep(PWM_PERIOD)
-                    else:
-                        on_time = PWM_PERIOD * intensity
-                        off_time = PWM_PERIOD * (1.0 - intensity)
-                        request.set_value(config.LIGHT_PIN, Value.ACTIVE)
-                        time.sleep(on_time)
-                        request.set_value(config.LIGHT_PIN, Value.INACTIVE)
-                        time.sleep(off_time)
+                    if intensity >= 1.0: intensity = 1.0
+                    if intensity <= 0.0: intensity = 0.0
+                    set_brightness(intensity)
                 else:
-                    request.set_value(config.LIGHT_PIN, Value.INACTIVE)
-                    time.sleep(0.01)
+                    set_brightness(0.0)
             except Exception as e:
                 logger.error(f"GPIO error: {e}")
                 time.sleep(0.1)
@@ -206,7 +257,7 @@ class GPIOController(threading.Thread):
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
                     # Apply automation rules
-                    apply_automation_rules(devices_info, newest, settings)
+                    apply_automation_rules(devices_info, newest, settings, settings_file, devices_info_file)
                     
                     # Jeśli pompa ON, zapisz czas włączenia
                     if devices_info.get("pump", {}).get("state") == "on":
@@ -255,6 +306,7 @@ app.register_blueprint(api_frontend)
 app.register_blueprint(api_external)
 app.register_blueprint(api_webhooks)
 
+setup_pwm()
 # Start GPIO thread
 gpio_thread = GPIOController()
 gpio_thread.start()

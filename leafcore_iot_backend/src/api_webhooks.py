@@ -101,3 +101,23 @@ def register_device_webhook():
         print(f"[webhook] Błąd zapisu devices_info.json: {e}")
         return jsonify({"status": "ERROR", "message": str(e)}), 500
 
+@api_webhooks.route('/external/light', methods=['POST'])
+def external_light_control():
+
+    data = request.get_json(force=True)
+    print(f"[webhook] Otrzymano kontrolę światła: {data}")
+    intensity_value = data.get("intensity", 0)  
+    settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
+    try:
+        with open(settings_file, 'r') as f:
+            settings = json.load(f)
+        
+        settings["light_intensity"] = intensity_value
+        print(f"[webhook] Ustawiono light_intensity w settings na: {intensity_value}")
+        
+        with open(settings_file, 'w') as f:
+            json.dump(settings, f, indent=2)
+            
+        return jsonify({"status": "OK", "intensity": intensity_value})
+    except Exception as e:
+        print(f"[webhook] Błąd kontroli światła: {e}")
