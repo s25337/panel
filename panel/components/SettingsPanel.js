@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { FontFamily } from '../GlobalStyles';
 import apiService from '../services/apiService';
+import WateringDaysPicker from './WateringDaysPicker';
 
 const SettingsPanel = () => {
   const [settings, setSettings] = useState({
     light_hours: 0,
     target_temp: 0,
     target_hum: 0,
-    water_times: 0,
     water_seconds: 0,
     light_intensity: 0,
   });
@@ -117,19 +117,9 @@ const SettingsPanel = () => {
         </View>
       </View>
 
-      {/* Water Times Per Week */}
+      {/* Watering Days (12:00) */}
       <View style={styles.settingGroup}>
-        <Text style={styles.settingLabel}>Water Times Per Week</Text>
-        <View style={styles.inputContainer}>
-          <TextInput
-            style={styles.input}
-            value={String(settings.water_times)}
-            onChangeText={(value) => handleSettingChange('water_times', value)}
-            keyboardType="number-pad"
-            placeholder="Times per week"
-          />
-          <Text style={styles.unit}>x</Text>
-        </View>
+        <WateringDaysPicker />
       </View>
 
       {/* Water Seconds */}

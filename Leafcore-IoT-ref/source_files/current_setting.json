@@ -1,0 +1,16 @@
+{
+    "setting_id": "dummy_setting",
+    "plant_name": "Dummy Plant",
+    "description": "This is a dummy setting for testing purposes.",
+    "photo": "dummy_plant.jpg",
+    "optimal_temperature": 22.0,
+    "optimal_humidity": 55.0,
+    "optimal_light": 50.0,
+    "light_schedule": {
+        "start_time": "06:00",
+        "end_time": "18:00"
+    },
+    "watering_mode": "standard",
+    "water_amount": 150,
+    "scheduled_days": ["MONDAY", "THURSDAY"]
+}

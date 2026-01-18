@@ -10,25 +10,78 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   const [hasTriggeredWater, setHasTriggeredWater] = useState(false);
   const [trackWidth, setTrackWidth] = useState(null);
 
-  // Pobierz czas podlewania z backendu na starcie
+  // Pobierz watering days i oblicz czas do następnego podlewania
   useEffect(() => {
-    const fetchWateringTimer = async () => {
+    const calculateTimeToNextWatering = async () => {
       try {
-        const data = await apiService.getWateringTimer();
-        setTimeLeft({
-          days: data.days,
-          hours: data.hours,
-          minutes: data.minutes,
-          seconds: data.seconds,
-        });
+        const settings = await apiService.getSettings();
+        const watering_days = settings.watering_days;
+        const watering_time = settings.watering_time || '12:00';
+
+        if (!watering_days || watering_days.length === 0) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Parse watering_time (format: "HH:MM")
+        const [targetHour, targetMinute] = watering_time.split(':').map(Number);
+
+        // Oblicz czas do następnego podlewania
+        const now = new Date();
+        const currentDayOfWeek = now.getDay(); // 0 = niedziela, 6 = sobota
+        
+        let daysUntil = null;
+        
+        // Szukaj następnego dnia z listy watering_days
+        for (let i = 0; i < 7; i++) {
+          const checkDay = (currentDayOfWeek + i) % 7;
+          if (watering_days.includes(checkDay)) {
+            daysUntil = i;
+            break;
+          }
+        }
+
+        if (daysUntil === null) {
+          setIsLoading(false);
+          return;
+        }
+
+        // Jeśli to dziś i godzina już minęła, to będzie dopiero jutro
+        if (daysUntil === 0) {
+          const targetTime = new Date();
+          targetTime.setHours(targetHour, targetMinute, 0, 0);
+          
+          if (now > targetTime) {
+            // Godzina minęła, następne podlewanie za 7 dni
+            daysUntil = 7;
+          }
+        }
+
+        // Oblicz dokładny czas do następnego podlewania
+        const nextWateringDate = new Date();
+        nextWateringDate.setDate(nextWateringDate.getDate() + daysUntil);
+        nextWateringDate.setHours(targetHour, targetMinute, 0, 0);
+
+        // Różnica w sekundach
+        const secondsLeft = Math.floor((nextWateringDate - now) / 1000);
+        
+        if (secondsLeft > 0) {
+          const days = Math.floor(secondsLeft / 86400);
+          const hours = Math.floor((secondsLeft % 86400) / 3600);
+          const minutes = Math.floor((secondsLeft % 3600) / 60);
+          const seconds = secondsLeft % 60;
+
+          setTimeLeft({ days, hours, minutes, seconds });
+        }
+
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to fetch watering timer:', error);
+        console.error('Failed to fetch watering data:', error);
         setIsLoading(false);
       }
     };
-    
-    fetchWateringTimer();
+
+    calculateTimeToNextWatering();
   }, []);
 
   // Odliczanie czasu
@@ -89,35 +142,11 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
     setHasTriggeredWater(true);
     
     try {
-      const settings = await apiService.getSettings();
-      const waterSeconds = settings.water_seconds || 1;
-      
-      // Włącz podlewanie przez /api/watering
-      try {
-        await apiService.watering();
-      } catch (err) {
-        console.error('Error triggering watering:', err);
-      }
-      
-      // Czekaj określony czas
-      await new Promise(resolve => setTimeout(resolve, waterSeconds * 1000));
-      
-      // Odśwież timer
-      try {
-        const data = await apiService.getWateringTimer();
-        setTimeLeft({
-          days: data.days,
-          hours: data.hours,
-          minutes: data.minutes,
-          seconds: data.seconds,
-        });
-      } catch (err) {
-        console.error('Error refreshing timer:', err);
-      }
+      // Włącz podlewanie (pompa się wyłączy automatycznie po water_seconds)
+      await apiService.watering();
       
       // Reset slidera
       setSliderValue(0);
-      setHasTriggeredWater(false);
     } catch (error) {
       console.error('Failed to water:', error);
       setSliderValue(0);

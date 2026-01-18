@@ -77,8 +77,8 @@ export default function CircularGauge({
   const cy = size / 2;
 
   // space between arc and center circle
-  const ringGap = 14;
-  const innerSize = 150;
+  const ringGap = Math.max(8, size * 0.08);  // Scale with size
+  const innerSize = size * 0.6;  // Inner circle proportional to size
   const innerRadius = innerSize / 2;
   const r = innerRadius + ringGap + strokeWidth / 2;
 

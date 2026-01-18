@@ -15,15 +15,15 @@ const LightSchedulePanel = ({ status = false }) => {
   useEffect(() => {
     const fetchLightSchedule = async () => {
       try {
-        const data = await apiService.getLightSchedule();
-        setLightHours(data.light_hours || 0);
-        setStartHour(data.start_hour || 0);
-        setStartMinute(data.start_minute || 0);
-        setEndHour(data.end_hour || 0);
-        setEndMinute(data.end_minute || 0);
+        const settings = await apiService.getSettings();
+        setLightHours(settings.light_hours || 0);
+        setStartHour(settings.start_hour || 0);
+        setStartMinute(settings.start_minute || 0);
+        setEndHour(settings.end_hour || 0);
+        setEndMinute(settings.end_minute || 0);
         setIsLoading(false);
       } catch (error) {
-        console.error('Failed to fetch light schedule:', error);
+        console.error('Failed to calculate light schedule:', error);
         setIsLoading(false);
       }
     };

@@ -1,15 +1,65 @@
+
+  /**
+   * Wywołuje podlewanie (uruchamia pompę na water_seconds)
+   */
+
 // services/apiService.js
 // Usługa do komunikacji z backend'em IoT
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+const API_BASE_URL = 'http://localhost:5001';
+
+// Helper function to fetch with timeout
+const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+};
 
 const apiService = {
+    /**
+     * Uruchamia BluetoothService na backendzie
+     */
+    async startBluetooth() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        });
+        if (!response.ok) throw new Error('Failed to start bluetooth');
+        return await response.json();
+      } catch (error) {
+        console.error('Error starting bluetooth:', error);
+        return { status: 'error' };
+      }
+    },
+
+    /**
+     * Pobiera logi Bluetooth
+     */
+    async getBluetoothLogs() {
+      try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs`);
+        if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching bluetooth logs:', error);
+        return { logs: [] };
+      }
+    },
   /**
    * Pobiera aktualne wartości czujników
    */
   async getSensors() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/sensors`);
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/sensors`);
       if (!response.ok) throw new Error('Failed to fetch sensors');
       return await response.json();
     } catch (error) {
@@ -17,13 +67,25 @@ const apiService = {
       return { temperature: null, humidity: null };
     }
   },
-
+  async watering() {
+    try {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/watering`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) throw new Error('Failed to trigger watering');
+      return await response.json();
+    } catch (error) {
+      console.error('Error triggering watering:', error);
+      return { status: 'error' };
+    }
+  },
   /**
    * Pobiera status wszystkich urządzeń
    */
   async getStatus() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/status`);
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/status`);
       if (!response.ok) throw new Error('Failed to fetch status');
       return await response.json();
     } catch (error) {
@@ -39,24 +101,7 @@ const apiService = {
     }
   },
 
-  /**
-   * Steruje urządzeniami
-   * @param {object} control - { fan?: boolean, light?: boolean, pump?: boolean }
-   */
-  async controlDevice(control) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/control`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(control),
-      });
-      if (!response.ok) throw new Error('Failed to control device');
-      return await response.json();
-    } catch (error) {
-      console.error('Error controlling device:', error);
-      return { status: 'error' };
-    }
-  },
+  
 
   /**
    * Steruje konkretnym urządzeniem
@@ -65,7 +110,7 @@ const apiService = {
    */
   async toggleDevice(device, state) {
     try {
-      const response = await fetch(
+      const response = await fetchWithTimeout(
         `${API_BASE_URL}/api/control/${device}/${state}`,
         { method: 'POST' }
       );
@@ -82,7 +127,7 @@ const apiService = {
    */
   async getSettings() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/settings`);
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`);
       if (!response.ok) throw new Error('Failed to fetch settings');
       return await response.json();
     } catch (error) {
@@ -97,7 +142,7 @@ const apiService = {
    */
   async updateSettings(settings) {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/settings`, {
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
@@ -115,7 +160,7 @@ const apiService = {
    */
   async getWateringTimer() {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/watering-timer`);
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/watering-timer`);
       if (!response.ok) throw new Error('Failed to fetch watering timer');
       return await response.json();
     } catch (error) {
@@ -130,64 +175,9 @@ const apiService = {
     }
   },
 
-  /**
-   * Pobiera harmonogram światła
-   */
-  async getLightSchedule() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/light-schedule`);
-      if (!response.ok) throw new Error('Failed to fetch light schedule');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching light schedule:', error);
-      return { 
-        light_hours: 12,
-        start_hour: 6,
-        start_minute: 0,
-        end_hour: 18,
-        end_minute: 0
-      };
-    }
-  },
 
-  /**
-   * Pobiera manualne ustawienia urządzeń
-   */
-  async getManualSettings() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/manual-settings`);
-      if (!response.ok) throw new Error('Failed to fetch manual settings');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching manual settings:', error);
-      return {
-        is_manual: false,
-        light: false,
-        heater: false,
-        fan: false,
-        pump: false,
-        sprinkler: false
-      };
-    }
-  },
 
-  /**
-   * Przełącza tryb manual on/off
-   * @param {string} state - 'on' lub 'off'
-   */
-  async toggleManualMode(state) {
-    try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/manual-mode/${state}`,
-        { method: 'POST' }
-      );
-      if (!response.ok) throw new Error('Failed to toggle manual mode');
-      return await response.json();
-    } catch (error) {
-      console.error('Error toggling manual mode:', error);
-      return { status: 'error' };
-    }
-  },
+
 };
 
 export default apiService;

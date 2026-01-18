@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image } from 'react-native';
+import { View, ScrollView, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { FontFamily, Color, scale } from './GlobalStyles';
@@ -8,11 +8,12 @@ import LightPanel from './components/LightPanel';
 import ValueSlider from './components/ValueSlider';
 import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
+import HistoryPanel from './components/HistoryPanel';
 import ScreenNavigator from './components/ScreenNavigator';
+import LogModal from './components/LogModal';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
-
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
   circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
@@ -25,6 +26,7 @@ const RESPONSIVE_SIZES = {
   screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
   topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
 };
+const cachedSettings = { target_temp: 25, target_hum: 60, light_intensity: 50 };
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -41,11 +43,12 @@ export default function App() {
   const [wateringInterval, setWateringInterval] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isSliderActive, setIsSliderActive] = useState(false);
+  const [pairingStatus, setPairingStatus] = useState('idle'); // idle, loading, success, error
   const screenTimeoutRef = useRef(null);
   const SCREEN_TIMEOUT = 30000; // 30 sekund
   const sensorPollInterval = useRef(null);
   const wateringPollInterval = useRef(null);
-
+  const [showLogModal, setShowLogModal] = React.useState(false);
   // Load custom fonts
   useEffect(() => {
     const loadFonts = async () => {
@@ -64,31 +67,67 @@ export default function App() {
 
     loadFonts();
   }, []);
-
+useEffect(() => {
+  const loadSettings = async () => {
+    try {
+      const response = await fetch('/settings_config.json');
+      if (!response.ok) {
+        throw new Error('Failed to fetch settings');
+      }
+      const data = await response.json();
+      cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
+      console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
+      cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
+      console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
+      cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
+      console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
+      
+      setTargetTemp(cachedSettings.target_temp);
+      setTargetHumidity(cachedSettings.target_hum);
+      setLightIntensity(cachedSettings.light_intensity);
+    } catch (error) {
+      console.error('Error loading settings:', error);
+    }
+  };  loadSettings();
+}, []);
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
     if (data.temperature !== null) setTemperature(data.temperature);
     if (data.humidity !== null) setHumidity(data.humidity);
-    // Nie ustawiaj lightIntensity z czujnika - to jest PWM, nie czytanie sensora!
   };
 
   const fetchStatus = async () => {
     const data = await apiService.getStatus();
     setLightStatus(data.light || false);
-    if (typeof data.light === 'number') {
-      setLightIntensity(data.light);  // Light intensity (0-100) z backendu
-    }
-    // Nie pobieramy pump/sprinkler - są obsługiwane w ControlPanel
-    // Fan jest teraz w ControlPanel
     setManualMode(data.manual_mode || false);
   };
 
-  const fetchSettings = async () => {
-    const data = await apiService.getSettings();
-    setTargetTemp(data.target_temp || 25);
-    setTargetHumidity(data.target_hum || 60);
+  const fetchLightIntensity = async () => {
+    try {
+      const settings = await apiService.getSettings();
+      if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
+      setLightIntensity(settings.light_intensity);
+    }
+    } catch (error) {
+      console.error('Error fetching light intensity:', error);
+      setLightIntensity((prev) => prev || cachedSettings.light_intensity);
+    }
   };
-
+   const fetchSettings = async () => {
+  try {
+    const data = await apiService.getSettings();
+    if (data.target_temp !== undefined && data.target_temp !== null) {
+      setTargetTemp(data.target_temp);
+    }
+    if (data.target_hum !== undefined && data.target_hum !== null) {
+      setTargetHumidity(data.target_hum);
+    }
+  } catch (error) {
+    console.error('Error fetching settings from API:', error);
+    setTargetTemp((prev) => prev || cachedSettings.target_temp);
+    setTargetHumidity((prev) => prev || cachedSettings.target_hum);
+  }
+};
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
     if (data && data.interval_seconds) {
@@ -96,12 +135,20 @@ export default function App() {
     }
   };
 
+
+  // Wylicz harmonogram światła na podstawie settings
   const fetchLightSchedule = async () => {
     try {
-      const data = await apiService.getLightSchedule();
-      setLightSchedule(data);
+      const settings = await apiService.getSettings();
+      setLightSchedule({
+        light_hours: settings.light_hours,
+        start_hour: settings.start_hour,
+        end_hour: settings.end_hour,
+        start_minute: settings.start_minute || 0,
+        end_minute: settings.end_minute || 0
+      });
     } catch (error) {
-      console.error('Error fetching light schedule:', error);
+      console.error('Error calculating light schedule:', error);
     }
   };
 
@@ -111,14 +158,16 @@ export default function App() {
     fetchSensors();
     fetchStatus();
     fetchSettings();
+    fetchLightIntensity();
     fetchWateringTimer();
     fetchLightSchedule();
 
-    // Polling co 2 sekundy
+    // Polling co 5 sekund
     sensorPollInterval.current = setInterval(() => {
       fetchSensors();
       fetchStatus();
-    }, 2000);
+      fetchLightIntensity();
+    }, 5000);
 
     // Polling dla watering timera co 5 sekund (rzadsze)
     wateringPollInterval.current = setInterval(() => {
@@ -139,7 +188,6 @@ export default function App() {
   // Refetchuj settings gdy wrócisz na main screen (screen 0)
   useEffect(() => {
     if (currentScreen === 0) {
-      fetchSettings();
     }
   }, [currentScreen]);
 
@@ -170,7 +218,13 @@ export default function App() {
 
   const wakeScreen = () => {
     setIsScreenOn(true);
-    resetScreenTimeout();
+    // Nie wołaj resetScreenTimeout - to może spowodować pętlę
+    if (screenTimeoutRef.current) {
+      clearTimeout(screenTimeoutRef.current);
+    }
+    screenTimeoutRef.current = setTimeout(() => {
+      sleepScreen();
+    }, SCREEN_TIMEOUT);
   };
 
   const handleInteraction = () => {
@@ -203,6 +257,12 @@ export default function App() {
     return `${day}, ${month} ${date}`;
   };
 
+
+  const handleStartBluetooth = async () => {
+    setPairingStatus('loading');
+    setShowLogModal(true);
+  };
+
   const formatTime = () => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
@@ -228,28 +288,20 @@ export default function App() {
         <View style={styles.contentWrapper}>
         {/* Screensaver - Only show current temperature and humidity */}
         {!isScreenOn ? (
-          <ImageBackground
-            source={require('./assets/wallpaper.jpg')}
-            style={styles.fullBackground}
-            resizeMode="cover"
+          <View
+            style={styles.screensaverContainer}
+            onMouseMove={handleInteraction}
+            onTouchMove={handleInteraction}
+            onClick={handleInteraction}
           >
-            <View 
-              style={styles.screensaverContainer}
-              onMouseMove={handleInteraction}
-              onTouchMove={handleInteraction}
-              onClick={handleInteraction}
-            >
-              <View style={styles.screensaverContent}>
-                <View style={styles.screensaverSlider}>
-                  <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
-                </View>
-                
-                <View style={styles.screensaverSlider}>
-                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
-                </View>
-              </View>
+            <View style={styles.screensaverContent}>
+              <Text style={styles.screensaverLabel}>Temperature</Text>
+              <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
+              
+              <Text style={styles.screensaverLabel}>Humidity</Text>
+              <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
             </View>
-          </ImageBackground>
+          </View>
         ) : (
           <ImageBackground
             source={require('./assets/wallpaper.jpg')}
@@ -257,8 +309,9 @@ export default function App() {
             resizeMode="cover"
           >
             <ScreenNavigator
+              currentScreen={currentScreen}
               onScreenChange={setCurrentScreen}
-              isSliderActive={isSliderActive}
+              isSliderActive={isSliderActive || currentScreen === 2} // blokuj gesty na HistoryPanel
               screens={[
                 // Screen 0: Main Panel - 3x2 Grid
                 <View
@@ -331,16 +384,8 @@ export default function App() {
                 <View style={styles.rowWrapperShort}>
                   {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
-                    {!manualMode && (
-                      <Text style={styles.lightScheduleText}>
-                        {lightSchedule 
-                          ? `${String(lightSchedule.start_hour).padStart(2, '0')}:${String(lightSchedule.start_minute).padStart(2, '0')} - ${String(lightSchedule.end_hour).padStart(2, '0')}:${String(lightSchedule.end_minute).padStart(2, '0')}`
-                          : '--:-- - --:--'
-                        }
-                      </Text>
-                    )}
                     <ValueSlider
-                      name1="Light"
+                      name1="Intensity"
                       value={lightIntensity}
                       min={0}
                       max={100}
@@ -366,14 +411,39 @@ export default function App() {
                     <WateringPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
                   </View>
 
-                  {/* Col 3: Bluetooth Status */}
-                  <View style={[styles.gridItemShort, { flex: 0.6 }]}>
-                    <Image 
-                      source={require('./assets/bluetooth.png')} 
-                      style={styles.bluetoothImage}
-                    />
-                    <Text style={styles.bluetoothStatus}>Connected</Text>
-                  </View>
+                  {/* Col 3: Pair Modules Button */}
+                  <TouchableOpacity 
+                    style={[
+                      styles.gridItemShort,
+                      { flex: 0.6 },
+                      pairingStatus === 'loading' && styles.pairingButtonLoading,
+                      pairingStatus === 'success' && styles.pairingButtonSuccess,
+                      pairingStatus === 'error' && styles.pairingButtonError,
+                    ]}
+                    onPress={handleStartBluetooth}
+                    activeOpacity={0.7}
+                    disabled={pairingStatus === 'loading'}
+                  >
+                    {pairingStatus === 'loading' && (
+                      <ActivityIndicator size={45} color="#ffffff" />
+                    )}
+                    {pairingStatus !== 'loading' && (
+                      <Image 
+                        source={require('./assets/bluetooth.png')} 
+                        style={styles.bluetoothImage}
+                      />
+                    )}
+                    <Text style={[
+                      styles.pairModulesButtonText,
+                      (pairingStatus === 'idle' || pairingStatus === 'success') && { color: '#4CAF50' },
+                      pairingStatus === 'error' && styles.pairModulesButtonTextError,
+                    ]}>
+                      {pairingStatus === 'idle' && 'Pair'}
+                      {pairingStatus === 'loading' && 'Pairing...'}
+                      {pairingStatus === 'success' && 'OK'}
+                      {pairingStatus === 'error' && 'Error'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
                 </View>,
@@ -381,11 +451,26 @@ export default function App() {
               <View
                 key="control"
                 style={styles.screenContainer}
+                pointerEvents="box-none"
               >
                 <View
                   style={styles.container}
+                  pointerEvents="auto"
                 >
-                  <ControlPanel />
+                  <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
+                </View>
+              </View>,
+              // Screen 2: History
+              <View
+                key="history"
+                style={styles.screenContainer}
+                pointerEvents="box-none"
+              >
+                <View
+                  style={styles.container}
+                  pointerEvents="auto"
+                >
+                  <HistoryPanel />
                 </View>
               </View>,
             ]}
@@ -394,6 +479,7 @@ export default function App() {
         )}
         </View>
       </SafeAreaView>
+      <LogModal visible={showLogModal} onClose={() => setShowLogModal(false)} setPairingStatus={setPairingStatus} />
     </ImageBackground>
   );
 }
@@ -596,32 +682,22 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
+    backgroundColor: '#000000',
   },
   screensaverContent: {
     alignItems: 'center',
-    gap: 20,
+    gap: 40,
   },
   screensaverLabel: {
-    fontSize: 24,
+    fontSize: 32,
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 1,
   },
-  screensaverSlider: {
-    width: RESPONSIVE_SIZES.screensaverSliderWidth,
-    height: RESPONSIVE_SIZES.screensaverSliderHeight,
-    backgroundColor: '#252525',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#444444',
-  },
   screensaverValue: {
-    fontSize: 48,
+    fontSize: 72,
     fontFamily: FontFamily.workSansLight,
-    color: '#4ECDC4',
+    color: '#ffffff',
     letterSpacing: 2,
   },
   topLeftTimeContainer: {
@@ -662,11 +738,80 @@ const styles = StyleSheet.create({
     resizeMode: 'contain',
     tintColor: '#ffffff',
   },
-  bluetoothStatus: {
-    fontSize: 13,
-    fontFamily: FontFamily.workSansRegular,
-    color: '#ffffff',
-    fontWeight: '500',
+  pairModulesButtonText: {
+    fontSize: 17,
+    fontFamily: FontFamily.workSansLight,
+    fontWeight: '600',
     textAlign: 'center',
   },
+  pairModulesButtonTextSuccess: {
+    color: '#4CAF50',
+  },
+  pairModulesButtonTextError: {
+    color: '#FF6B6B',
+  },
+  pairingButtonLoading: {
+    opacity: 2,
+  },
+  pairingButtonSuccess: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+    borderWidth: 2,
+    borderColor: '#4CAF50',
+  },
+  pairingButtonError: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    borderWidth: 2,
+    borderColor: '#FF6B6B',
+  },
+modalOverlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.7)', // Semi-transparent black
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000, // Ensure it sits on top
+  },
+  modalContent: {
+    width: '80%',
+    height: '60%',
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    color: '#333',
+    textAlign: 'center',
+  },
+  logContainer: {
+    flex: 1,
+    backgroundColor: '#1e1e1e', // Dark terminal-like background
+    padding: 10,
+    borderRadius: 5,
+    marginBottom: 15,
+  },
+  logText: {
+    color: '#00FF00', // Hacker green text
+    fontFamily: 'monospace',
+    fontSize: 12,
+    marginBottom: 2,
+  },
+  closeButton: {
+    backgroundColor: '#FF5252',
+    padding: 10,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  }
 });
