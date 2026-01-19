@@ -345,6 +345,8 @@ useEffect(() => {
                       value={targetHumidity}
                       onChange={(newHum) => {
                         setTargetHumidity(newHum);
+                      }}
+                      onChangeComplete={(newHum) => {
                         apiService.updateSettings({ target_hum: newHum });
                       }}
                       size={RESPONSIVE_SIZES.circularGaugeSize}
@@ -358,6 +360,8 @@ useEffect(() => {
                       value={targetTemp}
                       onChange={(newTemp) => {
                         setTargetTemp(newTemp);
+                      }}
+                      onChangeComplete={(newTemp) => {
                         apiService.updateSettings({ target_temp: newTemp });
                       }}
                       size={RESPONSIVE_SIZES.circularGaugeSize}
@@ -396,6 +400,8 @@ useEffect(() => {
                       onSliderEnd={handleSliderEnd}
                       onValueChange={(newIntensity) => {
                         setLightIntensity(newIntensity);
+                      }}
+                      onSlidingComplete={(newIntensity) => {
                         if (manualMode) {
                           // W manual mode wysyłaj bezpośrednio do control endpoint
                           apiService.toggleDevice('light', newIntensity);

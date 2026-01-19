@@ -44,8 +44,11 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
     fetchSchedule();
   }, []);
 
-  const handleStartHourChange = async (newHour) => {
+  const handleStartHourChange = (newHour) => {
     setStartHour(newHour);
+  };
+
+  const handleStartHourComplete = async (newHour) => {
     try {
       await apiService.updateSettings({ start_hour: Math.round(newHour) });
     } catch (error) {
@@ -53,8 +56,11 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
     }
   };
 
-  const handleEndHourChange = async (newHour) => {
+  const handleEndHourChange = (newHour) => {
     setEndHour(newHour);
+  };
+
+  const handleEndHourComplete = async (newHour) => {
     try {
       await apiService.updateSettings({ end_hour: Math.round(newHour) });
     } catch (error) {
@@ -89,6 +95,7 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
             step={1}
             unit="h"
             onValueChange={handleStartHourChange}
+            onSlidingComplete={handleStartHourComplete}
             onSliderStart={onSliderStart}
             onSliderEnd={onSliderEnd}
           />
@@ -116,6 +123,7 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
             step={1}
             unit="h"
             onValueChange={handleEndHourChange}
+            onSlidingComplete={handleEndHourComplete}
             onSliderStart={onSliderStart}
             onSliderEnd={onSliderEnd}
           />

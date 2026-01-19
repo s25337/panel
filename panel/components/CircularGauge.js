@@ -39,6 +39,7 @@ export default function CircularGauge({
   value,
   onValueChange,
   onChange,
+  onChangeComplete,
   min,
   max,
   step,
@@ -58,6 +59,7 @@ export default function CircularGauge({
 }) {
   // Handle legacy props - priority: onChange > onValueChange > rest
   const onValueChangeFn = onChange || onValueChange || rest.onChange || rest.onValueChange;
+  const onChangeCompleteFn = onChangeComplete || rest.onChangeComplete;
   
   // If maxValue is provided, infer mode from it for backward compat
   if (maxValue !== undefined && !max) {
@@ -115,16 +117,28 @@ export default function CircularGauge({
     if (onValueChangeFn) {
       onValueChangeFn(clamp(snapped, MIN, MAX));
     }
+    return clamp(snapped, MIN, MAX);
   };
+
+  const lastValueRef = useRef(value);
 
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => true,
       onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (e) =>
-        updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
-      onPanResponderMove: (e) =>
-        updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY),
+      onPanResponderGrant: (e) => {
+        const newVal = updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY);
+        if (newVal !== undefined) lastValueRef.current = newVal;
+      },
+      onPanResponderMove: (e) => {
+        const newVal = updateFromTouch(e.nativeEvent.locationX, e.nativeEvent.locationY);
+        if (newVal !== undefined) lastValueRef.current = newVal;
+      },
+      onPanResponderRelease: () => {
+        if (onChangeCompleteFn && lastValueRef.current !== undefined) {
+          onChangeCompleteFn(lastValueRef.current);
+        }
+      },
       onPanResponderTerminationRequest: () => false,
       onShouldBlockNativeResponder: () => true,
     })

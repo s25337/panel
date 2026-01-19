@@ -37,8 +37,11 @@ export type ValueSliderType = {
   nameFontFamily?: string;
   valueWidth?: number | string;
 
-  /** Callback on value change */
+  /** Callback on value change (called on every move) */
   onValueChange?: (value: number) => void;
+
+  /** Callback when sliding is complete (called only on release) */
+  onSlidingComplete?: (value: number) => void;
 
   /** Lock swipe gestures when slider is active */
   onSliderStart?: () => void;
@@ -82,6 +85,7 @@ const ValueSlider = memo(
     unit,
     formatValue,
     onValueChange,
+    onSlidingComplete,
     onSliderStart,
     onSliderEnd,
   }: ValueSliderType) => {
@@ -137,6 +141,7 @@ const ValueSlider = memo(
 
     const handleResponderRelease = () => {
       onSliderEnd?.();
+      onSlidingComplete?.(sliderValue);
     };
 
     return (
