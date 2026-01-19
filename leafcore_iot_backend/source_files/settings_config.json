@@ -1,16 +1,18 @@
 {
-  "setting_id": "7",
-  "plant_name": "Joker Kush Mush",
-  "target_temp": 10.0,
-  "target_hum": 50,
-  "light_intensity": 13,
+  "setting_id": "9",
+  "plant_name": "Agatka",
+  "target_temp": 11.0,
+  "target_hum": 92.0,
+  "light_intensity": 0.32,
   "start_hour": 16,
-  "end_hour": 16,
-  "watering_mode": "standard",
-  "water_seconds": 400,
+  "end_hour": 20,
+  "watering_mode": "sprinkler",
+  "water_seconds": 130,
   "watering_days": [
+    1,
+    3,
+    4,
     5,
-    6,
-    7
+    6
   ]
 }

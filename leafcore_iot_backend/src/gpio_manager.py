@@ -57,27 +57,24 @@ class AutomationRules:
     @staticmethod
     def apply_brightness_rules(devices_info, sensor_data, settings, current_time_str, devices_info_file_path):
         """Apply brightness and light schedule automation rules"""
-        light_schedule = settings.get('light_schedule', {})
-        start_time = light_schedule.get('start_time', '06:00')
-        end_time = light_schedule.get('end_time', '18:00')
-        if current_time_str != start_time and current_time_str != end_time :
-            devices_info["light"]["intensity"] = int(settings.get("light_intensity"))/100
-            try:
-                save_json_secure(devices_info_file_path,devices_info)
-                return
-            except Exception as e:
-                logging.error(f"Failed to save settings to file: {e}")
-       
+        #light_schedule = settings.get('light_schedule', {})
+        start_time = settings.get('start_hour', 6)
+        end_time = settings.get('end_hour', 18)       
         if start_time <= current_time_str <= end_time:
             devices_info["light"]["state"] = "on"
             bright = sensor_data.get('brightness')
             if bright is not None:
-                devices_info["light"]["intensity"] = min(1.0, max(0.0, bright / settings.get('optimal_light', 1.0)))
+                target = float(settings.get('optimal_light', 1.0))
+                if bright < target:
+                   needed = target - bright
+                   devices_info["light"]["intensity"] = needed 
+                else:
+                   devices_info["light"]["intensity"] = 0.0
+                   devices_info["light"]["intensity"] = min(1.0, max(0.0, bright / settings.get('optimal_light', 1.0)))
             else:
                 devices_info["light"]["intensity"] = 1.0
         else:
             devices_info["light"]["state"] = "off"
-
     @staticmethod
     def apply_watering_schedule(devices_info, settings, sensor_data):
         """Apply watering schedule automation"""
@@ -117,8 +114,7 @@ class AutomationRules:
        if devices_info.get("pump",{}).get("state") == "on" and str(devices_info.get("pump",{}).get("last_edit_date"))[:10] != datetime.datetime.now().strftime("%Y-%m-%d"):
             settings["water_seconds"] = (settings.get('water_seconds', 21) * AutomationRules.PUMP_S_PER_ML)
             try:
-                with open(settings_file_path, 'w') as f:
-                    json.dump(settings, f, indent=4)
+                save_json_secure(settings_file_path, settings)
                 logging.info(f"Updated water_seconds to {settings['water_seconds']} and saved to file.")
             except Exception as e:
                 logging.error(f"Failed to save settings to file: {e}")
@@ -132,7 +128,7 @@ class AutomationRules:
 def apply_automation_rules(devices_info, sensor_data, settings, settings_file_path, devices_info_file_path):
 
     try:
-        current_time_str = datetime.datetime.now().strftime("%H:%M")
+        current_time_str = int(datetime.datetime.now().strftime("%H"))
         
         # Apply automation rules
         AutomationRules.apply_temperature_rules(devices_info, sensor_data, settings)
