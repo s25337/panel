@@ -15,11 +15,7 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
   useEffect(() => {
     const fetchWateringDays = async () => {
       try {
-        const response = await fetch('/settings_config.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      const data = await response.json();
+        const data = await apiService.getSettings();
         // Zamień numery dni na nazwy (jeśli trzeba)
         const DAYS = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
         let selected = data.watering_days || [];
