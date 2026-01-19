@@ -10,8 +10,18 @@ import datetime
 import time
 import threading
 import logging
-import board
-import busio
+
+# Optional hardware imports
+try:
+    import board
+    import busio
+    BOARD_AVAILABLE = True
+except ImportError as e:
+    logging.warning(f"Board/busio libraries not available: {e}")
+    board = None
+    busio = None
+    BOARD_AVAILABLE = False
+
 from src.json_manager import load_json_secure, save_json_secure
 try:
     import gpiod
@@ -29,6 +39,8 @@ try:
 except ImportError as e:
     logger.warning(f"Sensor libraries not available: {e}")
     SENSORS_AVAILABLE = False
+    adafruit_ahtx0 = None
+    adafruit_veml7700 = None
 
 
 class SoftwareI2CBridge:
@@ -168,6 +180,14 @@ class SensorService(threading.Thread):
         
     def _initialize_sensors(self):
         """Initialize I2C bridge and sensors"""
+        if not GPIOD_AVAILABLE:
+            logger.warning("gpiod not available - cannot initialize hardware sensors")
+            return False
+            
+        if not SENSORS_AVAILABLE:
+            logger.warning("Sensor libraries not available - cannot initialize sensors")
+            return False
+            
         try:
             self.i2c = SoftwareI2CBridge(self.chip_path, self.scl_pin, self.sda_pin)
             #self.i2c = busio.I2C(board.SCL, board.SDA)
@@ -175,16 +195,18 @@ class SensorService(threading.Thread):
             
             # Initialize AHT10
             try:
-                self.sensor_aht = adafruit_ahtx0.AHTx0(self.i2c)
-                logger.info("✓ AHT10 (Temperature/Humidity) Connected")
+                if adafruit_ahtx0:
+                    self.sensor_aht = adafruit_ahtx0.AHTx0(self.i2c)
+                    logger.info("✓ AHT10 (Temperature/Humidity) Connected")
             except Exception as e:
                 logger.warning(f"AHT10 Error: {e}")
                 self.sensor_aht = None
 
             # Initialize VEML7700
             try:
-                self.sensor_veml = adafruit_veml7700.VEML7700(self.i2c)
-                logger.info("✓ VEML7700 (Brightness) Connected")
+                if adafruit_veml7700:
+                    self.sensor_veml = adafruit_veml7700.VEML7700(self.i2c)
+                    logger.info("✓ VEML7700 (Brightness) Connected")
             except Exception as e:
                 logger.warning(f"VEML7700 Error: {e}")
                 self.sensor_veml = None
