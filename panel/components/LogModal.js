@@ -1,7 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, Text, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Text, TouchableOpacity, StyleSheet, Dimensions, Platform } from 'react-native';
 import { FontFamily } from '../GlobalStyles';
 import apiService from '../services/apiService';
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const LogModal = ({ visible, onClose, setPairingStatus }) => {
   const [bluetoothLogs, setBluetoothLogs] = useState([]);
@@ -93,20 +95,21 @@ const LogModal = ({ visible, onClose, setPairingStatus }) => {
   );
 };
 
-const styles = {
+const styles = StyleSheet.create({
   bluetoothModalOverlay: {
-    position: 'fixed',
+    position: 'absolute',
     top: 0, 
     left: 0, 
     right: 0, 
     bottom: 0,
-    width: '100vw',
-    height: '100vh',
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
     backgroundColor: '#000000',
-    zIndex: 99999, // Much higher z-index to be above everything
+    zIndex: 99999,
+    elevation: 99999, // For Android
   },
   spacerTop: {
-    height: 150, // Fixed height spacer to push content down
+    height: 150,
     width: '100%',
   },
   bluetoothContent: {
@@ -140,6 +143,7 @@ const styles = {
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.5)',
     zIndex: 10001,
+    elevation: 10001,
   },
   bluetoothCloseButtonText: {
     color: '#ffffff',
@@ -147,6 +151,6 @@ const styles = {
     fontWeight: 'bold',
     textAlign: 'center',
   },
-};
+});
 
 export default LogModal;

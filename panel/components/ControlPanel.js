@@ -53,16 +53,15 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
    useEffect(() => {
     const loadSettings = async () => {
       try {
-        const response = await fetch('/settings_config.json');
-        if (!response.ok) {
-          throw new Error('Failed to fetch settings');
-        }
-        const data = await response.json();
+        const data = await apiService.getSettings();
         cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
         console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
         cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
         console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
-        cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
+        // light_intensity może być 0-1 (z zewnętrznego API) lub 0-100 (z panelu)
+        let lightVal = data.light_intensity || cachedSettings.light_intensity;
+        if (lightVal <= 1) lightVal = lightVal * 100; // konwersja 0-1 → 0-100
+        cachedSettings.light_intensity = lightVal;
         console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
         
         setTargetTemp(cachedSettings.target_temp);
@@ -78,12 +77,14 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     try {
       const settings = await apiService.getSettings();
       if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
-      setLightIntensity(settings.light_intensity);
-    }
-    else {
-      console.warn('Light intensity not found in settings, using cached value.');
-      setLightIntensity((prev) => prev || cachedSettings.light_intensity);
-    }
+        let lightVal = settings.light_intensity;
+        if (lightVal <= 1) lightVal = lightVal * 100; // konwersja 0-1 → 0-100
+        setLightIntensity(lightVal);
+      }
+      else {
+        console.warn('Light intensity not found in settings, using cached value.');
+        setLightIntensity((prev) => prev || cachedSettings.light_intensity);
+      }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
       setLightIntensity((prev) => prev || cachedSettings.light_intensity);
@@ -151,7 +152,8 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
   const handleLightIntensityChange = async (newIntensity) => {
     setLightIntensity(newIntensity);
     try {
-      await apiService.updateSettings({ light_intensity: Math.round(newIntensity) });
+      // konwersja 0-100 → 0-1
+      await apiService.updateSettings({ light_intensity: newIntensity / 100 });
     } catch (error) {
       console.error('Error updating light intensity:', error);
     }

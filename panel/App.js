@@ -70,16 +70,15 @@ export default function App() {
 useEffect(() => {
   const loadSettings = async () => {
     try {
-      const response = await fetch('/settings_config.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      const data = await response.json();
+      const data = await apiService.getSettings();
       cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
       console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
       cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
       console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
-      cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
+      // light_intensity może być 0-1 (z zewnętrznego API) lub 0-100 (z panelu)
+      let lightVal = data.light_intensity || cachedSettings.light_intensity;
+      if (lightVal <= 1) lightVal = lightVal * 100; // konwersja 0-1 → 0-100
+      cachedSettings.light_intensity = lightVal;
       console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
       
       setTargetTemp(cachedSettings.target_temp);
@@ -106,8 +105,10 @@ useEffect(() => {
     try {
       const settings = await apiService.getSettings();
       if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
-      setLightIntensity(settings.light_intensity);
-    }
+        let lightVal = settings.light_intensity;
+        if (lightVal <= 1) lightVal = lightVal * 100; // konwersja 0-1 → 0-100
+        setLightIntensity(lightVal);
+      }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
       setLightIntensity((prev) => prev || cachedSettings.light_intensity);
@@ -404,10 +405,10 @@ useEffect(() => {
                       onSlidingComplete={(newIntensity) => {
                         if (manualMode) {
                           // W manual mode wysyłaj bezpośrednio do control endpoint
-                          apiService.toggleDevice('light', newIntensity);
+                          apiService.toggleDevice('light', newIntensity / 100);
                         } else {
-                          // W auto mode ustawiaj settings
-                          apiService.updateSettings({ light_intensity: newIntensity });
+                          // W auto mode ustawiaj settings (konwersja 0-100 → 0-1)
+                          apiService.updateSettings({ light_intensity: newIntensity / 100 });
                         }
                       }}
                     />
