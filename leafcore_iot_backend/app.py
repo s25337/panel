@@ -64,20 +64,25 @@ devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json
 
 devices_info = load_json_secure(devices_info_file)
 
-def setup_pwm():
-    if not os.path.exists("/sys/class/pwm/pwmchip0/pwm3"):
+def setup_pwm(chip_num=0, channel_num=3):
+    base_path = f"/sys/class/pwm/pwmchip{chip_num}"
+    export_path = f"{base_path}/export"
+    channel_path = f"{base_path}/pwm{channel_num}"
+
+    if not os.path.exists(channel_path):
+        print(f"PWM Channel {channel_num} missing. Creating it...")
         try:
-            with open("/sys/class/pwm/pwmchip0/export", "w") as f:
-                f.write("0")
-        except OSError:
-            print("PWM0 already exported or busy.")
+            with open(export_path, 'w') as f:
+                f.write(str(channel_num))
+            time.sleep(0.5) 
+            
+        except PermissionError:
+            print("ERROR: Permission denied. You must run with 'sudo' or fix uDev rules.")
+            raise
+        except OSError as e:
+            print(f"Warning during export: {e}")
+    print(f"PWM Channel {channel_num} is ready.")
 
-    time.sleep(0.8) 
-    with open("/sys/class/pwm/pwmchip0/pwm3/period", "w") as f:
-        f.write(str(PWM_PERIOD))
-
-    with open("/sys/class/pwm/pwmchip0/pwm3/enable", "w") as f:
-        f.write("1")
 
 def set_brightness(intensity):
     intensity = max(0.0, min(intensity, 1.0))
@@ -85,6 +90,7 @@ def set_brightness(intensity):
     
     with open("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "w") as f:
         f.write(str(duty_ns))
+    logging.info(f"Set brightness to: {intensity}")
 
 class GPIOController(threading.Thread):
     
@@ -249,7 +255,8 @@ app.register_blueprint(api_frontend)
 app.register_blueprint(api_external)
 app.register_blueprint(api_webhooks)
 
-setup_pwm()
+setup_pwm(0, 3)
+
 # Start GPIO thread
 gpio_thread = GPIOController()
 gpio_thread.start()

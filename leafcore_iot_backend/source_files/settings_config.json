@@ -3,7 +3,7 @@
   "plant_name": "Prefined Plant",
   "target_temp": 29,
   "target_hum": 52,
-  "light_intensity": 48,
+  "light_intensity": 70,
   "start_hour": 16,
   "end_hour": 20,
   "watering_mode": "sprinkler",

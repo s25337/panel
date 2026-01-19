@@ -8,6 +8,7 @@ import datetime
 import logging
 import threading
 import time
+from src.json_manager import load_json_secure, save_json_secure
 
 logger = logging.getLogger(__name__)
 
@@ -59,12 +60,11 @@ class AutomationRules:
         light_schedule = settings.get('light_schedule', {})
         start_time = light_schedule.get('start_time', '06:00')
         end_time = light_schedule.get('end_time', '18:00')
-        if devices_info.get("light", {}).get("mode") != "auto" and current_time_str != start_time and current_time_str != end_time :
+        if current_time_str != start_time and current_time_str != end_time :
             devices_info["light"]["intensity"] = int(settings.get("light_intensity"))/100
             try:
-                with open(devices_info_file_path, 'w') as f:
-                   json.dump(devices_info, f, indent=4)
-                   return
+                save_json_secure(devices_info_file_path,devices_info)
+                return
             except Exception as e:
                 logging.error(f"Failed to save settings to file: {e}")
        
