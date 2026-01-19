@@ -143,24 +143,37 @@ def get_watering_timer():
     # Zamień dni na pythonowe (1=poniedziałek, 7=niedziela -> 0=poniedziałek, 6=niedziela)
     watering_days_py = [(d-1)%7 for d in watering_days]
 
+    if not watering_days_py:
+        return jsonify({"days": 0, "hours": 0, "minutes": 0, "seconds": 0, "interval_seconds": 0})
+
     now = datetime.now()
     current_day_py = now.weekday()  # 0=poniedziałek, 6=niedziela
     current_time = now.time()
+    target_time = dtime(target_hour, target_minute)
 
     # Szukaj najbliższego dnia podlewania
     days_until = None
-    for i in range(7):
+    for i in range(8):  # 8 dni (włącznie z przyszłym tygodniem tego samego dnia)
         check_day = (current_day_py + i) % 7
         if check_day in watering_days_py:
+            # Jeśli to dzisiaj, sprawdź czy godzina jeszcze nie minęła
+            if i == 0 and current_time >= target_time:
+                continue  # Dziś już za późno, szukaj następnego dnia
             days_until = i
             break
+    
+    # Jeśli nie znaleziono w najbliższych 7 dniach, weź pierwszy dzień z listy w następnym tygodniu
+    if days_until is None:
+        for i in range(7):
+            check_day = (current_day_py + i) % 7
+            if check_day in watering_days_py:
+                days_until = i + 7  # Następny tydzień
+                break
+
     if days_until is None:
         return jsonify({"days": 0, "hours": 0, "minutes": 0, "seconds": 0, "interval_seconds": 0})
 
-    # Jeśli to dziś i godzina już minęła, to będzie dopiero za tydzień
     next_watering_date = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
-    if days_until == 0 and current_time > dtime(target_hour, target_minute):
-        days_until = 7
     next_watering_date = next_watering_date + timedelta(days=days_until)
 
     seconds_left = int((next_watering_date - now).total_seconds())

@@ -222,8 +222,7 @@ class GPIOController(threading.Thread):
                         water_seconds = settings.get('water_seconds', 30)
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
                         if elapsed > water_seconds:
-                            	devices_info["pump"]["state"] = "off"
-                            	del devices_info["pump"]["turned_on_at"]
+                            devices_info["pump"]["state"] = "off"
                     
                     # Save updated device states
                     save_json_secure(devices_info_file, devices_info)
@@ -281,6 +280,8 @@ print("✓ Sensor Service thread started")
 
 
 # ========== SHUTDOWN ==========
+
+bluetooth_thread = None  # Will be set if Bluetooth service is started
 
 def shutdown():
     logger.info("Shutting down services...")

@@ -10,7 +10,7 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   const [hasTriggeredWater, setHasTriggeredWater] = useState(false);
   const [trackWidth, setTrackWidth] = useState(null);
 
-  // Pobierz czas podlewania z backendu na starcie
+  // Pobierz czas podlewania z backendu na starcie i odświeżaj co 60 sekund
   useEffect(() => {
     const fetchWateringTimer = async () => {
       try {
@@ -29,6 +29,11 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
     };
     
     fetchWateringTimer();
+    
+    // Odświeżaj timer co 60 sekund żeby synchronizować z backendem
+    const refreshInterval = setInterval(fetchWateringTimer, 60000);
+    
+    return () => clearInterval(refreshInterval);
   }, []);
 
   // Odliczanie czasu
