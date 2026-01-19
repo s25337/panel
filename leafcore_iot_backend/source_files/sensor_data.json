@@ -1,7 +1,6 @@
 {
-    "temperature": null,
-    "humidity": null,
-    "brightness": null,
-    "timestamp": "2026-01-19T15:25:04.323629",
-    "water_max": "high"
+    "temperature": 21.03,
+    "humidity": 55.17,
+    "brightness": 0.44,
+    "timestamp": "2026-01-19T15:56:48.495007"
 }

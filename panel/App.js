@@ -167,6 +167,7 @@ useEffect(() => {
       fetchSensors();
       fetchStatus();
       fetchLightIntensity();
+      fetchSettings();
     }, 5000);
 
     // Polling dla watering timera co 5 sekund (rzadsze)

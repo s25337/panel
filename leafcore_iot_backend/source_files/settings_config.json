@@ -1,16 +1,16 @@
 {
-  "setting_id": "28",
-  "plant_name": "Prefined Plant",
-  "target_temp": 29,
-  "target_hum": 52,
-  "light_intensity": 70,
+  "setting_id": "7",
+  "plant_name": "Joker Kush Mush",
+  "target_temp": 10.0,
+  "target_hum": 50,
+  "light_intensity": 13,
   "start_hour": 16,
-  "end_hour": 20,
-  "watering_mode": "sprinkler",
-  "water_seconds": 3,
+  "end_hour": 16,
+  "watering_mode": "standard",
+  "water_seconds": 400,
   "watering_days": [
-    1,
     5,
-    0
+    6,
+    7
   ]
 }

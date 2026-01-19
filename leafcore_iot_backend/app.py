@@ -90,7 +90,6 @@ def set_brightness(intensity):
     
     with open("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "w") as f:
         f.write(str(duty_ns))
-    logging.info(f"Set brightness to: {intensity}")
 
 class GPIOController(threading.Thread):
     
@@ -272,7 +271,7 @@ sensor_thread = SensorService(
     scl_pin=config.SCL_PIN,
     sda_pin=config.SDA_PIN,
     output_file=sensor_data_file,
-    water_max_pin=config.WATER_MAX_PIN,
+    water_max_pin=None,
     save_callback=save_json_secure,
     read_callback=load_json_secure,
     poll_interval=2.0
