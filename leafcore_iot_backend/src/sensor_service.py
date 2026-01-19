@@ -12,6 +12,7 @@ import threading
 import logging
 import board
 import busio
+from src.json_manager import load_json_secure, save_json_secure
 try:
     import gpiod
     from gpiod.line import Direction, Value, Bias
@@ -145,7 +146,7 @@ class SoftwareI2CBridge:
 class SensorService(threading.Thread):
     """Sensor reading thread - collects data from AHT10 and VEML7700"""
     
-    def __init__(self, chip_path, scl_pin, sda_pin, output_file, poll_interval=2.0, water_min_pin=None, water_max_pin=None):
+    def __init__(self, chip_path, scl_pin, sda_pin, output_file, water_max_pin, save_callback, read_callback, poll_interval=2.0, water_min_pin=None):
         super().__init__()
         self.daemon = True
         self.running = True
@@ -156,6 +157,8 @@ class SensorService(threading.Thread):
         self.poll_interval = poll_interval
         self.water_min_pin = water_min_pin
         self.water_max_pin = water_max_pin
+        self.save_callback = save_callback
+        self.read_callback = read_callback
 
         self.water_min = None  # For water level pins    
         self.water_max = None       
@@ -257,32 +260,44 @@ class SensorService(threading.Thread):
                             data["water_min"] = "low" if min_state == Value.INACTIVE else "ok"
                         if self.water_max:
                             max_state = self.water_max.get_value(self.water_max_pin)
-                            data["water_max"] = "high" if max_state == Value.INACTIVE else "ok"     
+                            logger.info(f"Water Max Sensor Raw: {max_state}")
+                            if max_state == Value.ACTIVE:
+                               data["water_max"] = "high"
+                               logger.info("Water level is HIGH (Sensor Triggered)")
+                            else:
+                               data["water_max"] = "ok"
+                               logger.info("ok")
+                            #max_state = self.water_max.get_value(self.water_max_pin)
+                            #data["water_max"] = "high" if max_state == Value.INACTIVE else "ok"
+                            #max_state = self.water_max.get_value(self.water_max_pin)
+                            #logger.debug(f"Water Max Raw State: {max_state}")
+                       
+                            # Explicit logic to ensure both paths are clear
+                            #if max_state == Value.INACTIVE:
+                               #data["water_max"] = "high"
+                               #logger.info("Water level HIGH detected!")
+                            #else:
+                               #data["water_max"] = "ok"
+                               #logger.debug("Water level is normal (ok)")     
                     except Exception as e:
                         logger.debug(f"Water level sensor read error: {e}")
 
                     # Save to file
-                    try:
-                        with open(self.output_file, "w") as f:
-                            json.dump(data, f, indent=4)
-                    except Exception as e:
-                        logger.error(f"File update error: {e}")
+                    self.save_callback(self.output_file, data)
                     # Every 20s save to sensor_data_history.json (rolling 50)
                     if now - last_history_save >= 20:
                         last_history_save = now
                         try:
                             history_file = "source_files/sensor_data_history.json"
                             if os.path.exists(history_file):
-                                with open(history_file, "r") as f:
-                                    data_list = json.load(f)
-                                    if not isinstance(data_list, list):
-                                        data_list = []
+                                data_list = self.read_callback(history_file)
+                                if not isinstance(data_list, list):
+                                   data_list = []
                             else:
                                 data_list = []
                             data_list.insert(0, data)
                             data_list = data_list[:50]
-                            with open(history_file, "w") as f:
-                                json.dump(data_list, f, indent=4)
+                            self.save_callback(history_file, data_list)
                         except Exception as e:
                             logger.error(f"History file update error: {e}")
             except Exception as e:
@@ -307,8 +322,7 @@ class SensorService(threading.Thread):
                 }
                 # Zapisz tylko jeden rekord do sensor_data.json
                 try:
-                    with open(self.output_file, "w") as f:
-                        json.dump(data, f, indent=4)
+                    self.save_callback(self.output_file, data)
                 except Exception as e:
                     logger.error(f"Mock file update error: {e}")
                 # Co 20s dodaj do sensor_data_history.json (rolling 50)
@@ -317,16 +331,14 @@ class SensorService(threading.Thread):
                     try:
                         history_file = "source_files/sensor_data_history.json"
                         if os.path.exists(history_file):
-                            with open(history_file, "r") as f:
-                                data_list = json.load(f)
-                                if not isinstance(data_list, list):
-                                    data_list = []
+                           data_list = self.read_callback(history_file)
+                           if not isinstance(data_list, list):
+                              data_list = []
                         else:
                             data_list = []
                         data_list.insert(0, data)
                         data_list = data_list[:50]
-                        with open(history_file, "w") as f:
-                            json.dump(data_list, f, indent=4)
+                        self.save_callback(history_file, data_list)
                     except Exception as e:
                         logger.error(f"Mock history file update error: {e}")
             except Exception as e:

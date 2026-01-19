@@ -5,6 +5,7 @@ from flask import Blueprint, jsonify, request, current_app
 import json
 import os
 import requests
+from src.json_manager import load_json_secure, save_json_secure
 
 BASE_URL = "http://31.11.238.45:8081/terrarium"
 ENDPOINT_ADD_MODULE = f"{BASE_URL}/module"
@@ -32,16 +33,15 @@ def send_data_terrarium():
 def update_setting():
 
     # Pobierz aktualne lokalne ustawienia z pliku
-    group_id = "group-A1"
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
+    devices_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
     try:
-        with open(settings_file, 'r') as f:
-            local_settings = json.load(f)
+        local_settings = load_json_secure(settings_file)
+        local_devices = load_json_secure(devices_file)
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to read local settings: {e}"}), 500
-
+    group_id = local_devices["light"]["group_id"]
     url = f"{BASE_URL}/updateSetting/{group_id}"
-
     # Mapowanie pól na format Terrarium
     day_map = {
         1: "MONDAY",

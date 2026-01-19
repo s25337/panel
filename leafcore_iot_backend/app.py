@@ -13,7 +13,7 @@ import logging
 import sys
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-
+from src.json_manager import load_json_secure, save_json_secure
 # Gpiod for GPIO control
 try:
     import gpiod
@@ -61,56 +61,6 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 sensor_data_file = os.path.join(current_dir, "source_files", "sensor_data.json")
 settings_file = os.path.join(current_dir, "source_files", "settings_config.json")
 devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json")
-
-
-def load_json_secure(file_path):
-
-    """Safely reads JSON by waiting for a lock."""
-
-    lock_path = file_path + ".lock"
-
-    with open(lock_path, "w") as lockfile:
-
-        fcntl.flock(lockfile, fcntl.LOCK_SH)
-
-        try:
-
-            with open(file_path, "r") as f:
-
-                return json.load(f)
-
-        except (json.JSONDecodeError, FileNotFoundError):
-
-            return {}
-
-        finally:
-
-            fcntl.flock(lockfile, fcntl.LOCK_UN)
-
-
-def save_json_secure(file_path, data):
-
-    """Safely writes JSON by locking the file exclusively."""
-
-    lock_path = file_path + ".lock"
-
-    with open(lock_path, "w") as lockfile:
-
-        fcntl.flock(lockfile, fcntl.LOCK_EX)
-
-        try:
-
-            with open(file_path, "w") as f:
-
-                json.dump(data, f, indent=4)
-
-                f.flush()
-
-                os.fsync(f.fileno())
-
-        finally:
-
-            fcntl.flock(lockfile, fcntl.LOCK_UN)
 
 devices_info = load_json_secure(devices_info_file)
 
@@ -244,15 +194,9 @@ class GPIOController(threading.Thread):
         while self.running:
             try:
                 # Czytaj devices_info z pliku co pętlę
-                with open(devices_info_file, 'r') as f:
-                    devices_info = json.load(f)
-                
-                with open(settings_file, 'r') as f:
-                    settings = json.load(f)
-                
-                with open(sensor_data_file, 'r') as f:
-                    sensor_list = json.load(f)
-                
+                devices_info = load_json_secure(devices_info_file)
+                settings = load_json_secure(settings_file)
+                sensor_list = load_json_secure(sensor_data_file)                
                 if sensor_list:
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
@@ -277,8 +221,7 @@ class GPIOController(threading.Thread):
                             	del devices_info["pump"]["turned_on_at"]
                     
                     # Save updated device states
-                    with open(devices_info_file, 'w') as f:
-                        json.dump(devices_info, f, indent=2)
+                    save_json_secure(devices_info_file, devices_info)
             
             except Exception as e:
                 logger.error(f"Mock automation error: {e}")
@@ -322,6 +265,9 @@ sensor_thread = SensorService(
     scl_pin=config.SCL_PIN,
     sda_pin=config.SDA_PIN,
     output_file=sensor_data_file,
+    water_max_pin=config.WATER_MAX_PIN,
+    save_callback=save_json_secure,
+    read_callback=load_json_secure,
     poll_interval=2.0
 )
 sensor_thread.start()
