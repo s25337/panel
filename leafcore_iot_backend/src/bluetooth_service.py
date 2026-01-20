@@ -369,12 +369,16 @@ class BluetoothService(threading.Thread):
         except adapter.AdapterError as e:
             logging.error(f"Bluetooth Error: {e}")
 
+    def getLogs(self):
+        return self.logs
+    
     def stop(self):
         if self.mainloop:
             try:
                 if self.watchdog:
                     self.watchdog.cancel()
                 logging.info("Force stopping Bluetooth service...")
+                self.logs.append("Force stopping Bluetooth service...")
                 self.mainloop.quit()
             except Exception:
                 pass
