@@ -106,7 +106,7 @@ useEffect(() => {
     try {
       const settings = await apiService.getSettings();
       if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
-      setLightIntensity(settings.light_intensity);
+      setLightIntensity(settings.light_intensity*100);
     }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
@@ -279,7 +279,7 @@ useEffect(() => {
 
   return (
     <ImageBackground
-      source={require('./assets/wallpaper.jpg')}
+      source={require('./assets/wallpaper.png')}
       style={styles.fullBackground}
       resizeMode="cover"
     >
@@ -296,16 +296,33 @@ useEffect(() => {
             onClick={handleInteraction}
           >
             <View style={styles.screensaverContent}>
-              <Text style={styles.screensaverLabel}>Temperature</Text>
-              <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
-              
-              <Text style={styles.screensaverLabel}>Humidity</Text>
-              <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+              {/* Temperature with screensaver-heating image */}
+              <View style={styles.screensaverImageContainer}>
+                <Image 
+                  source={require('./assets/screensaver-heating.png')} 
+                  style={styles.screensaverImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.screensaverOverlay}>
+                  <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
+                </View>
+              </View>
+              {/* Humidity with screensaver-watering image */}
+              <View style={styles.screensaverImageContainer}>
+                <Image 
+                  source={require('./assets/screensaver-watering.png')} 
+                  style={styles.screensaverImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.screensaverOverlay}>
+                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+                </View>
+              </View>
             </View>
           </View>
         ) : (
           <ImageBackground
-            source={require('./assets/wallpaper.jpg')}
+            source={require('./assets/wallpaper.png')}
             style={styles.fullBackground}
             resizeMode="cover"
           >
@@ -685,15 +702,39 @@ const styles = StyleSheet.create({
     color: '#aaaaaa',
     letterSpacing: 0.5,
   },
-  screensaverContainer: {
-    flex: 1,
+screensaverContainer: {
+  position: 'absolute',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: 'black',
+  },
+    screensaverContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 60,
+  },
+  screensaverImageContainer: {
+    position: 'relative',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#000000',
   },
-  screensaverContent: {
+  screensaverImage: {
+    width: 200,
+    height: 200,
+  },
+  screensaverOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 5,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: 40,
   },
   screensaverLabel: {
     fontSize: 32,
@@ -702,11 +743,15 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   screensaverValue: {
-    fontSize: 72,
+    fontSize: 48,
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',
     letterSpacing: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 4,
   },
+ 
   topLeftTimeContainer: {
     position: 'absolute',
     top: RESPONSIVE_SIZES.topLeftMargin,
