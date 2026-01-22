@@ -744,7 +744,7 @@ screensaverContainer: {
   },
   screensaverValue: {
     fontSize: 48,
-    fontFamily: FontFamily.workSansLight,
+    fontFamily: FontFamily.workSansExtraLight,
     color: '#ffffff',
     letterSpacing: 2,
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
