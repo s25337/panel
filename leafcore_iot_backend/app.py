@@ -45,7 +45,7 @@ except ImportError:
         FAN_PIN = 271
         PUMP_PIN = 268
         SPRINKLER_PIN = 258
-        HEATING_MAT_PIN = 272
+        HEATING_MAT_PIN = 267
         LIGHT_PIN = 269
         SCL_PIN = 263
         SDA_PIN = 264
@@ -64,7 +64,7 @@ devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json
 
 devices_info = load_json_secure(devices_info_file)
 
-def setup_pwm(chip_num=0, channel_num=3):
+def setup_pwm(chip_num, channel_num):
     base_path = f"/sys/class/pwm/pwmchip{chip_num}"
     export_path = f"{base_path}/export"
     channel_path = f"{base_path}/pwm{channel_num}"
@@ -74,25 +74,44 @@ def setup_pwm(chip_num=0, channel_num=3):
         try:
             with open(export_path, 'w') as f:
                 f.write(str(channel_num))
-            time.sleep(0.5) 
             
         except PermissionError:
             print("ERROR: Permission denied. You must run with 'sudo' or fix uDev rules.")
             raise
         except OSError as e:
             print(f"Warning during export: {e}")
+    time.sleep(0.5)
     print(f"PWM Channel {channel_num} is ready.")
+    try:
+        with open(f"{channel_path}/enable", "w") as f:
+            f.write("0")
+    except OSError:
+        pass 
 
+    # 3. Now set the Period safely
+    with open(f"{channel_path}/period", "w") as f:
+        f.write(str(PWM_PERIOD))
+
+    # 4. Re-enable
+    with open(f"{channel_path}/enable", "w") as f:
+        f.write("1")
+        
+    print(f"PWM Configured: Period={PWM_PERIOD}ns")
 
 def set_brightness(intensity):
     intensity = max(0.0, min(intensity, 1.0))
     duty_ns = int(PWM_PERIOD * intensity)
-    
+#    logging.info(f"Set brightness: {intensity}")
     with open("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "w") as f:
         f.write(str(duty_ns))
-
+def set_heat(intensity):
+    intensity = max(0.0, min(intensity, 1.0))
+    duty_ns = int(PWM_PERIOD * intensity)
+#    logging.info(f"Set brightness: {intensity}")
+    with open("/sys/class/pwm/pwmchip0/pwm4/duty_cycle", "w") as f:
+        f.write(str(duty_ns))
 class GPIOController(threading.Thread):
-    
+       
     def __init__(self):
         super().__init__()
         self.running = True
@@ -115,8 +134,8 @@ class GPIOController(threading.Thread):
                 config={
                     config.FAN_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.PUMP_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
-                    config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
-                    config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
+                    #config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                 },
             ) as request:
                 self._run_gpio(request)
@@ -134,7 +153,7 @@ class GPIOController(threading.Thread):
                 devices_info = load_json_secure(devices_info_file)
                 settings = load_json_secure(settings_file)
                 sensor_list = load_json_secure(sensor_data_file)
-                
+                devices_changes_made = False
                 if sensor_list:
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
                     
@@ -142,7 +161,7 @@ class GPIOController(threading.Thread):
                     apply_automation_rules(devices_info, newest, settings, settings_file, devices_info_file)
                     
                     # Jeśli pompa ON, zapisz czas włączenia
-                    if devices_info.get("pump", {}).get("state") == "on":
+                      if devices_info.get("pump", {}).get("state") == "on":
                         if not devices_info.get("pump", {}).get("turned_on_at"):
                             devices_info["pump"]["turned_on_at"] = time.time()
                     else:
@@ -162,8 +181,7 @@ class GPIOController(threading.Thread):
                             del devices_info["pump"]["turned_on_at"]
                     
                     # Save updated device states
-                    save_json_secure(devices_info_file, devices_info)
-            
+                    save_json_secure(devices_info_file, devices_info)            
             except Exception as e:
                 print(f"Automation error: {e}")
                 logger.error(f"Automation error: {e}")
@@ -179,9 +197,13 @@ class GPIOController(threading.Thread):
                 sprinkler_val = Value.ACTIVE if devices_info.get("sprinkler", {}).get("state") == "on" else Value.INACTIVE
                 request.set_value(config.SPRINKLER_PIN, sprinkler_val)
 
-                heat_val = Value.ACTIVE if devices_info.get("heat_mat", {}).get("state") == "on" else Value.INACTIVE
-                request.set_value(config.HEATING_MAT_PIN, heat_val)
-
+                #heat_val = Value.ACTIVE if devices_info.get("heat_mat", {}).get("state") == "on" else Value.INACTIVE
+                #request.set_value(config.HEATING_MAT_PIN, heat_val)
+                heat = devices_info.get("heat_mat", {})
+                if heat.get("state") == "on":
+  #                 logging.info("heat on in app.py")
+                   set_heat(0.3)
+                
                 light_conf = devices_info.get("light", {})
                 if light_conf.get("state") == "on":
                     intensity = light_conf.get("intensity", 1.0)
@@ -222,8 +244,7 @@ class GPIOController(threading.Thread):
                         water_seconds = settings.get('water_seconds', 30)
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
                         if elapsed > water_seconds:
-                            	devices_info["pump"]["state"] = "off"
-                            	del devices_info["pump"]["turned_on_at"]
+                            devices_info["pump"]["state"] = "off"
                     
                     # Save updated device states
                     save_json_secure(devices_info_file, devices_info)
@@ -255,6 +276,7 @@ app.register_blueprint(api_external)
 app.register_blueprint(api_webhooks)
 
 setup_pwm(0, 3)
+setup_pwm(0,4)
 
 # Start GPIO thread
 gpio_thread = GPIOController()
@@ -263,7 +285,6 @@ print("✓ GPIO Controller thread started")
 # Start periodic data sender thread (after app is created)
 from src.periodic_data_sender import start_periodic_sender
 start_periodic_sender(app)
-
 
 # Start Sensor Service thread
 sensor_thread = SensorService(
@@ -297,9 +318,14 @@ def shutdown():
     if bluetooth_thread:
         bluetooth_thread.stop()
         bluetooth_thread.join(timeout=2)
-    
-    logger.info("All services stopped")
-
+    try:
+        devices_info = load_json_secure(devices_info_file)
+        for device in devices_info.items():
+           device["state"] = "off"
+        save_json_secure(devices_info_file, devices_info) 
+        logger.info("All services stopped")
+    except Exception as e:
+        print("Couldn't read or save file")
 
 if __name__ == "__main__":
     import atexit

@@ -97,21 +97,21 @@ class WifiConfigurator:
 
     def on_ssid_write(self, value, options):
         self.ssid_buffer += bytes(value)
-        logging.info(f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes.")
+        #logging.info(f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes.")
         msg = f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes."
         logging.info(msg)
         self.logs.append(msg)
 
     def on_pass_write(self, value, options):
         self.pass_buffer += bytes(value)
-        logging.info(f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes.")
+        #logging.info(f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes.")
         msg = f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes."
         logging.info(msg)
         self.logs.append(msg)
 
     def on_user_id_write(self, value, options):
         self.userid_buffer += bytes(value)
-        logging.info(f"Appended User ID chunk. Buffer is now {len(self.userid_buffer)} bytes.")
+        #logging.info(f"Appended User ID chunk. Buffer is now {len(self.userid_buffer)} bytes.")
         msg = "SSID Execute received. Decoding buffer..."
         logging.info(msg)
         self.logs.append(msg)
@@ -132,7 +132,9 @@ class WifiConfigurator:
             self.ssid_buffer = b""
 
     def on_pass_execute(self, value, options):
-        logging.info("Password Execute received. Decoding buffer...")
+        msg = "Password Execute received. Decoding buffer..."
+        logging.error(msg)
+        self.logs.append(msg)
         try:
             self.password = self.pass_buffer.decode('utf-8')
             msg = "Password Execute received. Decoding buffer..."
@@ -153,9 +155,10 @@ class WifiConfigurator:
             self.userid = self.userid_buffer.decode('utf-8')
             msg = "User ID received"
             logging.info(msg)
-
+            self.logs.append(msg)
         except Exception as e:
-            logging.error(f"Error decoding password: {e}")
+            msg = "Error decoding password: {e}"
+            self.logs.append(msg)
         finally:
             self.userid_buffer = b""
 
@@ -203,6 +206,12 @@ class WifiConfigurator:
                 devices_info = load_json_secure(self.devices_info_file)
                 devices_list = []
                 for device in devices_info.values():
+                    if device["is_registered"]:
+                       msg = "--- This greenhouse already has an owner. Delete it from modules list first. ---"
+                       logging.info(msg)
+                       self.logs.append(msg)
+                       return
+
                     device_payload = {
                     "device_name": device.get("device_name"),
                     "type": device.get("type"),
@@ -217,7 +226,9 @@ class WifiConfigurator:
                     devices_list.append(device_payload)
                 logging.info(f"Sent: {devices_list}")
                 response = requests.post(url, json=devices_list, timeout=10)
-                logging.info("Waiting for response...")
+                msg = "Waiting for response..."
+                logging.info(msg)
+                self.logs.append(msg)
 
                 if response.status_code == 200:
                     msg = "Server response: 200 OK. Saving updated device info to file."
@@ -283,7 +294,9 @@ class BluetoothService(threading.Thread):
 
     def run(self):
         if not BLUEZERO_AVAILABLE:
-            logging.warning("Bluezero not installed - Bluetooth service disabled")
+            msg = "Bluezero not installed - Bluetooth service disabled"
+            logging.warning(msg)
+            self.logs.append(msg)
             return
 
         logging.basicConfig(level=logging.INFO)
@@ -298,7 +311,6 @@ class BluetoothService(threading.Thread):
         try:
             dongle = adapter.Adapter()
             logging.info(f"Using adapter: {dongle.address}")
-            
             my_server = peripheral.Peripheral(
                 adapter_address=dongle.address,
                 local_name=DEVICE_NAME_PREFIX
@@ -362,6 +374,9 @@ class BluetoothService(threading.Thread):
             
 
             logging.info("Bluetooth server is published and broadcasting. Waiting for WiFi config...")
+            msg = "Bluetooth server is published and broadcasting. Waiting for WiFi config..."
+            logging.warning(msg)
+            self.logs.append(msg)
             my_server.publish()
             
         except Exception as e:
@@ -378,3 +393,5 @@ class BluetoothService(threading.Thread):
                 self.mainloop.quit()
             except Exception:
                 pass
+    def getLogs(self):
+        return self.logs

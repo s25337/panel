@@ -67,7 +67,7 @@ def webhook_test():
     print(f"[webhook] Otrzymano dane: {data}")
     return jsonify({"status": "OK", "received": data})
 
-@api_webhooks.route('/external/devices/register', methods=['POST'])
+@api_webhooks.route('/external/devices/unregister/<groupId>', methods=['POST'])
 def register_device_webhook():
     """
     Webhook endpoint for external Terrarium server to register devices
@@ -75,26 +75,19 @@ def register_device_webhook():
     """
     data = request.get_json(force=True)
     print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
-    user_id = data.get("user_id", None)
-    is_registered = data.get("is_registered", False)
-    device_name = data.get("device_name", "Unknown Device")
-    
+    group_id =  data.get("group_id", None)
     devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
     try:
-        with open(devices_info_file, 'r') as f:
-            devices_info = json.load(f)
-    except FileNotFoundError:
-        devices_info = {}
-
-    for device_id, device in devices_info.items():
-        if device.get("device_name") == device_name:
-            device["user_id"] = user_id
-            device["is_registered"] = is_registered
-            break  # Update only the first match
-    
+       devices_info = load_json_secure(devices_info_file)
+       if devices_info["light"]["group_id"] == group_id:
+          for device in devices_info.items():
+               device["user_id"] = None
+               device["is_registered"] = False
+    except Exception as e:
+        print(f"[webhook] Błąd odczytu devices_info.json: {e}")
+        return jsonify({"status": "ERROR", "message": str(e)}), 500    
     try:
-        with open(devices_info_file, 'w') as f:
-            json.dump(devices_info, f, indent=2)
+        save_json_secure(devices_info_file)
         print(f"[webhook] Zaktualizowano wszystkie urządzenia: user_id={user_id}, is_registered={is_registered}")
         return jsonify({"status": "OK", "updated": devices_info})
     except Exception as e:
