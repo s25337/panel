@@ -49,7 +49,6 @@ except ImportError:
         LIGHT_PIN = 269
         SCL_PIN = 263
         SDA_PIN = 264
-
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -74,7 +73,7 @@ def setup_pwm(chip_num, channel_num):
         try:
             with open(export_path, 'w') as f:
                 f.write(str(channel_num))
-            
+
         except PermissionError:
             print("ERROR: Permission denied. You must run with 'sudo' or fix uDev rules.")
             raise
@@ -86,7 +85,7 @@ def setup_pwm(chip_num, channel_num):
         with open(f"{channel_path}/enable", "w") as f:
             f.write("0")
     except OSError:
-        pass 
+        pass
 
     # 3. Now set the Period safely
     with open(f"{channel_path}/period", "w") as f:
@@ -95,9 +94,8 @@ def setup_pwm(chip_num, channel_num):
     # 4. Re-enable
     with open(f"{channel_path}/enable", "w") as f:
         f.write("1")
-        
-    print(f"PWM Configured: Period={PWM_PERIOD}ns")
 
+    print(f"PWM Configured: Period={PWM_PERIOD}ns")
 def set_brightness(intensity):
     intensity = max(0.0, min(intensity, 1.0))
     duty_ns = int(PWM_PERIOD * intensity)
@@ -111,7 +109,7 @@ def set_heat(intensity):
     with open("/sys/class/pwm/pwmchip0/pwm4/duty_cycle", "w") as f:
         f.write(str(duty_ns))
 class GPIOController(threading.Thread):
-       
+
     def __init__(self):
         super().__init__()
         self.running = True
@@ -120,13 +118,13 @@ class GPIOController(threading.Thread):
 
     def run(self):
         print("GPIO Started")
-        
+
         # Mock mode if gpiod not available
         if not self.gpio_available:
             print("⚠️  Running in MOCK MODE (gpiod not available)")
             self._run_mock()
             return
-        
+
         try:
             with gpiod.request_lines(
                 path=config.CHIP_PATH,
@@ -135,7 +133,7 @@ class GPIOController(threading.Thread):
                     config.FAN_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.PUMP_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
-                    #config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
+                    #config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE>
                 },
             ) as request:
                 self._run_gpio(request)
@@ -156,41 +154,46 @@ class GPIOController(threading.Thread):
                 devices_changes_made = False
                 if sensor_list:
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
-                    
+
                     # Apply automation rules
                     apply_automation_rules(devices_info, newest, settings, settings_file, devices_info_file)
-                    
+
                     # Jeśli pompa ON, zapisz czas włączenia
-                      if devices_info.get("pump", {}).get("state") == "on":
+                    if devices_info.get("pump", {}).get("state") == "on":
                         if not devices_info.get("pump", {}).get("turned_on_at"):
                             devices_info["pump"]["turned_on_at"] = time.time()
+                            devices_changes_made = True
                     else:
                         # Pompa OFF, usuń timestamp
                         if "turned_on_at" in devices_info.get("pump", {}):
                             del devices_info["pump"]["turned_on_at"]
-                    
-                    # Sprawdź czy pompa ma być wyłączona po water_seconds
+                            devices_changes_made = True
+
+                    # Sprawdź czy pompa ma być wyłączona po watering_time
                     if devices_info.get("pump", {}).get("turned_on_at"):
-                        water_seconds = settings.get('water_seconds', 30)
-                        logger.info(f"{water_seconds}")
+                        watering_time = settings.get('watering_time', 3)
+#                        logger.info(f"{watering_time}")
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
-                        logger.info(f"{elapsed}")
-                        if elapsed > water_seconds:
+ #                       logger.info(f"{elapsed}")
+                        if elapsed > watering_time:
                             devices_info["pump"]["state"] = "off"
+                            if devices_info.get("pump", {}).get("manual_trigger"):
+                               del devices_info["pump"]["manual_trigger"]
                             logger.info("finished watering")
                             del devices_info["pump"]["turned_on_at"]
-                    
-                    # Save updated device states
-                    save_json_secure(devices_info_file, devices_info)            
+                            devices_changes_made = True
+
+                    if devices_changes_made:
+                       save_json_secure(devices_info_file, devices_info)
+
             except Exception as e:
                 print(f"Automation error: {e}")
                 logger.error(f"Automation error: {e}")
-            
+
             # Apply GPIO states
             try:
                 fan_val = Value.ACTIVE if devices_info.get("fan", {}).get("state") == "on" else Value.INACTIVE
                 request.set_value(config.FAN_PIN, fan_val)
-
                 pump_val = Value.ACTIVE if devices_info.get("pump", {}).get("state") == "on" else Value.INACTIVE
                 request.set_value(config.PUMP_PIN, pump_val)
 
@@ -203,7 +206,7 @@ class GPIOController(threading.Thread):
                 if heat.get("state") == "on":
   #                 logging.info("heat on in app.py")
                    set_heat(0.3)
-                
+
                 light_conf = devices_info.get("light", {})
                 if light_conf.get("state") == "on":
                     intensity = light_conf.get("intensity", 1.0)
@@ -215,7 +218,6 @@ class GPIOController(threading.Thread):
             except Exception as e:
                 logger.error(f"GPIO error: {e}")
                 time.sleep(0.1)
-
     def _run_mock(self):
         """Mock loop without gpiod"""
         while self.running:
@@ -223,13 +225,13 @@ class GPIOController(threading.Thread):
                 # Czytaj devices_info z pliku co pętlę
                 devices_info = load_json_secure(devices_info_file)
                 settings = load_json_secure(settings_file)
-                sensor_list = load_json_secure(sensor_data_file)                
+                sensor_list = load_json_secure(sensor_data_file)
                 if sensor_list:
                     newest = sensor_list[0] if isinstance(sensor_list, list) else sensor_list
-                    
+
                     # Apply automation rules
                     apply_automation_rules(devices_info, newest, settings, settings_file, devices_info_file)
-                    
+
                     # Jeśli pompa ON, zapisz czas włączenia
                     if devices_info.get("pump", {}).get("state") == "on":
                         if not devices_info.get("pump", {}).get("turned_on_at"):
@@ -238,20 +240,20 @@ class GPIOController(threading.Thread):
                         # Pompa OFF, usuń timestamp
                         if "turned_on_at" in devices_info.get("pump", {}):
                             del devices_info["pump"]["turned_on_at"]
-                    
+
                     # Sprawdź czy pompa ma być wyłączona po water_seconds
                     if devices_info.get("pump", {}).get("turned_on_at"):
                         water_seconds = settings.get('water_seconds', 30)
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
                         if elapsed > water_seconds:
-                            devices_info["pump"]["state"] = "off"
-                    
+                                devices_info["pump"]["state"] = "off"
+                                del devices_info["pump"]["turned_on_at"]
                     # Save updated device states
                     save_json_secure(devices_info_file, devices_info)
-            
+
             except Exception as e:
                 logger.error(f"Mock automation error: {e}")
-            
+
             time.sleep(1)  # Mock loop slower than GPIO loop
 
 
@@ -266,7 +268,7 @@ CORS(app, resources={
         "origins": ["*"],
         "methods": ["GET", "POST", "OPTIONS"],
         "allow_headers": ["Content-Type"]
-    }
+            }
 })
 
 # Register blueprints
@@ -291,7 +293,7 @@ sensor_thread = SensorService(
     chip_path=config.CHIP_PATH,
     scl_pin=config.SCL_PIN,
     sda_pin=config.SDA_PIN,
-    output_file=sensor_data_file,
+        output_file=sensor_data_file,
     water_max_pin=None,
     save_callback=save_json_secure,
     read_callback=load_json_secure,
@@ -305,15 +307,15 @@ print("✓ Sensor Service thread started")
 
 def shutdown():
     logger.info("Shutting down services...")
-    
+
     # Stop GPIO thread
     gpio_thread.running = False
     gpio_thread.join(timeout=2)
-    
+
     # Stop Sensor thread
     sensor_thread.running = False
     sensor_thread.join(timeout=2)
-    
+
     # Stop Bluetooth thread if running
     if bluetooth_thread:
         bluetooth_thread.stop()
@@ -322,7 +324,7 @@ def shutdown():
         devices_info = load_json_secure(devices_info_file)
         for device in devices_info.items():
            device["state"] = "off"
-        save_json_secure(devices_info_file, devices_info) 
+        save_json_secure(devices_info_file, devices_info)
         logger.info("All services stopped")
     except Exception as e:
         print("Couldn't read or save file")
@@ -331,4 +333,3 @@ if __name__ == "__main__":
     import atexit
     atexit.register(shutdown)
     app.run(host="0.0.0.0", port=5001, debug=False, use_reloader=False)
-
