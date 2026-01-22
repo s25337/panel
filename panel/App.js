@@ -106,7 +106,7 @@ useEffect(() => {
     try {
       const settings = await apiService.getSettings();
       if (settings.light_intensity !== undefined && settings.light_intensity !== null) {
-      setLightIntensity(settings.light_intensity*100);
+      setLightIntensity(settings.light_intensity);
     }
     } catch (error) {
       console.error('Error fetching light intensity:', error);
@@ -750,6 +750,7 @@ screensaverContainer: {
     textShadowColor: 'rgba(0, 0, 0, 0.8)',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 4,
+    marginTop: -10,
   },
  
   topLeftTimeContainer: {
