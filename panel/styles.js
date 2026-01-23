@@ -250,7 +250,7 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   screensaverValue: {
-    fontSize: 48,
+    fontSize: 56,
     fontFamily: FontFamily.workSansExtraLight,
     color: '#ffffff',
     letterSpacing: 2,
