@@ -231,8 +231,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   screensaverImage: {
-    width: 200,
-    height: 200,
+    width: 260,
+    height: 260,
   },
   screensaverOverlay: {
     position: 'absolute',

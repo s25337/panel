@@ -94,8 +94,8 @@ export default function App() {
 };
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
-    if (data && data.time_remaining !== undefined && data.time_remaining !== null) {
-      setWateringInterval(data.time_remaining);
+    if (data && data.interval_seconds !== undefined && data.interval_seconds !== null) {
+      setWateringInterval(data.interval_seconds);
     }
   };
 
@@ -290,7 +290,7 @@ export default function App() {
                 />
                 <View style={styles.screensaverOverlay}>
                   <Text style={styles.screensaverValue}>
-                    {wateringInterval ? Math.ceil(wateringInterval / 86400) : 0}
+                    {wateringInterval ? Math.floor(wateringInterval / 86400) : 0} days
                   </Text>
                 </View>
               </View>
