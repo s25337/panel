@@ -45,14 +45,17 @@ const apiService = {
      * Pobiera logi Bluetooth
      */
     async getBluetoothLogs() {
-      try {
-        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs`);
-        if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
-        return await response.json();
-      } catch (error) {
-        console.error('Error fetching bluetooth logs:', error);
-        return { logs: [] };
-      }
+    try {
+      // FIX: Append ?t=timestamp to the URL to prevent caching
+      const timestamp = new Date().getTime();
+      const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs?t=${timestamp}`);
+      
+      if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching bluetooth logs:', error);
+      return { logs: [] };
+    }
     },
   /**
    * Pobiera aktualne wartości czujników

@@ -45,7 +45,7 @@ except ImportError:
         FAN_PIN = 271
         PUMP_PIN = 268
         SPRINKLER_PIN = 258
-        HEATING_MAT_PIN = 267
+        HEATING_MAT_PIN = 270
         LIGHT_PIN = 269
         SCL_PIN = 263
         SDA_PIN = 264
@@ -54,7 +54,7 @@ logging.basicConfig(level=logging.INFO)
 
 PWM_FREQUENCY = 100
 PWM_PERIOD = int(1_000_000_000 / PWM_FREQUENCY)
-
+bluetooth_thread = None
 # File paths
 current_dir = os.path.dirname(os.path.abspath(__file__))
 sensor_data_file = os.path.join(current_dir, "source_files", "sensor_data.json")
@@ -62,7 +62,37 @@ settings_file = os.path.join(current_dir, "source_files", "settings_config.json"
 devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json")
 
 devices_info = load_json_secure(devices_info_file)
+def check_and_start_bluetooth():
+    global bluetooth_thread
+    
+    # 2. Check if we need to start Bluetooth
+    should_start = False
+    try:
+        # Reuse your existing load_json_secure function
+        devices_info = load_json_secure(devices_info_file)
+        
+        # If file is empty or no devices, we might assume setup is needed
+        if not devices_info:
+            should_start = True
+        else:
+            # Check if ANY device is NOT registered
+            for device in devices_info.values():
+                if not device.get("is_registered", False):
+                    should_start = True
+                    break
+    except Exception as e:
+        print(f"Error checking registration status: {e}")
+        # Fail safe: Start bluetooth if we can't read the file
+        should_start = True
 
+    # 3. Start the thread if condition met
+    if should_start:
+        print("--- Startup: Unregistered devices found. Starting Bluetooth Service... ---")
+        if bluetooth_thread is None or not bluetooth_thread.is_alive():
+            bluetooth_thread = BluetoothService(devices_info_path)
+            bluetooth_thread.start()
+    else:
+        print("--- Startup: All devices registered. Skipping Bluetooth. ---")
 def setup_pwm(chip_num, channel_num):
     base_path = f"/sys/class/pwm/pwmchip{chip_num}"
     export_path = f"{base_path}/export"
@@ -87,27 +117,28 @@ def setup_pwm(chip_num, channel_num):
     except OSError:
         pass
 
-    # 3. Now set the Period safely
     with open(f"{channel_path}/period", "w") as f:
         f.write(str(PWM_PERIOD))
 
-    # 4. Re-enable
     with open(f"{channel_path}/enable", "w") as f:
         f.write("1")
 
     print(f"PWM Configured: Period={PWM_PERIOD}ns")
+
 def set_brightness(intensity):
     intensity = max(0.0, min(intensity, 1.0))
     duty_ns = int(PWM_PERIOD * intensity)
-#    logging.info(f"Set brightness: {intensity}")
+
     with open("/sys/class/pwm/pwmchip0/pwm3/duty_cycle", "w") as f:
         f.write(str(duty_ns))
+
 def set_heat(intensity):
     intensity = max(0.0, min(intensity, 1.0))
     duty_ns = int(PWM_PERIOD * intensity)
-#    logging.info(f"Set brightness: {intensity}")
+
     with open("/sys/class/pwm/pwmchip0/pwm4/duty_cycle", "w") as f:
         f.write(str(duty_ns))
+
 class GPIOController(threading.Thread):
 
     def __init__(self):
@@ -133,7 +164,6 @@ class GPIOController(threading.Thread):
                     config.FAN_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.PUMP_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE),
                     config.SPRINKLER_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE)
-                    #config.HEATING_MAT_PIN: gpiod.LineSettings(direction=Direction.OUTPUT, output_value=Value.INACTIVE>
                 },
             ) as request:
                 self._run_gpio(request)
@@ -172,9 +202,12 @@ class GPIOController(threading.Thread):
                     # Sprawdź czy pompa ma być wyłączona po watering_time
                     if devices_info.get("pump", {}).get("turned_on_at"):
                         watering_time = settings.get('watering_time', 3)
-#                        logger.info(f"{watering_time}")
+                        logger.info(f"{watering_time}")
                         elapsed = time.time() - devices_info["pump"]["turned_on_at"]
- #                       logger.info(f"{elapsed}")
+                        logger.info(f"{elapsed}")
+                        devices_info["fan"]["state"] = "off"
+                        devices_info["heat_mat"]["state"] = "off"
+                        save_json_secure(devices_info_file, devices_info)
                         if elapsed > watering_time:
                             devices_info["pump"]["state"] = "off"
                             if devices_info.get("pump", {}).get("manual_trigger"):
@@ -192,19 +225,18 @@ class GPIOController(threading.Thread):
 
             # Apply GPIO states
             try:
+                devices_info = load_json_secure(devices_info_file)
                 fan_val = Value.ACTIVE if devices_info.get("fan", {}).get("state") == "on" else Value.INACTIVE
                 request.set_value(config.FAN_PIN, fan_val)
-                pump_val = Value.ACTIVE if devices_info.get("pump", {}).get("state") == "on" else Value.INACTIVE
-                request.set_value(config.PUMP_PIN, pump_val)
-
                 sprinkler_val = Value.ACTIVE if devices_info.get("sprinkler", {}).get("state") == "on" else Value.INACTIVE
                 request.set_value(config.SPRINKLER_PIN, sprinkler_val)
+                time.sleep(0.5)
+                if devices_info["heat_mat"]["state"] == "off" and devices_info["fan"]["state"] == "off":
+                  pump_val = Value.ACTIVE if devices_info.get("pump", {}).get("state") == "on" else Value.INACTIVE
+                  request.set_value(config.PUMP_PIN, pump_val)
 
-                #heat_val = Value.ACTIVE if devices_info.get("heat_mat", {}).get("state") == "on" else Value.INACTIVE
-                #request.set_value(config.HEATING_MAT_PIN, heat_val)
                 heat = devices_info.get("heat_mat", {})
                 if heat.get("state") == "on":
-  #                 logging.info("heat on in app.py")
                    set_heat(0.3)
 
                 light_conf = devices_info.get("light", {})
@@ -218,6 +250,7 @@ class GPIOController(threading.Thread):
             except Exception as e:
                 logger.error(f"GPIO error: {e}")
                 time.sleep(0.1)
+            time.sleep(0.1)
     def _run_mock(self):
         """Mock loop without gpiod"""
         while self.running:
@@ -277,7 +310,7 @@ app.register_blueprint(api_frontend)
 app.register_blueprint(api_external)
 app.register_blueprint(api_webhooks)
 
-setup_pwm(0, 3)
+setup_pwm(0,3)
 setup_pwm(0,4)
 
 # Start GPIO thread
@@ -294,7 +327,6 @@ sensor_thread = SensorService(
     scl_pin=config.SCL_PIN,
     sda_pin=config.SDA_PIN,
         output_file=sensor_data_file,
-    water_max_pin=None,
     save_callback=save_json_secure,
     read_callback=load_json_secure,
     poll_interval=2.0
@@ -332,4 +364,6 @@ def shutdown():
 if __name__ == "__main__":
     import atexit
     atexit.register(shutdown)
+    with app.app_context():
+        check_and_start_bluetooth()
     app.run(host="0.0.0.0", port=5001, debug=False, use_reloader=False)

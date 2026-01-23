@@ -39,10 +39,8 @@ class AutomationRules:
 
         # Heater control
         if devices_info.get("heat_mat", {}).get("mode") == "auto":
-#            logging.info(f"{temp}, {target_temp}")
             if temp < target_temp:
                 devices_info["heat_mat"]["state"] = "on"
- #               logging.info("heat on")
             else:
                 devices_info["heat_mat"]["state"] = "off"
 
@@ -67,7 +65,6 @@ class AutomationRules:
     @staticmethod
     def apply_brightness_rules(devices_info, sensor_data, settings, current_time_str, devices_info_file_path):
         """Apply brightness and light schedule automation rules"""
-        #light_schedule = settings.get('light_schedule', {})
         start_time = settings.get('start_hour', 6)
         end_time = settings.get('end_hour', 18)
         is_light_time = False
@@ -77,7 +74,7 @@ class AutomationRules:
            devices_info["light"]["state"] = "off"
            return
         if start_time < end_time:
-            if starttime <= current_time_str <= end_time:
+            if start_time <= current_time_str <= end_time:
                is_light_time = True
         else:
             if current_time_str >= start_time or current_time_str < end_time:
@@ -91,7 +88,6 @@ class AutomationRules:
                    needed = target - bright
                    devices_info["light"]["intensity"] = needed
                 else:
-                   logging.info(f"Got here")
                    devices_info["light"]["intensity"] = 0.0
                    devices_info["light"]["intensity"] = min(1.0, max(0.0, bright / settings.get('optimal_light', 1.0)))
             else:
@@ -117,16 +113,19 @@ class AutomationRules:
                save_json_secure(settings_file, settings)
             except Exception as e:
                return
-            #watering_time = settings.get('watering_time', '13:44')
             last_run = str(devices_info.get("pump", {}).get("last_edit_date"))[:10]
             if last_run == current_date_str:
                return
-            if current_day in watering_days and current_time == "19:52":
+            if current_day in watering_days and current_time == "17:51":
                logging.info("Got here")
                if sensor_data.get("water_min_level") == "low":
                   devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                  #logger.info(f"Watering scheduled: {current_day} at {watering_time} but not triggered due to too litt>
+                  logger.info(f"Watering scheduled: {current_day} but not triggered due to too little water")
                   return
+               devices_info["sprinkler"]["state"] = "off"
+               devices_info["heat_mat"]["state"] = "off"
+               devices_info["fan"]["state"] = "off"
+               time.sleep(5)
                devices_info["pump"]["state"] = "on"
                devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
                logger.info(f"Watering schedule triggered: {current_day} at {watering_time}")
@@ -135,16 +134,17 @@ class AutomationRules:
     @staticmethod
     def apply_watering_rules(devices_info, settings, settings_file_path):
        if devices_info["pump"].get("manual_trigger"):
+            devices_info["sprinkler"]["state"] = "off"
+            devices_info["heat_mat"]["state"] = "off"
+            devices_info["fan"]["state"] = "off"
             devices_info["pump"]["state"] = "on"
-            devices_info["pump"]["last_edit_date"] = current_date_str
+            devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             settings["watering_time"] = settings.get('water_seconds', 3) * AutomationRules.PUMP_ML_PER_S
+            logging.info("Watering started")
             try:
                save_json_secure(settings_file, settings)
             except Exception as e:
                return
-            #time.sleep(settings.get('water_seconds', 3) * AutomationRules.PUMP_ML_PER_S)
-            #logging.info(f"Pump sleeping for {settings.get('water_seconds', 3) * AutomationRules.PUMP_ML_PER_S}")
-            #devices_info["pump"]["state"] = "off"
             return
 def apply_automation_rules(devices_info, sensor_data, settings, settings_file_path, devices_info_file_path):
     try:

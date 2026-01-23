@@ -1,13 +1,11 @@
-
-
-
 from flask import Blueprint, jsonify, request, current_app
 import json
 import os
 import requests
 from src.json_manager import load_json_secure, save_json_secure
 
-BASE_URL = "http://31.11.238.45:8081/terrarium"
+SERVER_URL = os.getenv('TARGET_IP', '127.0.0.1')
+BASE_URL = f"http://{SERVER_URL}:8081/terrarium"
 ENDPOINT_ADD_MODULE = f"{BASE_URL}/module"
 ENDPOINT_SEND_DATA = f"{BASE_URL}/dataTerrarium"
 ENDPOINT_UPDATE_SETTING = f"{BASE_URL}/updateSetting"
@@ -16,15 +14,13 @@ api_external = Blueprint('api_external', __name__, url_prefix='/api')
 
 @api_external.route('/module', methods=['POST'])
 def add_module():
-    # TODO: implement payload logic
     return jsonify({"status": "success", "message": "Module added"}), 200
 
 @api_external.route('/dataTerrarium', methods=['POST'])
 def send_data_terrarium():
     sensor_history_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data_history.json")
     try:
-        with open(sensor_history_file, 'r') as f:
-            data = json.load(f)
+        data = load_json_secure(sensor_history_file)
         return jsonify(data)
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to read sensor history: {e}"}), 500
@@ -129,8 +125,7 @@ def send_data(group_id):
             "watering_days": [day_map_rev.get(day, 1) for day in ext_settings.get("dayOfWeek", [])],
           #  "watering_time": ext_settings.get("watering_time", "12:00")
         }
-        with open(settings_file, 'w') as f:
-            json.dump(new_settings, f, indent=2)
+        save_json_secure(settings_file, new_settings)
     except Exception as e:
         return jsonify({"status": "ERROR", "message": f"Failed to save settings: {e}"}), 500
 

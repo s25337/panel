@@ -1,15 +1,21 @@
 {
-    "setting_id": "10",
-    "plant_name": "D",
-    "target_temp": 40,
-    "target_hum": 43.0,
-    "light_intensity": 0.61,
-    "start_hour": 16,
-    "end_hour": 8,
+    "setting_id": "36",
+    "plant_name": "Cress",
+    "target_temp": 18.0,
+    "target_hum": 60.0,
+    "light_intensity": 0.31,
+    "start_hour": 9,
+    "end_hour": 21,
     "watering_mode": "standard",
-    "water_seconds": 140,
+    "water_seconds": 20,
     "watering_days": [
-        3
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
     ],
-    "watering_time": 9.8
+    "watering_time": 1.4000000000000001
 }

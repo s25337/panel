@@ -1,302 +1,352 @@
 [
     {
-        "temperature": 21.63,
-        "humidity": 61.6,
-        "brightness": 0.4,
-        "timestamp": "2026-01-22T16:15:27.739269"
+        "temperature": 21.06,
+        "humidity": 62.35,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:16:35.616012"
     },
     {
-        "temperature": 18.99,
-        "humidity": 68.68,
-        "brightness": 0.66,
-        "timestamp": "2026-01-22T16:15:07.609215"
-    },
-    {
-        "temperature": 18.45,
-        "humidity": 67.66,
-        "brightness": 0.82,
-        "timestamp": "2026-01-22T16:14:47.486379"
-    },
-    {
-        "temperature": 19.57,
-        "humidity": 56.87,
-        "brightness": 0.85,
-        "timestamp": "2026-01-22T16:14:27.359403"
-    },
-    {
-        "temperature": 20.57,
-        "humidity": 62.53,
-        "brightness": 0.32,
-        "timestamp": "2026-01-22T16:14:07.183589"
-    },
-    {
-        "temperature": 20.47,
-        "humidity": 65.64,
-        "brightness": 0.79,
-        "timestamp": "2026-01-22T16:13:47.020518"
-    },
-    {
-        "temperature": 21.92,
-        "humidity": 50.68,
-        "brightness": 0.36,
-        "timestamp": "2026-01-22T16:13:26.885570"
-    },
-    {
-        "temperature": 20.83,
-        "humidity": 60.67,
-        "brightness": 0.39,
-        "timestamp": "2026-01-22T16:13:06.739764"
-    },
-    {
-        "temperature": 20.59,
-        "humidity": 61.83,
-        "brightness": 0.72,
-        "timestamp": "2026-01-22T16:12:46.571091"
-    },
-    {
-        "temperature": 20.49,
-        "humidity": 68.83,
-        "brightness": 0.83,
-        "timestamp": "2026-01-22T16:12:26.439186"
-    },
-    {
-        "temperature": 20.47,
-        "humidity": 69.63,
-        "brightness": 0.97,
-        "timestamp": "2026-01-22T16:12:06.316499"
-    },
-    {
-        "temperature": 19.5,
-        "humidity": 55.18,
-        "brightness": 0.68,
-        "timestamp": "2026-01-22T16:11:45.701237"
-    },
-    {
-        "temperature": 19.36,
-        "humidity": 67.28,
-        "brightness": 0.34,
-        "timestamp": "2026-01-22T16:11:25.582558"
-    },
-    {
-        "temperature": 20.69,
-        "humidity": 57.39,
-        "brightness": 0.49,
-        "timestamp": "2026-01-22T16:11:05.307900"
-    },
-    {
-        "temperature": 20.76,
-        "humidity": 69.66,
-        "brightness": 0.78,
-        "timestamp": "2026-01-22T16:10:44.856047"
-    },
-    {
-        "temperature": 21.45,
-        "humidity": 61.17,
-        "brightness": 0.73,
-        "timestamp": "2026-01-22T16:10:24.689232"
-    },
-    {
-        "temperature": 20.35,
-        "humidity": 66.79,
-        "brightness": 0.69,
-        "timestamp": "2026-01-22T16:10:04.277791"
-    },
-    {
-        "temperature": 18.3,
-        "humidity": 68.66,
-        "brightness": 0.55,
-        "timestamp": "2026-01-22T16:09:44.155839"
-    },
-    {
-        "temperature": 18.52,
-        "humidity": 67.97,
-        "brightness": 0.63,
-        "timestamp": "2026-01-22T16:09:23.611666"
-    },
-    {
-        "temperature": 21.91,
-        "humidity": 61.52,
-        "brightness": 0.78,
-        "timestamp": "2026-01-22T16:09:03.490757"
-    },
-    {
-        "temperature": 21.5,
-        "humidity": 64.92,
-        "brightness": 0.33,
-        "timestamp": "2026-01-22T16:08:43.263424"
-    },
-    {
-        "temperature": 19.3,
-        "humidity": 61.5,
-        "brightness": 0.34,
-        "timestamp": "2026-01-22T16:08:23.027755"
-    },
-    {
-        "temperature": 19.47,
-        "humidity": 54.67,
-        "brightness": 0.62,
-        "timestamp": "2026-01-22T16:08:02.903224"
-    },
-    {
-        "temperature": 21.69,
-        "humidity": 58.42,
-        "brightness": 0.62,
-        "timestamp": "2026-01-22T16:07:42.766739"
-    },
-    {
-        "temperature": 19.65,
-        "humidity": 55.92,
-        "brightness": 0.42,
-        "timestamp": "2026-01-22T16:07:22.634168"
-    },
-    {
-        "temperature": 19.96,
-        "humidity": 57.74,
-        "brightness": 0.87,
-        "timestamp": "2026-01-22T16:07:02.068858"
-    },
-    {
-        "temperature": 20.47,
-        "humidity": 65.32,
-        "brightness": 0.84,
-        "timestamp": "2026-01-22T16:06:41.946417"
-    },
-    {
-        "temperature": 18.58,
-        "humidity": 58.53,
-        "brightness": 0.69,
-        "timestamp": "2026-01-22T16:06:21.826054"
-    },
-    {
-        "temperature": 18.85,
-        "humidity": 67.65,
-        "brightness": 0.68,
-        "timestamp": "2026-01-22T16:06:01.704378"
-    },
-    {
-        "temperature": 20.11,
-        "humidity": 51.68,
-        "brightness": 0.64,
-        "timestamp": "2026-01-22T16:05:41.577351"
-    },
-    {
-        "temperature": 20.36,
-        "humidity": 50.31,
-        "brightness": 0.87,
-        "timestamp": "2026-01-22T16:05:21.441152"
-    },
-    {
-        "temperature": 18.29,
-        "humidity": 64.84,
-        "brightness": 0.33,
-        "timestamp": "2026-01-22T16:05:01.320599"
-    },
-    {
-        "temperature": 20.15,
-        "humidity": 58.56,
-        "brightness": 0.31,
-        "timestamp": "2026-01-22T16:04:41.204068"
-    },
-    {
-        "temperature": 21.03,
-        "humidity": 52.88,
-        "brightness": 0.35,
-        "timestamp": "2026-01-22T16:04:20.957500"
-    },
-    {
-        "temperature": 20.84,
-        "humidity": 58.14,
-        "brightness": 0.97,
-        "timestamp": "2026-01-22T16:04:00.841431"
-    },
-    {
-        "temperature": 20.21,
-        "humidity": 61.46,
-        "brightness": 0.31,
-        "timestamp": "2026-01-22T16:03:40.649678"
-    },
-    {
-        "temperature": 18.77,
-        "humidity": 62.04,
-        "brightness": 0.44,
-        "timestamp": "2026-01-22T16:03:20.490357"
-    },
-    {
-        "temperature": 19.55,
-        "humidity": 62.54,
-        "brightness": 0.3,
-        "timestamp": "2026-01-22T16:03:00.010872"
-    },
-    {
-        "temperature": 19.21,
-        "humidity": 66.01,
-        "brightness": 0.37,
-        "timestamp": "2026-01-22T16:02:39.870379"
-    },
-    {
-        "temperature": 20.73,
-        "humidity": 56.04,
-        "brightness": 0.81,
-        "timestamp": "2026-01-22T16:02:19.758046"
-    },
-    {
-        "temperature": 20.76,
-        "humidity": 57.72,
-        "brightness": 0.71,
-        "timestamp": "2026-01-22T16:01:59.579235"
-    },
-    {
-        "temperature": 21.19,
-        "humidity": 61.7,
-        "brightness": 0.81,
-        "timestamp": "2026-01-22T16:01:38.940655"
-    },
-    {
-        "temperature": 21.17,
-        "humidity": 66.88,
-        "brightness": 0.86,
-        "timestamp": "2026-01-22T16:01:18.789118"
+        "temperature": 21.3,
+        "humidity": 63.18,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:16:15.248180"
     },
     {
         "temperature": 21.35,
-        "humidity": 50.92,
-        "brightness": 0.65,
-        "timestamp": "2026-01-22T16:00:58.615581"
+        "humidity": 61.27,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:15:54.869441"
     },
     {
-        "temperature": 18.64,
-        "humidity": 66.03,
-        "brightness": 0.5,
-        "timestamp": "2026-01-22T16:00:38.257010"
+        "temperature": 20.44,
+        "humidity": 68.04,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:15:34.513079"
     },
     {
-        "temperature": 19.51,
-        "humidity": 65.12,
-        "brightness": 0.95,
-        "timestamp": "2026-01-22T16:00:18.128442"
+        "temperature": 20.84,
+        "humidity": 61.19,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:15:14.117790"
     },
     {
-        "temperature": 19.36,
-        "humidity": 63.5,
-        "brightness": 0.81,
-        "timestamp": "2026-01-22T15:59:57.885259"
+        "temperature": 20.66,
+        "humidity": 58.81,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:14:53.715445"
+    },
+    {
+        "temperature": 21.96,
+        "humidity": 65.29,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:14:33.350351"
+    },
+    {
+        "temperature": 18.28,
+        "humidity": 51.33,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:14:12.982334"
+    },
+    {
+        "temperature": 20.77,
+        "humidity": 53.65,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:13:52.623744"
+    },
+    {
+        "temperature": 21.04,
+        "humidity": 56.32,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:13:32.222986"
+    },
+    {
+        "temperature": 20.35,
+        "humidity": 69.9,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:13:11.751187"
+    },
+    {
+        "temperature": 19.09,
+        "humidity": 65.76,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:12:51.398017"
+    },
+    {
+        "temperature": 20.96,
+        "humidity": 53.46,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:12:31.001179"
+    },
+    {
+        "temperature": 20.8,
+        "humidity": 64.37,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:12:10.627387"
+    },
+    {
+        "temperature": 21.43,
+        "humidity": 53.88,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:11:50.194511"
+    },
+    {
+        "temperature": 20.57,
+        "humidity": 56.86,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:11:29.662246"
+    },
+    {
+        "temperature": 18.47,
+        "humidity": 61.11,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:11:09.184663"
+    },
+    {
+        "temperature": 18.1,
+        "humidity": 61.56,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:10:48.784649"
+    },
+    {
+        "temperature": 19.88,
+        "humidity": 56.92,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:10:28.399642"
+    },
+    {
+        "temperature": 20.23,
+        "humidity": 54.18,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:10:07.902538"
+    },
+    {
+        "temperature": 20.69,
+        "humidity": 56.3,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:09:47.500246"
+    },
+    {
+        "temperature": 19.67,
+        "humidity": 67.77,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:09:27.133134"
+    },
+    {
+        "temperature": 18.26,
+        "humidity": 64.48,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:09:06.707707"
+    },
+    {
+        "temperature": 19.34,
+        "humidity": 63.37,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:08:46.309643"
+    },
+    {
+        "temperature": 19.76,
+        "humidity": 57.88,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:08:25.606086"
+    },
+    {
+        "temperature": 19.48,
+        "humidity": 63.97,
+        "brightness": null,
+        "water_level": "unknown",
+        "timestamp": "2026-01-23T19:08:05.229169"
+    },
+    {
+        "temperature": 19.66,
+        "humidity": 58.47,
+        "brightness": 0.46,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:55.045146"
+    },
+    {
+        "temperature": 18.63,
+        "humidity": 64.95,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:07:51.230381"
+    },
+    {
+        "temperature": 21.13,
+        "humidity": 57.52,
+        "brightness": 0.49,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:44.997809"
+    },
+    {
+        "temperature": 19.12,
+        "humidity": 64.21,
+        "brightness": 0.86,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:44.619509"
+    },
+    {
+        "temperature": 18.13,
+        "humidity": 50.06,
+        "brightness": 0.89,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:34.998072"
     },
     {
         "temperature": 21.5,
-        "humidity": 61.86,
-        "brightness": 0.95,
-        "timestamp": "2026-01-22T15:59:37.557735"
+        "humidity": 57.1,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:07:30.764848"
     },
     {
-        "temperature": 19.54,
-        "humidity": 57.53,
-        "brightness": 0.65,
-        "timestamp": "2026-01-22T15:59:17.281802"
+        "temperature": 21.82,
+        "humidity": 61.96,
+        "brightness": 0.48,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:25.051765"
     },
     {
-        "temperature": 21.52,
-        "humidity": 54.15,
+        "temperature": 19.47,
+        "humidity": 57.43,
+        "brightness": 0.89,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:24.476864"
+    },
+    {
+        "temperature": 19.11,
+        "humidity": 54.03,
+        "brightness": 0.6,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:15.004176"
+    },
+    {
+        "temperature": 18.03,
+        "humidity": 50.9,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:07:10.391371"
+    },
+    {
+        "temperature": 21.85,
+        "humidity": 63.35,
+        "brightness": 0.36,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:04.991165"
+    },
+    {
+        "temperature": 18.72,
+        "humidity": 60.42,
         "brightness": 0.85,
-        "timestamp": "2026-01-22T15:59:06.867821"
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:07:04.351515"
+    },
+    {
+        "temperature": 18.32,
+        "humidity": 57.16,
+        "brightness": 0.43,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:55.054770"
+    },
+    {
+        "temperature": 21.44,
+        "humidity": 58.93,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:06:49.940812"
+    },
+    {
+        "temperature": 20.16,
+        "humidity": 50.54,
+        "brightness": 0.79,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:44.992289"
+    },
+    {
+        "temperature": 20.54,
+        "humidity": 57.95,
+        "brightness": 0.93,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:44.235586"
+    },
+    {
+        "temperature": 18.6,
+        "humidity": 65.67,
+        "brightness": 0.77,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:34.984111"
+    },
+    {
+        "temperature": 19.87,
+        "humidity": 61.0,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:06:29.312076"
+    },
+    {
+        "temperature": 20.14,
+        "humidity": 58.49,
+        "brightness": 0.78,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:25.042232"
+    },
+    {
+        "temperature": 21.2,
+        "humidity": 63.62,
+        "brightness": 0.81,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:24.081824"
+    },
+    {
+        "temperature": 19.84,
+        "humidity": 52.32,
+        "brightness": 0.97,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:14.996666"
+    },
+    {
+        "temperature": 18.84,
+        "humidity": 58.36,
+        "brightness": null,
+        "water_level": "low",
+        "timestamp": "2026-01-23T19:06:08.908681"
+    },
+    {
+        "temperature": 19.55,
+        "humidity": 52.85,
+        "brightness": 0.42,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:05.007007"
+    },
+    {
+        "temperature": 19.73,
+        "humidity": 67.31,
+        "brightness": 0.54,
+        "water_level": "ok",
+        "timestamp": "2026-01-23T19:06:03.944339"
     }
 ]

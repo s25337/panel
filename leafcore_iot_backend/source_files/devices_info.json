@@ -2,23 +2,23 @@
     "light": {
         "device_name": "LC_Greenhouse_Module_Light001",
         "type": "light",
-        "state": "off",
+        "state": "on",
         "mode": "auto",
-        "intensity": 0,
+        "intensity": 0.14,
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "fan": {
         "device_name": "LC_Greenhouse_Module_Fan001",
         "type": "fan",
-        "state": "off",
+        "state": "on",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "pump": {
         "device_name": "LC_Greenhouse_Module_Pump001",
@@ -26,29 +26,29 @@
         "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-21 19:52",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "sprinkler": {
         "device_name": "LC_Greenhouse_Module_Sprinkler001",
         "type": "sprinkler",
-        "state": "off",
+        "state": "on",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "heat_mat": {
         "device_name": "LC_Greenhouse_Module_Heat001",
         "type": "heating mat",
-        "state": "on",
+        "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "temp_hum_sensor": {
         "device_name": "LC_Greenhouse_Module_TempHumSensor001",
@@ -56,9 +56,9 @@
         "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "light_sensor": {
         "device_name": "LC_Greenhouse_Module_LightSensor001",
@@ -66,9 +66,9 @@
         "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     },
     "water_level_sensor": {
         "device_name": "LC_Greenhouse_Module_WaterLevelSensor001",
@@ -76,8 +76,8 @@
         "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
-        "last_edit_date": "2026-01-20 17:28:41",
+        "last_edit_date": "2026-01-23 19:01:49",
         "is_registered": true,
-        "user_id": 69
+        "user_id": 70
     }
 }

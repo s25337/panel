@@ -2,10 +2,13 @@
 import requests as ext_requests
 import os
 import json
+import logging
 from flask import Blueprint, request, jsonify
 from flask import current_app
+from src.json_manager import load_json_secure, save_json_secure
 
 api_webhooks = Blueprint('api_webhooks', __name__)
+
 # Webhook do odbioru ustawień z Terrarium
 @api_webhooks.route('/external/settings', methods=['POST'])
 def receive_external_settings():
@@ -39,8 +42,7 @@ def receive_external_settings():
     }
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     try:
-        with open(settings_file, 'w') as f:
-            json.dump(new_settings, f, indent=2)
+        save_json_secure(settings_file,new_settings)
         print(f"[webhook] Zaktualizowano settings_config.json: {new_settings}")
         return jsonify({"status": "OK", "saved": new_settings})
     except Exception as e:
@@ -54,7 +56,7 @@ def external_watering_control():
     Wywołuje lokalny endpoint /api/watering niezależnie od danych wejściowych, might change 
     """
     try:
-        resp = ext_requests.post('http://localhost:5001/api/watering') ##5001 nie 5000
+        resp = ext_requests.post('http://localhost:5001/api/watering')
         print(f"[webhook] Wywołano /api/watering, status: {resp.status_code}, body: {resp.text}")
         return (resp.text, resp.status_code, resp.headers.items())
     except Exception as e:
@@ -67,33 +69,47 @@ def webhook_test():
     print(f"[webhook] Otrzymano dane: {data}")
     return jsonify({"status": "OK", "received": data})
 
-@api_webhooks.route('/external/devices/unregister/<groupId>', methods=['POST'])
+@api_webhooks.route('/external/devices/unregistered', methods=['POST'])
 def register_device_webhook():
     """
     Webhook endpoint for external Terrarium server to register devices
-    Receives user_id and is_registered, updates all devices with these values
     """
-    data = request.get_json(force=True)
-    print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
-    group_id =  data.get("group_id", None)
-    devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
     try:
-       devices_info = load_json_secure(devices_info_file)
-       if devices_info["light"]["group_id"] == group_id:
-          for device in devices_info.items():
-               device["user_id"] = None
-               device["is_registered"] = False
-    except Exception as e:
-        print(f"[webhook] Błąd odczytu devices_info.json: {e}")
-        return jsonify({"status": "ERROR", "message": str(e)}), 500    
-    try:
-        save_json_secure(devices_info_file)
-        print(f"[webhook] Zaktualizowano wszystkie urządzenia: user_id={user_id}, is_registered={is_registered}")
-        return jsonify({"status": "OK", "updated": devices_info})
-    except Exception as e:
-        print(f"[webhook] Błąd zapisu devices_info.json: {e}")
-        return jsonify({"status": "ERROR", "message": str(e)}), 500
+        data = request.get_json(force=True)
+        print(f"[webhook] Otrzymano rejestrację urządzeń z Terrarium: {data}")
+        
+        group_id = data.get("groupId")
+        
+        if not group_id:
+             return jsonify({"status": "ERROR", "message": "No group_id provided"}), 400
 
+        devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
+        devices_info = load_json_secure(devices_info_file)
+        
+        updates_made = False
+
+        for name, device_data in devices_info.items():
+            # Skip non-dictionary items (like timestamps)
+            if not isinstance(device_data, dict):
+                continue
+            
+            if str(device_data.get("group_id")) == str(group_id):
+                device_data["user_id"] = None
+                device_data["is_registered"] = False
+                updates_made = True
+
+        if updates_made:
+            save_json_secure(devices_info_file, devices_info)
+            print(f"[webhook] Unregistered devices for group {group_id}")
+            return jsonify({"status": "OK", "updated": devices_info})
+        else:
+            print(f"[webhook] No matching group_id found: {group_id}")
+            return jsonify({"status": "OK", "message": "No devices found for this group"}), 200
+
+    except Exception as e:
+        print(f"[webhook] Error: {e}")
+        return jsonify({"status": "ERROR", "message": str(e)}), 500
+    
 @api_webhooks.route('/external/light', methods=['POST'])
 def external_light_control():
 
@@ -102,14 +118,10 @@ def external_light_control():
     intensity_value = data.get("intensity", 0)  
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     try:
-        with open(settings_file, 'r') as f:
-            settings = json.load(f)
-        
+        settings = load_json_secure(settings_file)
         settings["light_intensity"] = intensity_value
         print(f"[webhook] Ustawiono light_intensity w settings na: {intensity_value}")
-        
-        with open(settings_file, 'w') as f:
-            json.dump(settings, f, indent=2)
+        save_json_secure(settings_file,settings)
             
         return jsonify({"status": "OK", "intensity": intensity_value})
     except Exception as e:

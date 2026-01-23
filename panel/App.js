@@ -424,7 +424,7 @@ useEffect(() => {
                           apiService.toggleDevice('light', newIntensity);
                         } else {
                           // W auto mode ustawiaj settings
-                          apiService.updateSettings({ light_intensity: newIntensity });
+                          apiService.updateSettings({ light_intensity: newIntensity/100 });
                         }
                       }}
                     />

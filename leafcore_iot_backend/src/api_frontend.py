@@ -1,4 +1,3 @@
-
 import threading
 from src.bluetooth_service import BluetoothService
 from datetime import datetime, timedelta, time as dtime
@@ -30,11 +29,27 @@ def start_bluetooth():
 @api_frontend.route("/bluetooth/logs", methods=["GET"])
 def get_bluetooth_logs():
     global bluetooth_thread
-    if bluetooth_thread and bluetooth_thread.is_alive():
-        return jsonify({'status': 'ok', 'logs': bluetooth_thread.getLogs()})
+
+    # Check if the thread object exists (was ever created)
+    if bluetooth_thread:
+        # 1. Fetch the logs even if the thread has finished!
+        current_logs = bluetooth_thread.getLogs()
+        
+        # 2. Check status separately
+        # If it's alive, it's 'running'. If it's not alive, it's 'finished' (or stopped).
+        status = 'running' if bluetooth_thread.is_alive() else 'finished'
+        
+        return jsonify({
+            'status': 'ok', 
+            'service_state': status, # Frontend can use this to know when to stop polling
+            'logs': current_logs
+        })
     else:
-        return jsonify({'status': 'error', 'message': 'Bluetooth service not running'}), 400
-    
+        # Only return error if the service was never started
+        return jsonify({
+            'status': 'error', 
+            'message': 'Bluetooth service has not been started yet'
+        }), 400    
 @api_frontend.route("/sensors", methods=["GET"])
 def get_sensors():
     sensor_data_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data.json")
@@ -56,6 +71,7 @@ def get_status():
         "temperature": sensor_data.get("temperature"),
         "humidity": sensor_data.get("humidity"),
         "brightness": sensor_data.get("brightness"),
+        "water_level": sensor_data.get("water_level"),
         "devices": devices_info
     })
 
@@ -114,18 +130,15 @@ def update_settings():
 def get_devices():
     """Get devices info"""
     devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
-    with open(devices_info_file, 'r') as f:
-        devices_info = json.load(f)
+    devices_info = load_json_secure(devices_info_file)
     return jsonify(devices_info)
 
 @api_frontend.route("/control/<device>/<state>", methods=["POST"])
 def toggle_device(device, state):
     devices_info_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "devices_info.json")
-    with open(devices_info_file, 'r') as f:
-        devices_info = json.load(f)
-        devices_info[device]["state"] = state 
-    with open(devices_info_file, 'w') as f:
-        json.dump(devices_info, f, indent=2)
+    devices_info = load_json_secure(devices_info_file)
+    devices_info[device]["state"] = state 
+    save_json_secure(devices_info_file, devices_info)
 
 ## bardzo dlugi useless timer dla frontu idk
 
@@ -134,8 +147,7 @@ def toggle_device(device, state):
 def get_watering_timer():
     """Zwraca czas do najbliższego podlewania (dni, godziny, minuty, sekundy, interval_seconds)"""
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
-    with open(settings_file, 'r') as f:
-        settings = json.load(f)
+    settings = load_json_secure(settings_file)
     watering_days = settings.get('watering_days', [])
     watering_time = settings.get('watering_time', '12:00')
     try:

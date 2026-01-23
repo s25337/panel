@@ -12,6 +12,7 @@ import threading
 import logging
 import board
 import busio
+import serial
 from src.json_manager import load_json_secure, save_json_secure
 try:
     import gpiod
@@ -146,7 +147,7 @@ class SoftwareI2CBridge:
 class SensorService(threading.Thread):
     """Sensor reading thread - collects data from AHT10 and VEML7700"""
     
-    def __init__(self, chip_path, scl_pin, sda_pin, output_file, water_max_pin, save_callback, read_callback, poll_interval=2.0, water_min_pin=None):
+    def __init__(self, chip_path, scl_pin, sda_pin, output_file, save_callback, read_callback, poll_interval=2.0):
         super().__init__()
         self.daemon = True
         self.running = True
@@ -155,22 +156,22 @@ class SensorService(threading.Thread):
         self.sda_pin = sda_pin
         self.output_file = output_file
         self.poll_interval = poll_interval
-        self.water_min_pin = water_min_pin
-        self.water_max_pin = water_max_pin
         self.save_callback = save_callback
         self.read_callback = read_callback
-
-        self.water_min = None  # For water level pins    
-        self.water_max = None       
         self.sensor_aht = None
         self.sensor_veml = None
         self.i2c = None
+        
+        self.serial_conn = None 
+        self.serial_port = '/dev/ttyUSB0' # Usually ttyUSB0 or ttyACM0
+        self.baud_rate = 115200
+        self.last_water_status = "unknown"
+        self.last_water_level_raw = {"min": 0, "max": 0} 
         
     def _initialize_sensors(self):
         """Initialize I2C bridge and sensors"""
         try:
             self.i2c = SoftwareI2CBridge(self.chip_path, self.scl_pin, self.sda_pin)
-            #self.i2c = busio.I2C(board.SCL, board.SDA)
             logger.info("I2C Bridge initialized")
             
             # Initialize AHT10
@@ -191,29 +192,41 @@ class SensorService(threading.Thread):
                 
             # Initialize water level sensors
             try:
-                if self.water_min_pin is not None:
-                    self.water_min = gpiod.Chip(self.chip_path).request_lines(
-                        consumer="water_min_sensor",
-                        config={self.water_min_pin: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP)}
-                    )
-                    logger.info("✓ Water Min Sensor Connected")
-                if self.water_max_pin is not None:
-                    self.water_max = gpiod.Chip(self.chip_path).request_lines(
-                        consumer="water_max_sensor",
-                        config={self.water_max_pin: gpiod.LineSettings(direction=Direction.INPUT, bias=Bias.PULL_UP)}
-                    )
-                    logger.info("✓ Water Max Sensor Connected")
+                self.serial_conn = serial.Serial(self.serial_port, self.baud_rate, timeout=1)
+                self.serial_conn.reset_input_buffer()
+                logger.info(f"✓ ESP32 Serial Connected on {self.serial_port}")
             except Exception as e:
-                logger.warning(f"Water Level Sensor Error: {e}")
-                self.water_min = None
-                self.water_max = None
+                logger.warning(f"Could not connect to ESP32 via USB: {e}")
+                self.serial_conn = None
 
-            return self.sensor_aht or self.sensor_veml or self.water_min or self.water_max
-
+            return self.sensor_aht or self.sensor_veml or self.serial_conn
             
         except Exception as e:
             logger.error(f"Sensor initialization failed: {e}")
             return False
+    def _parse_esp32_line(self, line):
+        """
+        Parses line like: "MIN=1 MAX=0 VMIN=2400 VMAX=200"
+        Returns: min_wet (bool), max_wet (bool)
+        """
+        try:
+            parts = line.split()
+            data_map = {}
+            for part in parts:
+                if '=' in part:
+                    key, val = part.split('=', 1)
+                    data_map[key] = int(val)
+            
+            min_wet = (data_map.get("MIN", 0) == 1)
+            max_wet = (data_map.get("MAX", 0) == 1)
+            
+            # Optional: Store raw analog values for debugging
+            self.last_water_level_raw["min"] = data_map.get("VMIN", 0)
+            self.last_water_level_raw["max"] = data_map.get("VMAX", 0)
+
+            return min_wet, max_wet
+        except ValueError:
+            return None, None
 
     def run(self):
         if not SENSORS_AVAILABLE:
@@ -224,19 +237,40 @@ class SensorService(threading.Thread):
             logger.warning("No sensors available - running in mock mode")
             self._run_mock()
             return
-
+        import random
         logger.info("Sensor Service started - collecting data...")
         last_save = 0
         last_history_save = 0
         while self.running:
             try:
                 now = time.time()
+                if self.serial_conn and self.serial_conn.in_waiting > 0:
+                    try:
+                        # Read line, decode bytes to string, strip whitespace
+                        line = self.serial_conn.readline().decode('utf-8',errors='ignore').strip()
+                        if "MIN=" in line and "MAX=" in line:
+                            min_wet, max_wet = self._parse_esp32_line(line)
+                            if min_wet is not None:
+                                # LOGIC: 
+                                # If MIN is dry -> LOW
+                                # If MAX is wet -> HIGH
+                                # Otherwise -> OK
+                                if not min_wet:
+                                    self.last_water_status = "low"
+                                elif max_wet:
+                                    self.last_water_status = "high"
+                                else:
+                                    self.last_water_status = "ok"
+                            logging.info(f"{self.last_water_status}")
+                    except Exception as e:
+                        logger.error(f"Serial parse error: {e}")
                 if now - last_save >= 2:
                     last_save = now
                     data = {
-                        "temperature": None,
-                        "humidity": None,
+                        "temperature": round(20 + random.uniform(-2, 2), 2),
+                        "humidity": round(60 + random.uniform(-10, 10), 2),
                         "brightness": None,
+                        "water_level": self.last_water_status,
                         "timestamp": datetime.datetime.now().isoformat()
                     }
                     if self.sensor_aht:
@@ -252,35 +286,6 @@ class SensorService(threading.Thread):
                             data["brightness"] = round(brightness, 2)
                         except Exception as e:
                             logger.debug(f"VEML7700 read error: {e}")
-
-                    # Read water level sensors
-                    try:
-                        if self.water_min:
-                            min_state = self.water_min.get_value(self.water_min_pin)
-                            data["water_min"] = "low" if min_state == Value.INACTIVE else "ok"
-                        if self.water_max:
-                            max_state = self.water_max.get_value(self.water_max_pin)
-                            logger.info(f"Water Max Sensor Raw: {max_state}")
-                            if max_state == Value.ACTIVE:
-                               data["water_max"] = "high"
-                               logger.info("Water level is HIGH (Sensor Triggered)")
-                            else:
-                               data["water_max"] = "ok"
-                               logger.info("ok")
-                            #max_state = self.water_max.get_value(self.water_max_pin)
-                            #data["water_max"] = "high" if max_state == Value.INACTIVE else "ok"
-                            #max_state = self.water_max.get_value(self.water_max_pin)
-                            #logger.debug(f"Water Max Raw State: {max_state}")
-                       
-                            # Explicit logic to ensure both paths are clear
-                            #if max_state == Value.INACTIVE:
-                               #data["water_max"] = "high"
-                               #logger.info("Water level HIGH detected!")
-                            #else:
-                               #data["water_max"] = "ok"
-                               #logger.debug("Water level is normal (ok)")     
-                    except Exception as e:
-                        logger.debug(f"Water level sensor read error: {e}")
 
                     # Save to file
                     self.save_callback(self.output_file, data)
@@ -318,6 +323,7 @@ class SensorService(threading.Thread):
                     "temperature": round(20 + random.uniform(-2, 2), 2),
                     "humidity": round(60 + random.uniform(-10, 10), 2),
                     "brightness": round(random.uniform(0.3, 1.0), 2),
+                    "water_level": "ok",
                     "timestamp": datetime.datetime.now().isoformat()
                 }
                 # Zapisz tylko jeden rekord do sensor_data.json

@@ -6,10 +6,11 @@ import requests
 import json
 import os
 import logging
+from src.json_manager import save_json_secure, load_json_secure
 
 logger = logging.getLogger(__name__)
-
-SETTING_IMPORT_ENDPOINT = "http://172.19.14.15:8080/terrarium/dataTerrarium"
+SERVER_URL = os.getenv('TARGET_IP', '127.0.0.1')
+SETTING_IMPORT_ENDPOINT = f"http://{SERVER_URL}:8081/terrarium/dataTerrarium"
 
 
 def import_current_settings(output_file):
@@ -29,9 +30,7 @@ def import_current_settings(output_file):
 
         # Ensure directory exists
         os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
-        
-        with open(output_file, "w") as f:
-            json.dump(data, f, indent=4)
+        save_json_secure(output_file,data)
         
         logger.info(f"Settings saved to {output_file}")
         return data
