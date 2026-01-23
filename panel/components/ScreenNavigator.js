@@ -31,11 +31,6 @@ const ScreenNavigator = ({ screens = [], currentScreen = 0, onScreenChange = () 
         if (isSliderActiveRef.current) return false;
         const isHorizontalSwipe = Math.abs(gestureState.dx) > Math.abs(gestureState.dy) * 2;
         const isLargeMovement = Math.abs(gestureState.dx) > 5;
-        // Blokuj swipe w prawo (na panel historii) jeśli nie jesteśmy na historii
-        if (gestureState.dx < -5 && currentScreenRef.current === screens.length - 2) {
-          // Próbujemy wejść na ostatni ekran (history) swipe'em w prawo — blokuj
-          return false;
-        }
         return isHorizontalSwipe && isLargeMovement;
       },
       onPanResponderTerminationRequest: () => {
@@ -56,11 +51,8 @@ const ScreenNavigator = ({ screens = [], currentScreen = 0, onScreenChange = () 
             newScreen = currentScreenRef.current - 1;
           }
         } else if (gestureState.dx < -swipeThreshold) {
-          // Blokuj wejście na ostatni ekran swipe'em w prawo
           if (currentScreenRef.current < screens.length - 1) {
-            if (!(currentScreenRef.current === screens.length - 2)) {
-              newScreen = currentScreenRef.current + 1;
-            }
+            newScreen = currentScreenRef.current + 1;
           }
         }
         if (newScreen !== currentScreenRef.current) {

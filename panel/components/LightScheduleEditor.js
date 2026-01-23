@@ -16,23 +16,18 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-       // const settings = await apiService.getSettings();
-          const response = await fetch('/settings_config.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      const settings = await response.json();
-       if (settings.start_hour !== undefined && settings.start_hour !== null && settings.end_hour !== undefined && settings.end_hour !== null) {
-        setStartHour(settings.start_hour);
-        setEndHour(settings.end_hour);
-        setIsLoading(false);
-    }
-    else {
-      console.warn('Start and end hour not found in settings, using cached value.');
-      setStartHour((prev) => prev || cachedHours.start_hour);
-      setEndHour((prev) => prev || cachedHours.end_hour);
-      setIsLoading(false);
-    }
+        const settings = await apiService.getSettings();
+        if (settings.start_hour !== undefined && settings.start_hour !== null && settings.end_hour !== undefined && settings.end_hour !== null) {
+          setStartHour(settings.start_hour);
+          setEndHour(settings.end_hour);
+          setIsLoading(false);
+        }
+        else {
+          console.warn('Start and end hour not found in settings, using cached value.');
+          setStartHour((prev) => prev || cachedHours.start_hour);
+          setEndHour((prev) => prev || cachedHours.end_hour);
+          setIsLoading(false);
+        }
     } catch (error) {
        console.error('Error calculating light schedule:', error);
       setStartHour((prev) => prev || cachedHours.start_hour);
