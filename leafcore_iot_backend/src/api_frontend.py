@@ -149,7 +149,7 @@ def get_watering_timer():
     settings_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "settings_config.json")
     settings = load_json_secure(settings_file)
     watering_days = settings.get('watering_days', [])
-    watering_time = settings.get('watering_time', '12:00')
+    watering_time = '12:00'
     try:
         target_hour, target_minute = map(int, watering_time.split(':'))
     except Exception:
@@ -167,15 +167,16 @@ def get_watering_timer():
     for i in range(7):
         check_day = (current_day_py + i) % 7
         if check_day in watering_days_py:
+            # Jeśli to dzisiaj (i==0), sprawdź czy godzina już minęła
+            if i == 0 and current_time >= dtime(target_hour, target_minute):
+                continue  # Pomiń dzisiaj, szukaj dalej
             days_until = i
             break
     if days_until is None:
         return jsonify({"days": 0, "hours": 0, "minutes": 0, "seconds": 0, "interval_seconds": 0})
 
-    # Jeśli to dziś i godzina już minęła, to będzie dopiero za tydzień
+    # Oblicz dokładną datę następnego podlewania
     next_watering_date = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
-    if days_until == 0 and current_time > dtime(target_hour, target_minute):
-        days_until = 7
     next_watering_date = next_watering_date + timedelta(days=days_until)
 
     seconds_left = int((next_watering_date - now).total_seconds())
