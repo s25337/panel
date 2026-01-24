@@ -3,7 +3,7 @@ import { FontFamily, scale, ResponsiveSizes, Width } from './GlobalStyles';
 
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
-  circularGaugeSize: Math.round(240 * scale),        // 240px on 1024x600
+  circularGaugeSize: Math.round(260 * scale),        // 260px on 1024x600
   gridPaddingHorizontal: Math.round(40 * scale),     // 40px horizontal padding
   gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
   gridGap: Math.round(28 * scale),                   // 28px gap between items

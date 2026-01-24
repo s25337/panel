@@ -164,16 +164,13 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
       <View style={styles.grid}>
         {/* Row 1 - Settings Display + Intensity + Heater + Fan + Bluetooth */}
         <View style={styles.settingsDisplayTile}>
-          <Text style={styles.settingLabel}>setting_id</Text>
-          <Text style={styles.settingId}>{settingId}</Text>
-          <Text style={styles.settingLabel}>plant_name</Text>
           <Text style={styles.plantName}>{plantName}</Text>
         </View>
 
         {/* Current Light Intensity Display */}
         <View style={styles.intensityDisplayTile}>
-          <Text style={styles.intensityDisplayLabel}>Intensity</Text>
-          <Text style={styles.intensityDisplayValue}>{Math.round(lightIntensity)}</Text>
+          <Text style={styles.intensityDisplayLabel}>Light Intensity</Text>
+          <Text style={styles.intensityDisplayValue}>{Math.round(lightIntensity)}%</Text>
         </View>
 
         <ControlTile 
@@ -271,7 +268,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   plantName: {
-    fontSize: 18,
+    fontSize: 26,
     fontWeight: '100',
     fontFamily: FontFamily.workSansLight,
     color: '#ffffff',

@@ -28,6 +28,7 @@ export default function App() {
   const [lightSchedule, setLightSchedule] = useState(null);
   const [manualMode, setManualMode] = useState(false);
   const [wateringInterval, setWateringInterval] = useState(null);
+  const [wateringSecondsLeft, setWateringSecondsLeft] = useState(null);
   const [currentScreen, setCurrentScreen] = useState(0);
   const [isSliderActive, setIsSliderActive] = useState(false);
   const [pairingStatus, setPairingStatus] = useState('idle'); // idle, loading, success, error
@@ -96,6 +97,7 @@ export default function App() {
     const data = await apiService.getWateringTimer();
     if (data && data.interval_seconds !== undefined && data.interval_seconds !== null) {
       setWateringInterval(data.interval_seconds);
+      setWateringSecondsLeft(data.interval_seconds);
     }
   };
 
@@ -160,6 +162,17 @@ export default function App() {
     const timer = setInterval(() => setTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (wateringSecondsLeft === null) return;
+    const timer = setInterval(() => {
+      setWateringSecondsLeft((prev) => {
+        if (prev === null) return prev;
+        return Math.max(0, prev - 1);
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [wateringSecondsLeft === null]);
 
   // Resetuj timeout bezczynności
   const resetScreenTimeout = () => {
@@ -234,6 +247,28 @@ export default function App() {
 
   const padTime = (value) => String(value).padStart(2, '0');
 
+  const formatWateringCountdown = (seconds) => {
+    if (seconds === null || seconds === undefined) return '--';
+    const total = Math.max(0, Math.floor(seconds));
+    if (total >= 86400) {
+      const days = Math.floor(total / 86400);
+      return `${days} d`;
+    }
+    if (total >= 3600) {
+      const hours = Math.floor(total / 3600);
+      return `${hours} h`;
+    }
+    if (total >= 60) {
+      const minutes = Math.floor(total / 60);
+      return `${minutes} m`;
+    }
+    return `${total} s`;
+  };
+
+  const wateringCountdownText = formatWateringCountdown(
+    wateringSecondsLeft !== null ? wateringSecondsLeft : wateringInterval
+  );
+
   const lightScheduleText = (lightSchedule &&
     lightSchedule.start_hour !== undefined &&
     lightSchedule.end_hour !== undefined)
@@ -298,7 +333,7 @@ export default function App() {
                 />
                 <View style={styles.screensaverOverlay}>
                   <Text style={styles.screensaverValue}>
-                    {wateringInterval ? Math.floor(wateringInterval / 86400) : 0} days
+                    {wateringCountdownText}
                   </Text>
                 </View>
               </View>
@@ -386,7 +421,7 @@ export default function App() {
                   {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
                     <View style={styles.lightHeaderRow}>
-                      <Text style={styles.gridLabel}>Light</Text>
+                      <Text style={styles.gridLabel}>Light: </Text>
                       <Text style={styles.lightScheduleText}>{lightScheduleText}</Text>
                     </View>
                     <ValueSlider

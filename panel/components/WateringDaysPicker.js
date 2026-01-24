@@ -78,7 +78,7 @@ const WateringDaysPicker = ({ onDaysChange = () => {} }) => {
       <View style={styles.contentWrapper}>
         {/* Water Label */}
         <View style={styles.waterLabelWrapper}>
-          <Text style={styles.waterLabel}>Water</Text>
+          <Text style={styles.waterLabel}>Watering Days</Text>
         </View>
 
         {/* Days Grid */}
