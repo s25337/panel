@@ -232,6 +232,14 @@ export default function App() {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const padTime = (value) => String(value).padStart(2, '0');
+
+  const lightScheduleText = (lightSchedule &&
+    lightSchedule.start_hour !== undefined &&
+    lightSchedule.end_hour !== undefined)
+    ? `${padTime(lightSchedule.start_hour)}:${padTime(lightSchedule.start_minute ?? 0)} - ${padTime(lightSchedule.end_hour)}:${padTime(lightSchedule.end_minute ?? 0)}`
+    : '--:-- - --:--';
+
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
@@ -377,7 +385,10 @@ export default function App() {
                 <View style={styles.rowWrapperShort}>
                   {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
-                    <Text style={styles.gridLabel}>Light</Text>
+                    <View style={styles.lightHeaderRow}>
+                      <Text style={styles.gridLabel}>Light</Text>
+                      <Text style={styles.lightScheduleText}>{lightScheduleText}</Text>
+                    </View>
                     <ValueSlider
                       name1="Intensity"
                       value={lightIntensity}

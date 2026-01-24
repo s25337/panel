@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { FontFamily, scale } from './GlobalStyles';
+import { FontFamily, scale, ResponsiveSizes, Width } from './GlobalStyles';
 
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
@@ -13,6 +13,11 @@ const RESPONSIVE_SIZES = {
   screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
   topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
 };
+
+const SLIDER_TRACK_INSET = Math.max(
+  0,
+  Math.round((Width.width_312 - ResponsiveSizes.sliderWidth) / 2)
+);
 
 const styles = StyleSheet.create({
   fullBackground: {
@@ -77,10 +82,18 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#aaaaaa',
-    marginBottom: 8,
+    marginBottom: 12,
     letterSpacing: 0.5,
     textAlign: 'left',
     alignSelf: 'flex-start',
+  },
+  lightHeaderRow: {
+    width: Width.width_312,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    paddingLeft: SLIDER_TRACK_INSET,
   },
   currentValue: {
     fontSize: 18,
@@ -289,8 +302,8 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.workSansMedium,
     color: '#e0e0e0',
     letterSpacing: 0.5,
-    marginBottom: 8,
-    textAlign: 'center',
+    marginBottom: 12,
+    textAlign: 'left',
   },
   bluetoothImage: {
     width: 50,

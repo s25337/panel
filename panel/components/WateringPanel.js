@@ -181,10 +181,10 @@ const styles = StyleSheet.create({
     fontFamily: FontFamily.workSansRegular,
     color: '#888888',
     letterSpacing: 0.3,
-    marginBottom: 8,
+    marginBottom: 12,
     textAlign: 'left',
-    alignSelf: 'flex-start',
-    width: '100%',
+    alignSelf: 'center',
+    width: ResponsiveSizes.sliderWidth,
   },
   timeValue: {
     fontSize: 14,
