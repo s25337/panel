@@ -12,7 +12,6 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
   const cachedHours = { start_hour: 18, end_hour: 6 };
 
 
-  // Fetch current light schedule
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
