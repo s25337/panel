@@ -128,7 +128,7 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
   const formatTime = (val) => String(val).padStart(2, '0');
 
   const timeString = !isLoading && timeLeft 
-    ? `${formatTime(timeLeft.days)}d ${formatTime(timeLeft.hours)}h ${formatTime(timeLeft.minutes)}m`
+    ? `${formatTime(timeLeft.days)}d ${formatTime(timeLeft.hours)}h ${formatTime(timeLeft.minutes)}m ${formatTime(timeLeft.seconds)}s`
     : '--:--:--';
 
   return (

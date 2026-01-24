@@ -229,7 +229,7 @@ export default function App() {
   };
 
   const formatTime = () => {
-    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
   };
 
   const padTime = (value) => String(value).padStart(2, '0');
@@ -322,7 +322,7 @@ export default function App() {
                 >
                   {/* Top Left Time and Date + Manual Mode */}
                   <View style={styles.topLeftTimeContainer}>
-                    <View>
+                    <View style={styles.topLeftTimeRow}>
                       <Text style={styles.topLeftTime}>{formatTime()}</Text>
                       <Text style={styles.topLeftDate}>{formatDate()}</Text>
                     </View>

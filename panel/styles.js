@@ -3,7 +3,7 @@ import { FontFamily, scale, ResponsiveSizes, Width } from './GlobalStyles';
 
 // Responsive sizes optimized for 1024x600
 const RESPONSIVE_SIZES = {
-  circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
+  circularGaugeSize: Math.round(240 * scale),        // 240px on 1024x600
   gridPaddingHorizontal: Math.round(40 * scale),     // 40px horizontal padding
   gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
   gridGap: Math.round(28 * scale),                   // 28px gap between items
@@ -285,6 +285,11 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 16,
   },
+  topLeftTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 12,
+  },
   topLeftTime: {
     fontSize: 20,
     fontFamily: FontFamily.workSansLight,
@@ -298,7 +303,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   lightScheduleText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FontFamily.workSansMedium,
     color: '#e0e0e0',
     letterSpacing: 0.5,
