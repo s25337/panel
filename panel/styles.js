@@ -79,6 +79,8 @@ const styles = StyleSheet.create({
     color: '#aaaaaa',
     marginBottom: 8,
     letterSpacing: 0.5,
+    textAlign: 'left',
+    alignSelf: 'flex-start',
   },
   currentValue: {
     fontSize: 18,
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   sensorLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: FontFamily.workSansRegular,
     color: '#888888',
     letterSpacing: 0.3,
