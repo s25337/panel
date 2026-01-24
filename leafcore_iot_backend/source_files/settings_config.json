@@ -3,7 +3,7 @@
     "plant_name": "Cress",
     "target_temp": 18.0,
     "target_hum": 60.0,
-    "light_intensity": 0.31,
+    "light_intensity": 0.7,
     "start_hour": 9,
     "end_hour": 21,
     "watering_mode": "standard",

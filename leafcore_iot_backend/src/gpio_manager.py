@@ -86,6 +86,7 @@ class AutomationRules:
                 target = float(settings.get('optimal_light', 1.0))
                 if bright < target:
                    needed = target - bright
+                   logging.info(f"{needed}")
                    devices_info["light"]["intensity"] = needed
                 else:
                    devices_info["light"]["intensity"] = 0.0

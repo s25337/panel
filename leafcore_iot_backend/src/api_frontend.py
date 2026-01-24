@@ -29,19 +29,14 @@ def start_bluetooth():
 @api_frontend.route("/bluetooth/logs", methods=["GET"])
 def get_bluetooth_logs():
     global bluetooth_thread
-
-    # Check if the thread object exists (was ever created)
     if bluetooth_thread:
-        # 1. Fetch the logs even if the thread has finished!
         current_logs = bluetooth_thread.getLogs()
         
-        # 2. Check status separately
-        # If it's alive, it's 'running'. If it's not alive, it's 'finished' (or stopped).
         status = 'running' if bluetooth_thread.is_alive() else 'finished'
         
         return jsonify({
             'status': 'ok', 
-            'service_state': status, # Frontend can use this to know when to stop polling
+            'service_state': status, 
             'logs': current_logs
         })
     else:
@@ -50,6 +45,11 @@ def get_bluetooth_logs():
             'status': 'error', 
             'message': 'Bluetooth service has not been started yet'
         }), 400    
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    
+    return response, 200
 @api_frontend.route("/sensors", methods=["GET"])
 def get_sensors():
     sensor_data_file = os.path.join(current_app.config['CURRENT_DIR'], "source_files", "sensor_data.json")

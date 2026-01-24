@@ -283,6 +283,8 @@ class SensorService(threading.Thread):
                         try:
                             lux = self.sensor_veml.lux
                             brightness = min(max(lux / 500.0, 0.0), 1.0)
+                            if brightness == None:
+                               brightness = 0.0
                             data["brightness"] = round(brightness, 2)
                         except Exception as e:
                             logger.debug(f"VEML7700 read error: {e}")

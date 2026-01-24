@@ -94,36 +94,26 @@ class WifiConfigurator:
         self.base_server_url = os.getenv('TARGET_IP', '127.0.0.1')
         self.server_url = f"http://{self.base_server_url}:8081/terrarium/"
         self.connection_event = connection_event
-        self.logs = logs or []
+        self.logs = logs if logs is not None else []
         self.config = None 
         self.server = None
+
     def on_ssid_write(self, value, options):
         self.ssid_buffer += bytes(value)
         #logging.info(f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes.")
-        msg = f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes."
-        logging.info(msg)
-        self.logs.append(msg)
 
     def on_pass_write(self, value, options):
         self.pass_buffer += bytes(value)
         #logging.info(f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes.")
-        msg = f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes."
-        logging.info(msg)
-        self.logs.append(msg)
 
     def on_user_id_write(self, value, options):
         self.userid_buffer += bytes(value)
         #logging.info(f"Appended User ID chunk. Buffer is now {len(self.userid_buffer)} bytes.")
-        msg = "SSID Execute received. Decoding buffer..."
-        logging.info(msg)
-        self.logs.append(msg)
 
     def on_ssid_execute(self, value, options):
-        logging.info("SSID Execute received. Decoding buffer...")
         try:
             self.ssid = self.ssid_buffer.decode('utf-8')
-            logging.info(f"Decoded SSID: {self.ssid}")
-            msg = f"Decoded SSID: {self.ssid}"
+            msg = f"Received Wi-Fi data for SSID: {self.ssid}"
             logging.info(msg)
             self.logs.append(msg)
         except Exception as e:
@@ -134,14 +124,8 @@ class WifiConfigurator:
             self.ssid_buffer = b""
 
     def on_pass_execute(self, value, options):
-        msg = "Password Execute received. Decoding buffer..."
-        logging.error(msg)
-        self.logs.append(msg)
         try:
             self.password = self.pass_buffer.decode('utf-8')
-            msg = "Password Execute received. Decoding buffer..."
-            logging.info(msg)
-            self.logs.append(msg)
         except Exception as e:
             msg = f"Error decoding password: {e}"
             logging.error(msg)
@@ -155,9 +139,6 @@ class WifiConfigurator:
         logging.info("Userid Execute received. Decoding buffer...")
         try:
             self.userid = self.userid_buffer.decode('utf-8')
-            msg = "User ID received"
-            logging.info(msg)
-            self.logs.append(msg)
         except Exception as e:
             msg = "Error decoding password: {e}"
             self.logs.append(msg)
@@ -188,19 +169,13 @@ class WifiConfigurator:
             else:
                 cmd = ['nmcli', 'dev', 'wifi', 'connect', self.ssid, 'password', self.password]
                 result = subprocess.run(cmd, capture_output=True, text=True, check=True, timeout=30)
-                msg = f"NetworkManager output: {result.stdout}"
-                logging.info(msg)
-                self.logs.append(msg)
                 msg = "--- Successfully connected to Wi-Fi! ---"
                 logging.info(msg)
                 self.logs.append(msg)
-                msg = "--- Sending device data to server... ---"
+                msg = "--- Proceeding to registering device... ---"
                 logging.info(msg)
                 self.logs.append(msg)
-                logging.info(f"NetworkManager output: {result.stdout}")
-                logging.info("--- Successfully connected to Wi-Fi! ---")
 
-            logging.info("--- Sending device data to server... ---")
             url = self.server_url + "module"
             time.sleep(3) 
             # --- Registration Logic ---
@@ -211,6 +186,8 @@ class WifiConfigurator:
                     if device["is_registered"]:
                        msg = "--- This greenhouse already has an owner. Delete it from modules list first. ---"
                        logging.info(msg)
+                       self.logs.append(msg)
+                       msg = "Instructions for unregistering the greenhouse: Open 'Connect Device' tab in your app. Tap and hold on the device card until it starts shaking, then click the bin icon." 
                        self.logs.append(msg)
                        return
 
@@ -233,15 +210,14 @@ class WifiConfigurator:
                 self.logs.append(msg)
 
                 if response.status_code == 200:
-                    msg = "Server response: 200 OK. Saving updated device info to file."
-                    logging.info(msg)
-                    self.logs.append(msg)
                     current_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     for device in devices_info.values():
                        device["is_registered"] = True
                        device["user_id"] = int(self.userid)
                        device["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     save_json_secure(self.devices_info_file, devices_info)
+                    msg = f"--- Success! The greenhouse has been assigned to your account. ---"
+                    self.logs.append(msg)
                 else:
                     msg = f"Server response: {response.status_code}. Failed to register devices."
                     logging.error(msg)
@@ -293,7 +269,6 @@ class BluetoothService(threading.Thread):
         self.connection_event = connection_event or threading.Event()
         self.mainloop = None
         self.logs = []
-        # Persist these to prevent Garbage Collection
         self.config = None
         self.server = None
 
@@ -304,15 +279,13 @@ class BluetoothService(threading.Thread):
             self.logs.append(msg)
             return
 
-        # 1. Initialize Loop
         self.mainloop = async_tools.EventLoop()
         logging.basicConfig(level=logging.INFO)
         
-        # 2. Initialize Configurator
         self.config = WifiConfigurator(
             self.devices_info_file,
             connection_event=self.connection_event,
-            logs=self.logs  # Passing the SAME list reference
+            logs=self.logs
         )
 
         try:
@@ -369,13 +342,15 @@ class BluetoothService(threading.Thread):
                 write_callback=self.config.on_userid_execute
             )
 
-            msg = "Bluetooth server is published. Waiting for configuration..."
+            msg = "Bluetooth pairing started! To register your device and connect it to the network, open 'Connect Device' tab in app, and click '+' button to start the scanning process."
+            logging.warning(msg)
+            self.logs.append(msg)
+            msg = "After scanning, select device from the list and press 'Connect'. Then, type Wi-Fi password and press 'Save' to begin registration process."
             logging.warning(msg)
             self.logs.append(msg)
             
             self.server.publish()
             
-            # FIX 1: Run the loop so the thread doesn't die!
             self.mainloop.run()
         except Exception as e:
             logging.error(f"Bluetooth Service Error: {e}")
@@ -383,7 +358,22 @@ class BluetoothService(threading.Thread):
         except adapter.AdapterError as e:
             logging.error(f"Bluetooth Error: {e}")
             self.logs.append(f"Bluetooth Adapter Error: {e}")
-
+        finally:
+            # --- THE FIX IS HERE ---
+            # This runs 100% of the time, even if code crashes.
+            # It forces bluezero to release the 'Handler' lock.
+            logging.info("Cleaning up Bluetooth Event Loop...")
+            try:
+                if self.mainloop:
+                    self.mainloop.quit()
+            except Exception:
+                pass
+            try:
+                # Extra safety: disconnect server if possible
+                if self.server:
+                    self.server.quit() 
+            except Exception:
+                pass
     def stop(self):
         if self.mainloop:
             try:
@@ -393,9 +383,4 @@ class BluetoothService(threading.Thread):
                 pass
 
     def getLogs(self):
-        """
-        Returns the FULL history of logs. 
-        Does NOT clear the list. 
-        This prevents the 'flickering' or 'disappearing' logs issue.
-        """
         return list(self.logs)

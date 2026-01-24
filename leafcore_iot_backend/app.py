@@ -62,37 +62,7 @@ settings_file = os.path.join(current_dir, "source_files", "settings_config.json"
 devices_info_file = os.path.join(current_dir, "source_files", "devices_info.json")
 
 devices_info = load_json_secure(devices_info_file)
-def check_and_start_bluetooth():
-    global bluetooth_thread
-    
-    # 2. Check if we need to start Bluetooth
-    should_start = False
-    try:
-        # Reuse your existing load_json_secure function
-        devices_info = load_json_secure(devices_info_file)
-        
-        # If file is empty or no devices, we might assume setup is needed
-        if not devices_info:
-            should_start = True
-        else:
-            # Check if ANY device is NOT registered
-            for device in devices_info.values():
-                if not device.get("is_registered", False):
-                    should_start = True
-                    break
-    except Exception as e:
-        print(f"Error checking registration status: {e}")
-        # Fail safe: Start bluetooth if we can't read the file
-        should_start = True
 
-    # 3. Start the thread if condition met
-    if should_start:
-        print("--- Startup: Unregistered devices found. Starting Bluetooth Service... ---")
-        if bluetooth_thread is None or not bluetooth_thread.is_alive():
-            bluetooth_thread = BluetoothService(devices_info_path)
-            bluetooth_thread.start()
-    else:
-        print("--- Startup: All devices registered. Skipping Bluetooth. ---")
 def setup_pwm(chip_num, channel_num):
     base_path = f"/sys/class/pwm/pwmchip{chip_num}"
     export_path = f"{base_path}/export"
@@ -364,6 +334,6 @@ def shutdown():
 if __name__ == "__main__":
     import atexit
     atexit.register(shutdown)
-    with app.app_context():
-        check_and_start_bluetooth()
+ #   with app.app_context():
+#        check_and_start_bluetooth()
     app.run(host="0.0.0.0", port=5001, debug=False, use_reloader=False)
