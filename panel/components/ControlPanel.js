@@ -50,30 +50,6 @@ const ControlPanel = ({ onSliderStart, onSliderEnd }) => {
     fetchCurrentSettings();
   }, []);
 
-   useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const response = await fetch('/settings_config.json');
-        if (!response.ok) {
-          throw new Error('Failed to fetch settings');
-        }
-        const data = await response.json();
-        cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
-        console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
-        cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
-        console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
-        cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
-        console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
-        
-        setTargetTemp(cachedSettings.target_temp);
-        setTargetHumidity(cachedSettings.target_hum);
-        setLightIntensity(cachedSettings.light_intensity);
-      } catch (error) {
-        console.error('Error loading settings:', error);
-      }
-    };  loadSettings();
-}, []);
-
   const fetchLightIntensity = async () => {
     try {
       const settings = await apiService.getSettings();

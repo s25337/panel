@@ -1,7 +1,7 @@
 {
     "setting_id": "36",
     "plant_name": "Cress",
-    "target_temp": 18.0,
+    "target_temp": 21,
     "target_hum": 60.0,
     "light_intensity": 0.7,
     "start_hour": 9,

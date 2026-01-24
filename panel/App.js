@@ -1,31 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, ScrollView, StyleSheet, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Dimensions, SafeAreaView, Text, Animated, ImageBackground, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import * as Font from 'expo-font';
 import { StatusBar } from 'expo-status-bar';
 import { FontFamily, Color, scale } from './GlobalStyles';
+import { styles, RESPONSIVE_SIZES } from './styles';
 import CircularGauge from './components/CircularGauge';
-import LightPanel from './components/LightPanel';
 import ValueSlider from './components/ValueSlider';
 import WateringPanel from './components/WateringPanel';
 import ControlPanel from './components/ControlPanel';
-import HistoryPanel from './components/HistoryPanel';
 import ScreenNavigator from './components/ScreenNavigator';
 import LogModal from './components/LogModal';
 import apiService from './services/apiService';
 
 const { width, height } = Dimensions.get('window');
-// Responsive sizes optimized for 1024x600
-const RESPONSIVE_SIZES = {
-  circularGaugeSize: Math.round(210 * scale),        // 210px on 1024x600
-  gridPaddingHorizontal: Math.round(40 * scale),     // 40px horizontal padding
-  gridPaddingVertical: Math.round(40 * scale),       // 40px vertical padding
-  gridGap: Math.round(28 * scale),                   // 28px gap between items
-  borderRadius: Math.round(24 * scale),              // 24px border radius
-  componentPadding: Math.round(12 * scale),          // 12px component internal padding
-  screensaverSliderWidth: Math.round(320 * scale),   // 320px on 1024x600
-  screensaverSliderHeight: Math.round(90 * scale),   // 90px on 1024x600
-  topLeftMargin: Math.round(24 * scale),             // 24px top/left margin
-};
 const cachedSettings = { target_temp: 25, target_hum: 60, light_intensity: 50 };
 
 export default function App() {
@@ -67,29 +54,6 @@ export default function App() {
 
     loadFonts();
   }, []);
-useEffect(() => {
-  const loadSettings = async () => {
-    try {
-      const response = await fetch('/settings_config.json');
-      if (!response.ok) {
-        throw new Error('Failed to fetch settings');
-      }
-      const data = await response.json();
-      cachedSettings.target_temp = data.target_temp || cachedSettings.target_temp;
-      console.log('cachedSettings.target_temp updated:', cachedSettings.target_temp);
-      cachedSettings.target_hum = data.target_hum || cachedSettings.target_hum;
-      console.log('cachedSettings.target_hum updated:', cachedSettings.target_hum);
-      cachedSettings.light_intensity = data.light_intensity || cachedSettings.light_intensity;
-      console.log('cachedSettings.light_intensity updated:', cachedSettings.light_intensity);
-      
-      setTargetTemp(cachedSettings.target_temp);
-      setTargetHumidity(cachedSettings.target_hum);
-      setLightIntensity(cachedSettings.light_intensity);
-    } catch (error) {
-      console.error('Error loading settings:', error);
-    }
-  };  loadSettings();
-}, []);
   const fetchSensors = async () => {
     const data = await apiService.getSensors();
     if (data.temperature !== null) setTemperature(data.temperature);
@@ -130,7 +94,7 @@ useEffect(() => {
 };
   const fetchWateringTimer = async () => {
     const data = await apiService.getWateringTimer();
-    if (data && data.interval_seconds) {
+    if (data && data.interval_seconds !== undefined && data.interval_seconds !== null) {
       setWateringInterval(data.interval_seconds);
     }
   };
@@ -249,7 +213,6 @@ useEffect(() => {
     };
   }, []);
 
-
   const formatDate = () => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
     const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
@@ -269,7 +232,6 @@ useEffect(() => {
     return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Wait for fonts to load before rendering
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
@@ -308,7 +270,18 @@ useEffect(() => {
                   <Text style={styles.screensaverValue}>{temperature.toFixed(1)}°C</Text>
                 </View>
               </View>
-              {/* Humidity with screensaver-watering image */}
+              {/* Humidity with screensaver-humidity image */}
+              <View style={styles.screensaverImageContainer}>
+                <Image 
+                  source={require('./assets/screensaver-humidity.png')} 
+                  style={styles.screensaverImage}
+                  resizeMode="contain"
+                />
+                <View style={styles.screensaverOverlay}>
+                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+                </View>
+              </View>
+              {/* Watering days countdown with screensaver-watering image */}
               <View style={styles.screensaverImageContainer}>
                 <Image 
                   source={require('./assets/screensaver-watering.png')} 
@@ -316,7 +289,9 @@ useEffect(() => {
                   resizeMode="contain"
                 />
                 <View style={styles.screensaverOverlay}>
-                  <Text style={styles.screensaverValue}>{humidity.toFixed(0)}%</Text>
+                  <Text style={styles.screensaverValue}>
+                    {wateringInterval ? Math.floor(wateringInterval / 86400) : 0} days
+                  </Text>
                 </View>
               </View>
             </View>
@@ -330,7 +305,7 @@ useEffect(() => {
             <ScreenNavigator
               currentScreen={currentScreen}
               onScreenChange={setCurrentScreen}
-              isSliderActive={isSliderActive || currentScreen === 2} // blokuj gesty na HistoryPanel
+              isSliderActive={isSliderActive}
               screens={[
                 // Screen 0: Main Panel - 3x2 Grid
                 <View
@@ -343,12 +318,7 @@ useEffect(() => {
                       <Text style={styles.topLeftTime}>{formatTime()}</Text>
                       <Text style={styles.topLeftDate}>{formatDate()}</Text>
                     </View>
-                    <Text style={[
-                      styles.manualModeIndicator,
-                      { color: manualMode ? '#FF9800' : '#666666' }
-                    ]}>
-                      MANUAL IS {manualMode ? 'ON' : 'OFF'}
-                    </Text>
+
                   </View>
 
                   <View 
@@ -485,19 +455,6 @@ useEffect(() => {
                   <ControlPanel onSliderStart={handleSliderStart} onSliderEnd={handleSliderEnd} />
                 </View>
               </View>,
-              // Screen 2: History
-              <View
-                key="history"
-                style={styles.screenContainer}
-                pointerEvents="box-none"
-              >
-                <View
-                  style={styles.container}
-                  pointerEvents="auto"
-                >
-                  <HistoryPanel />
-                </View>
-              </View>,
             ]}
             />
           </ImageBackground>
@@ -508,364 +465,3 @@ useEffect(() => {
     </ImageBackground>
   );
 }
-const styles = StyleSheet.create({
-  fullBackground: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  screenContainer: {
-    flex: 1,
-    backgroundColor: 'transparent',
-  },
-  container: {
-    flex: 1,
-    backgroundColor: 'transparent',
-    fontFamily: FontFamily.workSansRegular,
-  },
-  contentWrapper: {
-    flex: 1,
-  },
-  backgroundImage: {
-    resizeMode: 'cover',
-    flex: 1,
-  },
-  mainGrid: {
-    flex: 1,
-    flexDirection: 'column',
-    paddingHorizontal: RESPONSIVE_SIZES.gridPaddingHorizontal,
-    paddingVertical: RESPONSIVE_SIZES.gridPaddingVertical,
-    gap: RESPONSIVE_SIZES.gridGap,
-    justifyContent: 'space-between',
-    marginTop: Math.round(50 * scale),  // Responsive margin for time/date area
-  },
-  rowWrapperTall: {
-    flex: 1.2,
-    flexDirection: 'row',
-    gap: RESPONSIVE_SIZES.gridGap,
-  },
-  rowWrapperShort: {
-    flex: 0.7,
-    flexDirection: 'row',
-    gap: RESPONSIVE_SIZES.gridGap,
-  },
-  gridItemTall: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: RESPONSIVE_SIZES.borderRadius,
-    padding: RESPONSIVE_SIZES.componentPadding,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.7,
-  },
-  gridItemShort: {
-    flex: 1,
-    backgroundColor: 'rgba(30, 30, 30, 0.7)',
-    borderRadius: RESPONSIVE_SIZES.borderRadius,
-    padding: RESPONSIVE_SIZES.componentPadding,
-    justifyContent: 'center',
-    alignItems: 'center',
-    opacity: 0.7,
-  },
-  gridLabel: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#aaaaaa',
-    marginBottom: 8,
-    letterSpacing: 0.5,
-  },
-  currentValue: {
-    fontSize: 18,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  currentLabel: {
-    fontSize: 12,
-    color: '#888888',
-    letterSpacing: 0.3,
-  },
-  currentValueContainer: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginTop: -20,
-    justifyContent: 'center',
-  },
-  sensorLabel: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansRegular,
-    color: '#888888',
-    letterSpacing: 0.3,
-    marginBottom: 4,
-  },
-  sensorValue: {
-    fontSize: 36,
-    fontFamily: FontFamily.workSansExtraLight,
-    color: "#FFFFFF",
-    letterSpacing: 0.5,
-    fontWeight: '600',
-  },
-  headerBox: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    flex: 1,
-  },
-  statusBox: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-  },
-  statusIndicator: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-  },
-  statusOn: {
-    backgroundColor: '#4CAF50',
-    shadowColor: '#4CAF50',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 8,
-  },
-  statusOff: {
-    backgroundColor: '#666666',
-  },
-  statusText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#ffffff',
-  },
-  leftColumn: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightColumn: {
-    flex: 0.75,
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  leftColumnSmall: {
-    flex: 0.5,
-    justifyContent: 'flex-start',
-    alignItems: 'stretch',
-    paddingTop: 10,
-  },
-  rightColumnLarge: {
-    flex: 1.5,
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  panelsColumn: {
-    flex: 1,
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  gaugesColumn: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 40,
-    alignItems: 'center',
-  },
-  header: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 30,
-  },
-  time: {
-    fontSize: 72,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 2,
-  },
-  date: {
-    fontSize: 18,
-    color: '#888888',
-    marginTop: 10,
-    letterSpacing: 0.5,
-  },
-  manualModeIndicator: {
-    fontSize: 14,
-    color: '#FF9800',
-    marginTop: 8,
-    fontWeight: '600',
-    letterSpacing: 0.5,
-  },
-  sensorValues: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  sensorText: {
-    fontSize: 16,
-    color: '#aaaaaa',
-    letterSpacing: 0.5,
-  },
-screensaverContainer: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: 'black',
-  },
-    screensaverContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 60,
-  },
-  screensaverImageContainer: {
-    position: 'relative',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  screensaverImage: {
-    width: 200,
-    height: 200,
-  },
-  screensaverOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  screensaverLabel: {
-    fontSize: 32,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  screensaverValue: {
-    fontSize: 48,
-    fontFamily: FontFamily.workSansExtraLight,
-    color: '#ffffff',
-    letterSpacing: 2,
-    textShadowColor: 'rgba(0, 0, 0, 0.8)',
-    textShadowOffset: { width: 1, height: 1 },
-    textShadowRadius: 4,
-    marginTop: -10,
-  },
- 
-  topLeftTimeContainer: {
-    position: 'absolute',
-    top: RESPONSIVE_SIZES.topLeftMargin,
-    left: RESPONSIVE_SIZES.topLeftMargin,
-    right: RESPONSIVE_SIZES.topLeftMargin,
-    zIndex: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  topLeftTime: {
-    fontSize: 20,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 1,
-  },
-  topLeftDate: {
-    fontSize: 20,
-    fontFamily: FontFamily.workSansLight,
-    color: '#ffffff',
-    letterSpacing: 0.5,
-  },
-  lightScheduleText: {
-    fontSize: 12,
-    fontFamily: FontFamily.workSansMedium,
-    color: '#e0e0e0',
-    letterSpacing: 0.5,
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  bluetoothImage: {
-    width: 50,
-    height: 50,
-    marginBottom: 6,
-    resizeMode: 'contain',
-    tintColor: '#ffffff',
-  },
-  pairModulesButtonText: {
-    fontSize: 17,
-    fontFamily: FontFamily.workSansLight,
-    fontWeight: '600',
-    textAlign: 'center',
-  },
-  pairModulesButtonTextSuccess: {
-    color: '#4CAF50',
-  },
-  pairModulesButtonTextError: {
-    color: '#FF6B6B',
-  },
-  pairingButtonLoading: {
-    opacity: 2,
-  },
-  pairingButtonSuccess: {
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderWidth: 2,
-    borderColor: '#4CAF50',
-  },
-  pairingButtonError: {
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    borderWidth: 2,
-    borderColor: '#FF6B6B',
-  },
-modalOverlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.7)', // Semi-transparent black
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000, // Ensure it sits on top
-  },
-  modalContent: {
-    width: '80%',
-    height: '60%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    color: '#333',
-    textAlign: 'center',
-  },
-  logContainer: {
-    flex: 1,
-    backgroundColor: '#1e1e1e', // Dark terminal-like background
-    padding: 10,
-    borderRadius: 5,
-    marginBottom: 15,
-  },
-  logText: {
-    color: '#00FF00', // Hacker green text
-    fontFamily: 'monospace',
-    fontSize: 12,
-    marginBottom: 2,
-  },
-  closeButton: {
-    backgroundColor: '#FF5252',
-    padding: 10,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
-  }
-});

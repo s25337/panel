@@ -6,7 +6,6 @@ import { Color, FontFamily, FontSize, Gap } from "../GlobalStyles";
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const normalizeDeg = (deg) => ((deg % 360) + 360) % 360;
 
-// Your current tuning
 const SWEEP_ANGLE = 265;
 const START_ANGLE = 270 - SWEEP_ANGLE / 2;
 
@@ -61,7 +60,6 @@ export default function CircularGauge({
   const onValueChangeFn = onChange || onValueChange || rest.onChange || rest.onValueChange;
   const onChangeCompleteFn = onChangeComplete || rest.onChangeComplete;
   
-  // If maxValue is provided, infer mode from it for backward compat
   if (maxValue !== undefined && !max) {
     max = maxValue;
   }

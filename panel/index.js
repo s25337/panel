@@ -2,7 +2,7 @@ import React from 'react';
 import { registerRootComponent } from 'expo';
 import App from './App';
 
-// Dodaj CSS, aby nie dało się zaznaczać tekstu
+//nie dało się zaznaczać tekstu
 if (typeof document !== 'undefined') {
   const style = document.createElement('style');
   style.textContent = `

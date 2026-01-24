@@ -45,17 +45,14 @@ const apiService = {
      * Pobiera logi Bluetooth
      */
     async getBluetoothLogs() {
-    try {
-      // FIX: Append ?t=timestamp to the URL to prevent caching
-      const timestamp = new Date().getTime();
-      const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs?t=${timestamp}`);
-      
-      if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching bluetooth logs:', error);
-      return { logs: [] };
-    }
+      try {
+        const response = await fetchWithTimeout(`${API_BASE_URL}/api/bluetooth/logs`);
+        if (!response.ok) throw new Error('Failed to fetch bluetooth logs');
+        return await response.json();
+      } catch (error) {
+        console.error('Error fetching bluetooth logs:', error);
+        return { logs: [] };
+      }
     },
   /**
    * Pobiera aktualne wartości czujników
@@ -132,7 +129,10 @@ const apiService = {
   async getSettings() {
     try {
       const response = await fetchWithTimeout(`${API_BASE_URL}/api/settings`);
-      if (!response.ok) throw new Error('Failed to fetch settings');
+      if (!response.ok) {
+        console.error('Settings response not ok:', response.status);
+        throw new Error('Failed to fetch settings');
+      }
       const data = await response.json();
       if (typeof data.light_intensity === 'number') {
         data.light_intensity = data.light_intensity * 100;
@@ -140,7 +140,7 @@ const apiService = {
       return data;
     } catch (error) {
       console.error('Error fetching settings:', error);
-      return { target_temp: 25, target_hum: 60 };
+      return { target_temp: 25, target_hum: 60, light_intensity: 50 };
     }
   },
 
@@ -173,13 +173,7 @@ const apiService = {
       return await response.json();
     } catch (error) {
       console.error('Error fetching watering timer:', error);
-      return { 
-        days: 2, 
-        hours: 10, 
-        minutes: 0, 
-        seconds: 0,
-        interval_seconds: 0
-      };
+      return { time_remaining: null };
     }
   },
 

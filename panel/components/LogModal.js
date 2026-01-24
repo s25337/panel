@@ -20,7 +20,6 @@ const LogModal = ({ visible, onClose, setPairingStatus }) => {
   const startLogging = async () => {
     setBluetoothLogs([]);
     
-    // Call bluetooth API once when modal opens
     try {
       const response = await apiService.startBluetooth();
       if (response.status === 'ok') {

@@ -4,7 +4,7 @@
         "type": "light",
         "state": "on",
         "mode": "auto",
-        "intensity": 0.5,
+        "intensity": 0.31000000000000005,
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
         "last_edit_date": "2026-01-24 13:05:48",
         "is_registered": true,
@@ -13,7 +13,7 @@
     "fan": {
         "device_name": "LC_Greenhouse_Module_Fan001",
         "type": "fan",
-        "state": "on",
+        "state": "off",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
         "last_edit_date": "2026-01-24 13:05:48",
@@ -43,7 +43,7 @@
     "heat_mat": {
         "device_name": "LC_Greenhouse_Module_Heat001",
         "type": "heating mat",
-        "state": "off",
+        "state": "on",
         "mode": "auto",
         "group_id": "LC_Greenhouse_Box_ModuleGroup001",
         "last_edit_date": "2026-01-24 13:05:48",
