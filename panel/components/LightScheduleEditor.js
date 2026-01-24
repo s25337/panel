@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import apiService from '../services/apiService';
-import ValueSlider from './ValueSlider';
-import { FontFamily } from '../GlobalStyles';
+import { FontFamily, ResponsiveSizes } from '../GlobalStyles';
 
 const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
   const [startHour, setStartHour] = useState(18);
@@ -62,6 +61,28 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
     }
   };
 
+  const clampHour = (value) => Math.max(0, Math.min(23, value));
+
+  const displayHour = (value) => String(Math.round(value)).padStart(2, '0');
+
+  const changeStartHour = (delta) => {
+    const nextHour = clampHour(Math.round(startHour) + delta);
+    if (nextHour === Math.round(startHour)) return;
+    onSliderStart?.();
+    handleStartHourChange(nextHour);
+    handleStartHourComplete(nextHour);
+    onSliderEnd?.();
+  };
+
+  const changeEndHour = (delta) => {
+    const nextHour = clampHour(Math.round(endHour) + delta);
+    if (nextHour === Math.round(endHour)) return;
+    onSliderStart?.();
+    handleEndHourChange(nextHour);
+    handleEndHourComplete(nextHour);
+    onSliderEnd?.();
+  };
+
   if (isLoading) {
     return (
       <View style={styles.container}>
@@ -81,46 +102,56 @@ const LightScheduleEditor = ({ onSliderStart, onSliderEnd }) => {
         {/* Start Hour Slider */}
         <View style={styles.sliderWrapper}>
           <Text style={styles.label}>On at</Text>
-          <ValueSlider
-            name1="Start"
-            value={startHour}
-            min={0}
-            max={23}
-            step={1}
-            unit="h"
-            onValueChange={handleStartHourChange}
-            onSlidingComplete={handleStartHourComplete}
-            onSliderStart={onSliderStart}
-            onSliderEnd={onSliderEnd}
-          />
+          <View style={styles.timePicker}>
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => changeStartHour(-1)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.timeButtonText}>{'<'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.timeValue}>{displayHour(startHour)}</Text>
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => changeStartHour(1)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.timeButtonText}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Schedule Display - Between Sliders */}
         <View style={styles.scheduleDisplay}>
           <Text style={styles.scheduleText}>
-            {String(Math.round(startHour)).padStart(2, '0')}:00
+            {displayHour(startHour)}:00
           </Text>
           <Text style={styles.scheduleLabel}>to</Text>
           <Text style={styles.scheduleText}>
-            {String(Math.round(endHour)).padStart(2, '0')}:00
+            {displayHour(endHour)}:00
           </Text>
         </View>
 
         {/* End Hour Slider */}
         <View style={styles.sliderWrapper}>
           <Text style={styles.label}>Off at</Text>
-          <ValueSlider
-            name1="End"
-            value={endHour}
-            min={0}
-            max={23}
-            step={1}
-            unit="h"
-            onValueChange={handleEndHourChange}
-            onSlidingComplete={handleEndHourComplete}
-            onSliderStart={onSliderStart}
-            onSliderEnd={onSliderEnd}
-          />
+          <View style={styles.timePicker}>
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => changeEndHour(-1)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.timeButtonText}>{'<'}</Text>
+            </TouchableOpacity>
+            <Text style={styles.timeValue}>{displayHour(endHour)}</Text>
+            <TouchableOpacity
+              style={styles.timeButton}
+              onPress={() => changeEndHour(1)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.timeButtonText}>{'>'}</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </View>
@@ -169,6 +200,35 @@ const styles = StyleSheet.create({
   sliderWrapper: {
     flex: 1,
     alignItems: 'center',
+  },
+  timePicker: {
+    width: ResponsiveSizes.sliderWidth,
+    height: ResponsiveSizes.sliderHeight,
+    borderRadius: ResponsiveSizes.sliderBorderRadius,
+    backgroundColor: '#3a3a3a',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+  },
+  timeButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timeButtonText: {
+    fontSize: 20,
+    fontFamily: FontFamily.workSansMedium,
+    color: '#e0e0e0',
+  },
+  timeValue: {
+    fontSize: 18,
+    fontWeight: '300',
+    fontFamily: FontFamily.workSansLight,
+    color: '#ffffff',
+    letterSpacing: 0.3,
   },
   label: {
     fontSize: 12,

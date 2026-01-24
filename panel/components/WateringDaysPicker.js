@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   waterLabelWrapper: {
     justifyContent: 'center',
     alignItems: 'center',
-    width: 50,
+    width: 110,
   },
   waterLabel: {
     fontSize: 22,
