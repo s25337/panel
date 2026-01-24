@@ -377,6 +377,7 @@ export default function App() {
                 <View style={styles.rowWrapperShort}>
                   {/* Col 1: Light Intensity */}
                   <View style={styles.gridItemShort}>
+                    <Text style={styles.gridLabel}>Light</Text>
                     <ValueSlider
                       name1="Intensity"
                       value={lightIntensity}

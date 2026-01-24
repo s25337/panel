@@ -164,7 +164,7 @@ const ValueSlider = memo(
             ]}
           />
           {/* Wartość na środku slidera */}
-          <Text style={styles.sliderValue}>{Math.round(sliderValue)}</Text>
+          <Text style={styles.sliderValue}>{displayValue}</Text>
         </View>
       </View>
     );

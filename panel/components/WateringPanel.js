@@ -133,6 +133,7 @@ const WateringPanel = ({ onSliderStart, onSliderEnd }) => {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.timeLabel}>Next watering in:</Text>
       <Text style={styles.timeDisplay}>{timeString}</Text>
       
       {/* Slider - taki sam jak Light */}
@@ -180,6 +181,14 @@ const styles = StyleSheet.create({
     color: '#e0e0e0',
     letterSpacing: 0.5,
     marginBottom: 8,
+    textAlign: 'center',
+  },
+  timeLabel: {
+    fontSize: 12,
+    fontFamily: FontFamily.workSansRegular,
+    color: '#888888',
+    letterSpacing: 0.3,
+    marginBottom: 2,
     textAlign: 'center',
   },
   sliderWrapper: {
