@@ -12,7 +12,6 @@ import time
 
 logging.basicConfig(level=logging.INFO)
 
-# 2. DEBUG: Print exactly which Python executable is running
 print(f"DEBUG: Running Python from: {sys.executable}", flush=True)
 
 try:
@@ -71,14 +70,11 @@ def switch_to_terminal():
     logging.warning("!!! WATCHDOG TIMER EXPIRED: SWITCHING TO TERMINAL !!!")
     try:
         subprocess.run("sudo /bin/systemctl stop leafcore-kiosk.service", shell=True)
-        # Kill the splash screen (fbi) if it's still there
         subprocess.run("sudo /usr/bin/pkill fbi", shell=True)
         subprocess.run("sudo /bin/systemctl unmask getty@tty1.service", shell=True)
 
-        # START the login prompt
         subprocess.run("sudo /bin/systemctl start getty@tty1.service", shell=True)
         subprocess.run("sudo /usr/bin/chvt 1", shell=True)
-        # os._exit(1)
     except Exception as e:
         logging.error(f"Failed to switch to terminal: {e}")
 
@@ -100,15 +96,12 @@ class WifiConfigurator:
 
     def on_ssid_write(self, value, options):
         self.ssid_buffer += bytes(value)
-        #logging.info(f"Appended SSID chunk. Buffer is now {len(self.ssid_buffer)} bytes.")
 
     def on_pass_write(self, value, options):
         self.pass_buffer += bytes(value)
-        #logging.info(f"Appended Password chunk. Buffer is now {len(self.pass_buffer)} bytes.")
 
     def on_user_id_write(self, value, options):
         self.userid_buffer += bytes(value)
-        #logging.info(f"Appended User ID chunk. Buffer is now {len(self.userid_buffer)} bytes.")
 
     def on_ssid_execute(self, value, options):
         try:
@@ -194,7 +187,7 @@ class WifiConfigurator:
                     device_payload = {
                     "device_name": device.get("device_name"),
                     "type": device.get("type"),
-                    "user_id": int(self.userid) if self.userid else None, # Force Integer
+                    "user_id": int(self.userid) if self.userid else None,
                     "group_id": device.get("group_id"),
                     "state": device.get("state"),
                     "mode": device.get("mode"),
@@ -359,9 +352,6 @@ class BluetoothService(threading.Thread):
             logging.error(f"Bluetooth Error: {e}")
             self.logs.append(f"Bluetooth Adapter Error: {e}")
         finally:
-            # --- THE FIX IS HERE ---
-            # This runs 100% of the time, even if code crashes.
-            # It forces bluezero to release the 'Handler' lock.
             logging.info("Cleaning up Bluetooth Event Loop...")
             try:
                 if self.mainloop:
@@ -369,7 +359,6 @@ class BluetoothService(threading.Thread):
             except Exception:
                 pass
             try:
-                # Extra safety: disconnect server if possible
                 if self.server:
                     self.server.quit() 
             except Exception:

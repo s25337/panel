@@ -117,11 +117,10 @@ class AutomationRules:
             last_run = str(devices_info.get("pump", {}).get("last_edit_date"))[:10]
             if last_run == current_date_str:
                return
-            if current_day in watering_days and current_time == "17:51":
+            if current_day in watering_days and current_time == "12:00":
                logging.info("Got here")
                if sensor_data.get("water_min_level") == "low":
                   devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                  logger.info(f"Watering scheduled: {current_day} but not triggered due to too little water")
                   return
                devices_info["sprinkler"]["state"] = "off"
                devices_info["heat_mat"]["state"] = "off"
@@ -129,7 +128,6 @@ class AutomationRules:
                time.sleep(5)
                devices_info["pump"]["state"] = "on"
                devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-               logger.info(f"Watering schedule triggered: {current_day} at {watering_time}")
                return
 
     @staticmethod
@@ -141,9 +139,8 @@ class AutomationRules:
             devices_info["pump"]["state"] = "on"
             devices_info["pump"]["last_edit_date"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
             settings["watering_time"] = settings.get('water_seconds', 3) * AutomationRules.PUMP_ML_PER_S
-            logging.info("Watering started")
             try:
-               save_json_secure(settings_file, settings)
+               save_json_secure(settings_file_path, settings)
             except Exception as e:
                return
             return

@@ -123,7 +123,6 @@ def send_data(group_id):
             "watering_mode": ext_settings.get("watering_mode", "standard"),
             "water_seconds": ext_settings.get("water_amount", 1),
             "watering_days": [day_map_rev.get(day, 1) for day in ext_settings.get("dayOfWeek", [])],
-          #  "watering_time": ext_settings.get("watering_time", "12:00")
         }
         save_json_secure(settings_file, new_settings)
     except Exception as e:

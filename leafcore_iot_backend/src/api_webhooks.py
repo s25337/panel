@@ -89,7 +89,6 @@ def register_device_webhook():
         updates_made = False
 
         for name, device_data in devices_info.items():
-            # Skip non-dictionary items (like timestamps)
             if not isinstance(device_data, dict):
                 continue
             

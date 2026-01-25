@@ -163,7 +163,7 @@ class SensorService(threading.Thread):
         self.i2c = None
         
         self.serial_conn = None 
-        self.serial_port = '/dev/ttyUSB0' # Usually ttyUSB0 or ttyACM0
+        self.serial_port = '/dev/ttyUSB0' 
         self.baud_rate = 115200
         self.last_water_status = "unknown"
         self.last_water_level_raw = {"min": 0, "max": 0} 
@@ -220,7 +220,6 @@ class SensorService(threading.Thread):
             min_wet = (data_map.get("MIN", 0) == 1)
             max_wet = (data_map.get("MAX", 0) == 1)
             
-            # Optional: Store raw analog values for debugging
             self.last_water_level_raw["min"] = data_map.get("VMIN", 0)
             self.last_water_level_raw["max"] = data_map.get("VMAX", 0)
 
@@ -246,15 +245,10 @@ class SensorService(threading.Thread):
                 now = time.time()
                 if self.serial_conn and self.serial_conn.in_waiting > 0:
                     try:
-                        # Read line, decode bytes to string, strip whitespace
                         line = self.serial_conn.readline().decode('utf-8',errors='ignore').strip()
                         if "MIN=" in line and "MAX=" in line:
                             min_wet, max_wet = self._parse_esp32_line(line)
                             if min_wet is not None:
-                                # LOGIC: 
-                                # If MIN is dry -> LOW
-                                # If MAX is wet -> HIGH
-                                # Otherwise -> OK
                                 if not min_wet:
                                     self.last_water_status = "low"
                                 elif max_wet:
@@ -289,9 +283,7 @@ class SensorService(threading.Thread):
                         except Exception as e:
                             logger.debug(f"VEML7700 read error: {e}")
 
-                    # Save to file
                     self.save_callback(self.output_file, data)
-                    # Every 20s save to sensor_data_history.json (rolling 50)
                     if now - last_history_save >= 20:
                         last_history_save = now
                         try:

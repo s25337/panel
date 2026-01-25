@@ -28,7 +28,6 @@ def import_current_settings(output_file):
         data = response.json()
         logger.info(f"Received config: {data}")
 
-        # Ensure directory exists
         os.makedirs(os.path.dirname(output_file) or ".", exist_ok=True)
         save_json_secure(output_file,data)
         

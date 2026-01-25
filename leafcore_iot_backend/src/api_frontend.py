@@ -40,7 +40,6 @@ def get_bluetooth_logs():
             'logs': current_logs
         })
     else:
-        # Only return error if the service was never started
         return jsonify({
             'status': 'error', 
             'message': 'Bluetooth service has not been started yet'
@@ -139,8 +138,6 @@ def toggle_device(device, state):
     devices_info = load_json_secure(devices_info_file)
     devices_info[device]["state"] = state 
     save_json_secure(devices_info_file, devices_info)
-
-## bardzo dlugi useless timer dla frontu idk
 
 
 @api_frontend.route("/watering-timer", methods=["GET"])
